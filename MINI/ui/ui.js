@@ -1260,7 +1260,6 @@ function _clearAllSignalChips() {
     if (_signalChipCount > 0) {
         const chips = bar.querySelectorAll('.signal-chip');
         for (let i = chips.length - 1; i >= 0; i--) chips[i].remove();
-        bar.querySelectorAll('.sig-group-sep').forEach(el => el.remove());
         _signalChipCount = 0;
     }
 }
@@ -1301,7 +1300,7 @@ function updateSignalChips(tok, signals, dir) {
             chip.id = chipId;
             chip.dataset.tokId = tok.id;
             chip.dataset.dir = dir;
-            bar.appendChild(chip);
+            bar.prepend(chip);
             _signalChipCount++;
         }
         const dexSrc   = r.src || '';
@@ -1336,31 +1335,7 @@ function updateSignalChips(tok, signals, dir) {
 
     updateNoSignalNotice();
     const sc = document.getElementById('signalScroll');
-    if (sc) { _refreshSigGroups(sc); _onSigScroll(sc); }
-}
-
-function _refreshSigGroups(sc) {
-    // Remove old separators
-    sc.querySelectorAll('.sig-group-sep').forEach(el => el.remove());
-    const chips = Array.from(sc.querySelectorAll('.signal-chip'));
-    if (chips.length < 2) return;
-    // Sort chips by tokId so same-token chips are adjacent
-    chips.sort((a, b) => (a.dataset.tokId || '').localeCompare(b.dataset.tokId || ''));
-    // Re-insert sorted chips and add separators between groups
-    const notice = document.getElementById('noSignalNotice');
-    let lastTokId = null;
-    chips.forEach(chip => {
-        const tokId = chip.dataset.tokId;
-        if (lastTokId !== null && tokId !== lastTokId) {
-            const sep = document.createElement('span');
-            sep.className = 'sig-group-sep';
-            sc.appendChild(sep);
-        }
-        sc.appendChild(chip);
-        lastTokId = tokId;
-    });
-    // Keep notice at front
-    if (notice) sc.insertBefore(notice, sc.firstChild);
+    if (sc) _onSigScroll(sc);
 }
 
 // ─── Toast ────────────────────────────────────

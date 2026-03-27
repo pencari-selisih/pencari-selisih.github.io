@@ -420,14 +420,6 @@ body {
 .signal-bar.can-scroll-l .sig-arr-l { opacity: 1; pointer-events: auto; }
 .signal-bar.can-scroll-r .sig-arr-r { opacity: 1; pointer-events: auto; }
 
-/* Separator between token groups in signal bar */
-.sig-group-sep {
-  flex-shrink: 0;
-  width: 1px;
-  align-self: stretch;
-  background: rgba(0, 0, 0, 0.18);
-  margin: 5px 3px;
-}
 
 .signal-chip {
   display: inline-flex;
@@ -448,10 +440,10 @@ body {
   border: 1px solid #8dd4ae;
 }
 
-/* DTC (DEX→CEX): biru */
+/* DTC (DEX→CEX): merah */
 .signal-chip.chip-dtc {
-  background: #e8eeff;
-  border: 1px solid #94aef0;
+  background: #fde8e8;
+  border: 1px solid #f0a0a0;
 }
 
 /* PnL negatif: merah muda */
@@ -487,7 +479,7 @@ body {
 }
 
 .dir-ctd { color: #2a7a48; }
-.dir-dtc { color: #2244aa; }
+.dir-dtc { color: #b03030; }
 
 /* Baris 2: aset + modal + pnl */
 .chip-row-bottom {
