@@ -37,7 +37,7 @@ const APP_DEV_CONFIG = {
   defaultAutoLevel: true,  // Auto Level CEX orderbook
   defaultQuoteCountJumpx: 2,     // 0 = matikan Jumper/LiFi
   scanBatchSize: 10,     // jumlah koin yang di-scan paralel per batch
-  maxDexDisplay: 6, // jumlah kolom DEX yang tampil di hasil scanning (maks = jumlah DEX aktif)
+  maxDexDisplay: 5, // jumlah kolom DEX yang tampil di hasil scanning (maks = jumlah DEX aktif)
   offDexResultScan: ["OPENOCEAN","MAYAN"],     
 
   bungeeApiKey: "71XdjSawshaeie5DeH5b9avPjaoVtoOc2g5ZZx1d",
