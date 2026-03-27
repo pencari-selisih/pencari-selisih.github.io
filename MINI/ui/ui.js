@@ -1081,155 +1081,196 @@ function _wdpIcons(status, walletFetched, cexKey, ticker) {
     return `<span class="wdp-ic-inner">${wdHtml} ${dpHtml}</span>`;
 }
 
+// ─── Monitor card helpers ──────────────────────
+// Dibuat sekali di module scope agar tidak re-alloc tiap buildMonitorRows
+let _lastBuildN = 0; // track column count; rebuild if changed
+
+function _dexHdrCols(pfx, color, tokId, n) {
+    let s = '';
+    for (let i = 0; i < n; i++)
+        s += `<td class="mon-dex-hdr" data-${pfx}-hdr="${i}" data-tok="${tokId}" data-dir="${pfx}" onmouseenter="showObTooltip(this,event)" onmouseleave="hideObTooltip()" ontouchstart="showObTooltip(this,event);event.stopPropagation()" style="background:${color};cursor:pointer">-</td>`;
+    return s;
+}
+function _dexDataCols(pfx, attr, n) {
+    let s = '';
+    for (let i = 0; i < n; i++) s += `<td class="mon-dex-cell" data-${pfx}-${attr}="${i}">-</td>`;
+    return s;
+}
+
+function _buildSingleCard(t, n) {
+    const cc = CONFIG_CEX[t.cex] || {};
+    const ch = CONFIG_CHAINS[t.chain] || {};
+    const pairTk = t.tickerPair || t.ticker;
+    const chainColor = ch.WARNA || '#555';
+    const _hasCexSt = typeof getCexTokenStatus === 'function';
+    const _stTok  = _hasCexSt ? getCexTokenStatus(t.cex, t.ticker, t.chain, 1) : null;
+    const _stPair = _hasCexSt ? getCexTokenStatus(t.cex, pairTk, t.chain, 1) : null;
+    const _wf     = t.cex !== 'indodax' && typeof isCexWalletFetched === 'function' && isCexWalletFetched(t.cex);
+    const _icTok  = _wdpIcons(_stTok, _wf, t.cex, t.ticker);
+    const _icPair = _wdpIcons(_stPair, _wf, t.cex, pairTk);
+    const _cexKey = t.cex.toUpperCase();
+    const _walletInfo = ch.WALLET_CEX && ch.WALLET_CEX[_cexKey];
+    const _explorerBase = ch.URL_Chain || '';
+    function _mkStokLinks(sc, label) {
+        if (!sc || !_walletInfo || !_explorerBase) return label;
+        const addrs = [_walletInfo.address, _walletInfo.address2, _walletInfo.address3].filter(Boolean);
+        const icons = addrs.map((addr, i) => {
+            const url = `${_explorerBase}/token/${sc}?a=${addr}`;
+            const tip = `Stok ${label} ${cc.label||t.cex}${i>0?' #'+(i+1):''} — klik buka di explorer`;
+            return `<a href="${url}" target="_blank" rel="noopener" class="stok-link" title="${tip}" onclick="event.stopPropagation()">📦</a>`;
+        }).join('');
+        return `<span class="stok-name">${label}</span>${icons}`;
+    }
+    const _stokCtd = _mkStokLinks(t.scToken, t.ticker);
+    const _stokDtc = _mkStokLinks(t.scPair, pairTk);
+    const _pairScInfo = t.scPair || (pairTk.toUpperCase() === 'USDT' ? (ch.USDT_SC || '') : '');
+    const _tokInfoUrl  = _explorerBase && t.scToken  ? `${_explorerBase}/token/${t.scToken}` : '';
+    const _pairInfoUrl = _explorerBase && _pairScInfo ? `${_explorerBase}/token/${_pairScInfo}` : '';
+    const _tokNameHtml  = _tokInfoUrl  ? `<a href="${_tokInfoUrl}"  target="_blank" rel="noopener" class="tok-info-link" onclick="event.stopPropagation()">${t.ticker}</a>`  : t.ticker;
+    const _pairNameHtml = _pairInfoUrl ? `<a href="${_pairInfoUrl}" target="_blank" rel="noopener" class="tok-info-link" onclick="event.stopPropagation()">${pairTk}</a>` : pairTk;
+    const _dflChain = { 56:'bsc', 1:'ethereum', 137:'polygon', 42161:'arbitrum', 8453:'base' }[ch.Kode_Chain] || '';
+    const _dflUrl = (_dflChain && t.scToken && _pairScInfo)
+        ? `https://swap.defillama.com/?chain=${_dflChain}&from=${t.scToken}&to=${_pairScInfo}`
+        : '';
+    const _dflLink = _dflUrl
+        ? `<a href="${_dflUrl}" target="_blank" rel="noopener" class="dfl-link" title="Swap di DefiLlama (${t.ticker}→${pairTk})" onclick="event.stopPropagation()">DFL</a>`
+        : '';
+
+    const div = document.createElement('div');
+    div.className = 'mon-card';
+    div.id = 'card-' + t.id;
+    div.style.borderLeft = `3px solid ${chainColor}`;
+    div.innerHTML =
+`<div class="mon-card-hdr" style="background:linear-gradient(135deg,${chainColor}55 0%,${chainColor}20 100%);border-bottom:2px solid ${chainColor}88">
+  <span class="mon-sym">
+    <span class="mon-num">0</span>
+    <span class="mon-tok-name">${_tokNameHtml}<span class="wdp-ic" id="wdic-tok-${t.id}">${_icTok}</span></span>
+    <span class="mon-vs">↔️</span>
+    <span class="mon-tok-name">${_pairNameHtml}<span class="wdp-ic" id="wdic-pair-${t.id}">${_icPair}</span></span>
+  </span>
+  <span class="mon-card-actions">
+    <span class="mon-cex-label" style="background:${cc.WARNA||'#555'}">${(cc.label||t.cex).toUpperCase()}</span>
+    ${_dflLink}
+    <span class="mon-chain-label" style="background:${chainColor}">${ch.label||t.chain.toUpperCase()}</span>
+    <button class="btn-icon mon-act mon-fav ${t.favorite?'fav-active':''}" onclick="toggleFavorite('${t.id}')" title="Favorit">⭐</button>
+    <button class="btn-icon mon-act" onclick="openSheet('${t.id}')" title="Edit Koin">✏️</button>
+    <button class="btn-icon danger mon-act" onclick="deleteToken('${t.id}')" title="Hapus Koin">🗑️</button>
+  </span>
+</div>
+<div class="mon-tables-wrap">
+<div class="mon-table-scroll"><table class="mon-sub-table ctd-table">
+  <thead><tr class="mon-sub-hdr">
+    <td class="mon-lbl-hdr" style="background:${MON_CTD_COLOR}">${_stokCtd}<span class="hdr-amt" data-modal-hdr="ctd"><span class="tbl-status"></span></span></td>
+    ${_dexHdrCols('ctd',MON_CTD_COLOR,t.id,n)}
+  </tr></thead>
+  <tbody>
+    <tr class="mon-row-cex"><td class="mon-lbl-side"><span style='color:green;'>BELI [${t.ticker}]</span></td>${_dexDataCols('ctd','cex',n)}</tr>
+    <tr class="mon-row-dex"><td class="mon-lbl-side"><span style='color:red;'>${t.ticker}→${pairTk}</span></td>${_dexDataCols('ctd','dex',n)}</tr>
+    <tr class="mon-row-recv"><td class="mon-lbl-side">ALL FEE</td>${_dexDataCols('ctd','fee',n)}</tr>
+    <tr class="mon-row-pnl"><td class="mon-lbl-side">💰 PNL</td>${_dexDataCols('ctd','pnl',n)}</tr>
+  </tbody>
+</table></div>
+<div class="mon-table-scroll"><table class="mon-sub-table dtc-table">
+  <thead><tr class="mon-sub-hdr">
+    <td class="mon-lbl-hdr" style="background:${MON_DTC_COLOR}">${_stokDtc}<span class="hdr-amt" data-modal-hdr="dtc"><span class="tbl-status"></span></span></td>
+    ${_dexHdrCols('dtc',MON_DTC_COLOR,t.id,n)}
+  </tr></thead>
+  <tbody>
+    <tr class="mon-row-dex"><td class="mon-lbl-side"><span style='color:green;'>${pairTk}→${t.ticker}</span></td>${_dexDataCols('dtc','dex',n)}</tr>
+    <tr class="mon-row-cex"><td class="mon-lbl-side lbl-pair"><span style='color:red;'>JUAL [${t.ticker}]</span></td>${_dexDataCols('dtc','cex',n)}</tr>
+    <tr class="mon-row-recv"><td class="mon-lbl-side">ALL FEE</td>${_dexDataCols('dtc','fee',n)}</tr>
+    <tr class="mon-row-pnl"><td class="mon-lbl-side">💰 PNL</td>${_dexDataCols('dtc','pnl',n)}</tr>
+  </tbody>
+</table></div>
+</div>`;
+    return div;
+}
+
+function _cacheCard(t, card) {
+    const els = {
+        card,
+        numEl:       card.querySelector('.mon-num'),
+        wdTokEl:     document.getElementById('wdic-tok-'  + t.id),
+        wdPairEl:    document.getElementById('wdic-pair-' + t.id),
+        modalCtdHdr: null, modalDtcHdr: null,
+        ctdStatus: null, dtcStatus: null,
+        ctdHdr: [], ctdCex: [], ctdDex: [], ctdFee: [], ctdPnl: [],
+        dtcHdr: [], dtcCex: [], dtcDex: [], dtcFee: [], dtcPnl: [],
+    };
+    card.querySelectorAll('[data-modal-hdr],[data-ctd-hdr],[data-ctd-cex],[data-ctd-dex],[data-ctd-fee],[data-ctd-pnl],[data-dtc-hdr],[data-dtc-cex],[data-dtc-dex],[data-dtc-fee],[data-dtc-pnl]').forEach(el => {
+        const d = el.dataset;
+        if (d.modalHdr === 'ctd') { els.modalCtdHdr = el; return; }
+        if (d.modalHdr === 'dtc') { els.modalDtcHdr = el; return; }
+        if (d.ctdHdr !== undefined) { els.ctdHdr[+d.ctdHdr] = el; return; }
+        if (d.ctdCex !== undefined) { els.ctdCex[+d.ctdCex] = el; return; }
+        if (d.ctdDex !== undefined) { els.ctdDex[+d.ctdDex] = el; return; }
+        if (d.ctdFee !== undefined) { els.ctdFee[+d.ctdFee] = el; return; }
+        if (d.ctdPnl !== undefined) { els.ctdPnl[+d.ctdPnl] = el; return; }
+        if (d.dtcHdr !== undefined) { els.dtcHdr[+d.dtcHdr] = el; return; }
+        if (d.dtcCex !== undefined) { els.dtcCex[+d.dtcCex] = el; return; }
+        if (d.dtcDex !== undefined) { els.dtcDex[+d.dtcDex] = el; return; }
+        if (d.dtcFee !== undefined) { els.dtcFee[+d.dtcFee] = el; return; }
+        if (d.dtcPnl !== undefined) { els.dtcPnl[+d.dtcPnl] = el; }
+    });
+    const statEls = card.querySelectorAll('.tbl-status');
+    els.ctdStatus = statEls[0] || null;
+    els.dtcStatus = statEls[1] || null;
+    _cardEls.set(t.id, els);
+}
+
 function buildMonitorRows(tokenList) {
     const tokens = tokenList || getFilteredTokens();
-    // Hapus signal chips lama & reset OB cache — data akan terisi ulang dari scan berikutnya
     _clearAllSignalChips();
     for (const k in _obCache) delete _obCache[k];
     updateNoSignalNotice();
+
+    const monList = document.getElementById('monitorList');
     if (!tokens.length) {
-        $('#monitorList').html('<div class="token-list-empty">Tidak ada token. Tambahkan KOIN di menu DATA KOIN.</div>');
+        _cardEls.clear();
+        _lastBuildN = 0;
+        monList.innerHTML = '<div class="token-list-empty">Tidak ada token. Tambahkan KOIN di menu DATA KOIN.</div>';
         return;
     }
+
     const n = totalQuoteCount();
-    const dexHdr = (pfx, color, tokId) => Array.from({ length: n }, (_, i) =>
-        `<td class="mon-dex-hdr" data-${pfx}-hdr="${i}" data-tok="${tokId}" data-dir="${pfx}"
-          onmouseenter="showObTooltip(this,event)" onmouseleave="hideObTooltip()"
-          ontouchstart="showObTooltip(this,event);event.stopPropagation()"
-          style="background:${color};cursor:pointer">-</td>`
-    ).join('');
-    const dexRow = (pfx, attr) => Array.from({ length: n }, (_, i) =>
-        `<td class="mon-dex-cell" data-${pfx}-${attr}="${i}">-</td>`
-    ).join('');
 
-    const _hasCexSt = typeof getCexTokenStatus === 'function';
-    // Build all cards HTML via DocumentFragment for single DOM insert
-    const frag = document.createDocumentFragment();
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = tokens.map((t, idx) => {
-        const cc = CONFIG_CEX[t.cex] || {};
-        const ch = CONFIG_CHAINS[t.chain] || {};
-        const tri = t.tickerPair && t.tickerPair !== t.ticker;
-        const sym = t.ticker + (tri ? '↔' + t.tickerPair : '');
-        const pairTk = t.tickerPair || t.ticker;
-        const minPnlLbl = (isFinite(t.minPnl) && t.minPnl !== null) ? t.minPnl : APP_DEV_CONFIG.defaultMinPnl;
-        const chainColor = ch.WARNA || '#555';
-        // WD/DP icons dari cache untuk header token name
-        const _stTok  = _hasCexSt ? getCexTokenStatus(t.cex, t.ticker, t.chain, 1) : null;
-        const _stPair = _hasCexSt ? getCexTokenStatus(t.cex, pairTk, t.chain, 1) : null;
-        const _wf     = t.cex !== 'indodax' && typeof isCexWalletFetched === 'function' && isCexWalletFetched(t.cex);
-        const _icTok  = _wdpIcons(_stTok, _wf, t.cex, t.ticker);
-        const _icPair = _wdpIcons(_stPair, _wf, t.cex, pairTk);
-        // Stock links — explorer URL: {URL_Chain}/token/{sc}?a={walletAddr}
-        const _cexKey = t.cex.toUpperCase();
-        const _walletInfo = ch.WALLET_CEX && ch.WALLET_CEX[_cexKey];
-        const _explorerBase = ch.URL_Chain || '';
-        function _mkStokLinks(sc, label) {
-            if (!sc || !_walletInfo || !_explorerBase) return label;
-            const addrs = [_walletInfo.address, _walletInfo.address2, _walletInfo.address3].filter(Boolean);
-            const icons = addrs.map((addr, i) => {
-                const url = `${_explorerBase}/token/${sc}?a=${addr}`;
-                const tip = `Stok ${label} ${cc.label||t.cex}${i>0?' #'+(i+1):''} — klik buka di explorer`;
-                return `<a href="${url}" target="_blank" rel="noopener" class="stok-link" title="${tip}" onclick="event.stopPropagation()">📦</a>`;
-            }).join('');
-            return `<span class="stok-name">${label}</span>${icons}`;
+    // Jika jumlah kolom DEX berubah → wajib rebuild semua kartu
+    if (n !== _lastBuildN) {
+        _cardEls.clear();
+        monList.textContent = '';
+        _lastBuildN = n;
+    }
+
+    const newIds = new Set(tokens.map(t => t.id));
+
+    // Hapus kartu token yang sudah dihapus dari daftar
+    for (const id of [..._cardEls.keys()]) {
+        if (!newIds.has(id)) {
+            document.getElementById('card-' + id)?.remove();
+            _cardEls.delete(id);
         }
-        const _stokCtd = _mkStokLinks(t.scToken, t.ticker);
-        const _stokDtc = _mkStokLinks(t.scPair,  pairTk);
-        // Explorer info link untuk nama token/pair di header card
-        const _pairScInfo = t.scPair || (pairTk.toUpperCase() === 'USDT' ? (ch.USDT_SC || '') : '');
-        const _tokInfoUrl  = _explorerBase && t.scToken ? `${_explorerBase}/token/${t.scToken}` : '';
-        const _pairInfoUrl = _explorerBase && _pairScInfo ? `${_explorerBase}/token/${_pairScInfo}` : '';
-        const _tokNameHtml  = _tokInfoUrl  ? `<a href="${_tokInfoUrl}"  target="_blank" rel="noopener" class="tok-info-link" title="Info ${t.ticker} di explorer" onclick="event.stopPropagation()">${t.ticker}</a>`  : t.ticker;
-        const _pairNameHtml = _pairInfoUrl ? `<a href="${_pairInfoUrl}" target="_blank" rel="noopener" class="tok-info-link" title="Info ${pairTk} di explorer" onclick="event.stopPropagation()">${pairTk}</a>` : pairTk;
-        return `<div class="mon-card" id="card-${t.id}" style="border-left:3px solid ${chainColor}">
-  <div class="mon-card-hdr" style="background:linear-gradient(135deg,${chainColor}55 0%,${chainColor}20 100%);border-bottom:2px solid ${chainColor}88">
-    <span class="mon-sym">
-      <span class="mon-num">${idx + 1}</span>
-      <span class="mon-tok-name">${_tokNameHtml}<span class="wdp-ic" id="wdic-tok-${t.id}">${_icTok}</span></span>
-      <span class="mon-vs">↔️</span>
-      <span class="mon-tok-name">${_pairNameHtml}<span class="wdp-ic" id="wdic-pair-${t.id}">${_icPair}</span></span>
-    </span>
-    <span class="mon-card-actions">
-      <span class="mon-cex-label" style="background:${cc.WARNA || '#555'}">${(cc.label || t.cex).toUpperCase()}</span>
-      <span class="mon-chain-label" style="background:${chainColor}">${ch.label || t.chain.toUpperCase()}</span>
-      <button class="btn-icon mon-act mon-fav ${t.favorite ? 'fav-active' : ''}" onclick="toggleFavorite('${t.id}')" title="Favorit">⭐</button>
-      <button class="btn-icon mon-act" onclick="openSheet('${t.id}')" title="Edit Koin">✏️</button>
-      <button class="btn-icon danger mon-act" onclick="deleteToken('${t.id}')" title="Hapus Koin">🗑️</button>
-    </span>
-  </div>
-  <div class="mon-tables-wrap">
-  <div class="mon-table-scroll">
-  <table class="mon-sub-table ctd-table">
-    <thead><tr class="mon-sub-hdr">
-      <td class="mon-lbl-hdr" style="background:${MON_CTD_COLOR}">${_stokCtd}<span class="hdr-amt" data-modal-hdr="ctd"><span class="tbl-status"></span></span></td>
-      ${dexHdr('ctd', MON_CTD_COLOR, t.id)}
-    </tr></thead>
-    <tbody>
-      <tr class="mon-row-cex"><td class="mon-lbl-side"><span style='color:green;'>BELI [${t.ticker}]</span></td>${dexRow('ctd', 'cex')}</tr>
-      <tr class="mon-row-dex"><td class="mon-lbl-side"><span style='color:red;'>${t.ticker}→${pairTk}</span></td>${dexRow('ctd', 'dex')}</tr>
-      <tr class="mon-row-recv"><td class="mon-lbl-side">ALL FEE</td>${dexRow('ctd', 'fee')}</tr>
-      <tr class="mon-row-pnl"><td class="mon-lbl-side">💰 PNL</td>${dexRow('ctd', 'pnl')}</tr>
-    </tbody>
-  </table>
-  </div>
-  <div class="mon-table-scroll">
-  <table class="mon-sub-table dtc-table">
-    <thead><tr class="mon-sub-hdr">
-      <td class="mon-lbl-hdr" style="background:${MON_DTC_COLOR}">${_stokDtc}<span class="hdr-amt" data-modal-hdr="dtc"><span class="tbl-status"></span></span></td>
-      ${dexHdr('dtc', MON_DTC_COLOR, t.id)}
-    </tr></thead>
-    <tbody>
-      <tr class="mon-row-dex"><td class="mon-lbl-side"><span style='color:green;'>${pairTk}→${t.ticker}</span></td>${dexRow('dtc', 'dex')}</tr>
-      <tr class="mon-row-cex"><td class="mon-lbl-side lbl-pair"><span style='color:red;'>JUAL [${t.ticker}]</span></td>${dexRow('dtc', 'cex')}</tr>
-      <tr class="mon-row-recv"><td class="mon-lbl-side">ALL FEE</td>${dexRow('dtc', 'fee')}</tr>
-      <tr class="mon-row-pnl"><td class="mon-lbl-side">💰 PNL</td>${dexRow('dtc', 'pnl')}</tr>
-    </tbody>
-  </table>
-  </div>
-  </div>
-</div>`;
-    }).join('');
-    const monList = document.getElementById('monitorList');
-    monList.textContent = ''; // fast clear
-    while (wrapper.firstChild) frag.appendChild(wrapper.firstChild);
-    monList.appendChild(frag);
+    }
 
-    // Build DOM element cache — satu querySelectorAll per card, bukan satu per sel
-    _cardEls.clear();
-    tokens.forEach(t => {
+    // Buat kartu baru hanya untuk token yang belum ada di DOM
+    for (const t of tokens) {
+        if (!_cardEls.has(t.id)) {
+            const card = _buildSingleCard(t, n);
+            monList.appendChild(card);
+            _cacheCard(t, card);
+        }
+    }
+
+    // Urutkan ulang: pindahkan node DOM yang sudah ada ke urutan baru
+    // appendChild pada node yang sudah ada = move (bukan clone) — sangat murah
+    for (const t of tokens) {
         const card = document.getElementById('card-' + t.id);
-        if (!card) return;
-        const els = {
-            card,
-            wdTokEl:     document.getElementById('wdic-tok-'  + t.id),
-            wdPairEl:    document.getElementById('wdic-pair-' + t.id),
-            modalCtdHdr: null, modalDtcHdr: null,
-            ctdStatus: null, dtcStatus: null,
-            ctdHdr: [], ctdCex: [], ctdDex: [], ctdFee: [], ctdPnl: [],
-            dtcHdr: [], dtcCex: [], dtcDex: [], dtcFee: [], dtcPnl: [],
-        };
-        // Satu querySelectorAll per card → ambil semua sel sekaligus
-        card.querySelectorAll('[data-modal-hdr],[data-ctd-hdr],[data-ctd-cex],[data-ctd-dex],[data-ctd-fee],[data-ctd-pnl],[data-dtc-hdr],[data-dtc-cex],[data-dtc-dex],[data-dtc-fee],[data-dtc-pnl]').forEach(el => {
-            const d = el.dataset;
-            if (d.modalHdr === 'ctd') { els.modalCtdHdr = el; return; }
-            if (d.modalHdr === 'dtc') { els.modalDtcHdr = el; return; }
-            if (d.ctdHdr !== undefined) { els.ctdHdr[+d.ctdHdr] = el; return; }
-            if (d.ctdCex !== undefined) { els.ctdCex[+d.ctdCex] = el; return; }
-            if (d.ctdDex !== undefined) { els.ctdDex[+d.ctdDex] = el; return; }
-            if (d.ctdFee !== undefined) { els.ctdFee[+d.ctdFee] = el; return; }
-            if (d.ctdPnl !== undefined) { els.ctdPnl[+d.ctdPnl] = el; return; }
-            if (d.dtcHdr !== undefined) { els.dtcHdr[+d.dtcHdr] = el; return; }
-            if (d.dtcCex !== undefined) { els.dtcCex[+d.dtcCex] = el; return; }
-            if (d.dtcDex !== undefined) { els.dtcDex[+d.dtcDex] = el; return; }
-            if (d.dtcFee !== undefined) { els.dtcFee[+d.dtcFee] = el; return; }
-            if (d.dtcPnl !== undefined) { els.dtcPnl[+d.dtcPnl] = el; }
-        });
-        // tbl-status: ambil dari kedua tabel
-        const statEls = card.querySelectorAll('.tbl-status');
-        els.ctdStatus = statEls[0] || null;
-        els.dtcStatus = statEls[1] || null;
-        _cardEls.set(t.id, els);
+        if (card) monList.appendChild(card);
+    }
+
+    // Update nomor urut (cached via els.numEl — tanpa querySelector tambahan)
+    tokens.forEach((t, idx) => {
+        const numEl = _cardEls.get(t.id)?.numEl;
+        if (numEl) numEl.textContent = idx + 1;
     });
 }
 

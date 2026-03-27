@@ -685,6 +685,26 @@ body {
   padding: 0 3px;
 }
 
+.dfl-link {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'Montserrat', sans-serif;
+  letter-spacing: .4px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+  line-height: 1.4;
+  flex-shrink: 0;
+  color: #fff;
+  background: #090e17;
+  text-decoration: none;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+  transition: background .15s;
+}
+.dfl-link:hover { background: #1457c8; }
+
 .mon-card-actions {
   display: flex;
   gap: 4px;
