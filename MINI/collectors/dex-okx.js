@@ -1,47 +1,50 @@
-// ─── OKX DEX: OKX Aggregator REST API ────────
-// Docs: https://web3.okx.com/priapi/v6/dex/aggregator/quote
-function _okxApiKey() { return apiKeysOKXDEX[Math.floor(Math.random() * apiKeysOKXDEX.length)]; }
+// ─── OKX DEX via Coin98 Superlink ────────────────────────────
+// Docs: https://superlink-server.coin98.tech/quote
+// POST JSON — tanpa API key, tanpa signing
+const _C98_NATIVE = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
+const _C98_WALLET  = '0xB7B10292EE6c5828b20eB0942C8c1275E8344800';
 
-async function _signOkxHmac(secret, message) {
-    const enc = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-        'raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-    );
-    const sig = await crypto.subtle.sign('HMAC', key, enc.encode(message));
-    return btoa(String.fromCharCode(...new Uint8Array(sig)));
-}
-
-
-async function fetchDexQuotesOkx(chainId, srcToken, destToken, amountWei, decOut) {
+async function fetchDexQuotesOkx(chainId, srcToken, destToken, amountWei, decOut, decIn = 18, symIn = '', symOut = '') {
     if (!isOkxEnabled()) return [];
     const cacheKey = `dex:ox:${chainId}:${srcToken}:${destToken}:${amountWei}`;
     return cacheWrap(cacheKey, 900, async () => {
         try {
             if (!amountWei || String(amountWei) === '0') return [];
-            const key = _okxApiKey();
-            const timestamp = new Date().toISOString();
-            const path = '/api/v6/dex/aggregator/quote';
-            const query = `amount=${amountWei}&chainIndex=${chainId}&fromTokenAddress=${srcToken}&toTokenAddress=${destToken}`;
-            const toSign = timestamp + 'GET' + path + '?' + query;
-            const signature = await _signOkxHmac(key.secretKeyOKX, toSign);
-            const targetUrl = `https://web3.okx.com${path}?${query}`;
+            const amount = parseFloat(amountWei) / Math.pow(10, decIn);
+            if (!isFinite(amount) || amount <= 0) return [];
+
+            const isNativeSrc = srcToken.toLowerCase() === _C98_NATIVE;
+            const isNativeDst = destToken.toLowerCase() === _C98_NATIVE;
+
+            const token0 = { chainId, symbol: symIn, decimals: decIn };
+            if (!isNativeSrc) token0.address = srcToken;
+
+            const token1 = { chainId, symbol: symOut, decimals: decOut };
+            if (!isNativeDst) token1.address = destToken;
+
+            const body = JSON.stringify({
+                isAuto: true,
+                amount,
+                token0,
+                token1,
+                backer: ['OKX'],
+                wallet: _C98_WALLET,
+            });
+
+            const targetUrl = 'https://superlink-server.coin98.tech/quote';
             const proxyUrl = APP_DEV_CONFIG.corsProxy + encodeURIComponent(targetUrl);
             const resp = await fetch(proxyUrl, {
-                headers: {
-                    'OK-ACCESS-KEY': key.ApiKeyOKX,
-                    'OK-ACCESS-SIGN': signature,
-                    'OK-ACCESS-PASSPHRASE': key.PassphraseOKX,
-                    'OK-ACCESS-TIMESTAMP': timestamp,
-                    'Content-Type': 'application/json',
-                },
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body,
             });
             if (!resp.ok) return [];
             const data = await resp.json();
             const d = data?.data?.[0];
-            const toAmt = d?.toTokenAmount;
-            if (!toAmt) return [];
-            // OKX DEX tidak mengembalikan biaya gas yang valid — feeSwapUsdt = 0
-            // Akan di-fallback ke chainGasFallback (eth_gasPrice via RPC proxy) di scan.js
+            const toAmt = d?.amount;
+            if (toAmt == null) return [];
+            // Coin98 tidak mengembalikan biaya gas — feeSwapUsdt = 0
+            // Akan di-fallback ke chainGasFallback di scan.js
             return [{ amount: parseFloat(toAmt), dec: decOut, name: 'OKXDEX', src: 'OX', feeSwapUsdt: 0 }];
         } catch { return []; }
     });

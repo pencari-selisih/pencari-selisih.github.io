@@ -63,7 +63,7 @@ function fetchDexQuotesJumpx(chainId, srcToken, destToken, amountWei) {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                   // 'x-lifi-api-key': _lifiApiKey()
+                    'x-lifi-api-key': _lifiApiKey()
                 },
                 body: JSON.stringify(body)
             });

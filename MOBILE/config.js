@@ -8,8 +8,8 @@
 // APP_DEV_CONFIG — Pengaturan aplikasi
 // ============================================================
 const APP_DEV_CONFIG = {
-  appName: "MINI SCANNER",
-  appVersion: "03.30",
+  appName: "MONITORING CRYPTO",
+  appVersion: "03.28",
 
   telegramBotToken: "8053447166:AAH7YYbyZ4eBoPX31D8h3bCYdzEeIaiG4JU",
   telegramGroupId: "-5271018516",
@@ -27,18 +27,17 @@ const APP_DEV_CONFIG = {
 
   defaultMinPnl: 1,
   defaultInterval: 800,
-  defaultSseTimeout: 6000,
+  defaultSseTimeout: 4000,
   defaultQuoteCountMetax: 2,     // 0 = matikan MetaMask SSE
   defaultQuoteCountBungee: 2,    // jumlah route Bungee (1–4), 0 = matikan Bungee
-  defaultLevelCount: 4,     // jumlah level orderbook (1–4)
+  defaultLevelCount: 2,     // jumlah level orderbook (1–4)
   defaultEnableKyber: true,  // KyberSwap DEX
 
   defaultEnableOkx: true,  // OKX DEX Aggregator
   defaultAutoLevel: true,  // Auto Level CEX orderbook
   defaultQuoteCountJumpx: 2,     // 0 = matikan Jumper/LiFi
   scanBatchSize: 10,     // jumlah koin yang di-scan paralel per batch
-  maxDexDisplay: 5, // jumlah kolom DEX yang tampil di hasil scanning (maks = jumlah DEX aktif)
-  offDexResultScan: ["OPENOCEAN","MAYAN"],     
+  maxDexDisplay: 5,     // jumlah kolom DEX yang tampil di hasil scanning (maks = jumlah DEX aktif)
 
   bungeeApiKey: "71XdjSawshaeie5DeH5b9avPjaoVtoOc2g5ZZx1d",
   bungeeAffiliate: "609913096e183b62cecd0dfdc13382f618baedceb5fef75aad43e6cbff367039708902197e0b2b78b1d76cb0837ad0b318baedceb5fef75aad43e6cb",
@@ -152,9 +151,9 @@ const CONFIG_CHAINS = {
     },
     WALLET_CEX: {
       GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe' },
-      BINANCE: { address: '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3', address2: '0xe2fc31F816A9b94326492132018C3aEcC4a93aE1' },
+      BINANCE: { address: '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3' },
       MEXC: { address: '0x4982085C9e2F89F2eCb8131Eca71aFAD896e89CB' },
-      INDODAX: { address: '0xaBa3002AB1597433bA79aBc48eeAd54DC10A45F2',address2: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6' },
+      INDODAX: { address: '0xaBa3002AB1597433bA79aBc48eeAd54DC10A45F2' },
     },
   },
 
@@ -174,12 +173,11 @@ const CONFIG_CHAINS = {
       token: (addr) => `https://etherscan.io/token/${addr}`,
     },
     WALLET_CEX: {
-        GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe'},
-            BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', address3: '0x21a31Ee1afC51d94C2eFcCAa2092aD1028285549'},
-            INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6', address2: '0x91Dca37856240E5e1906222ec79278b16420Dc92'},
-            MEXC: { address: '0x75e89d5979E4f6Fba9F97c104c2F0AFB3F1dcB88', address2: '0x9642b23Ed1E01Df1092B92641051881a322F5D4E'},
-    },  
-       
+      GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe' },
+      BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d' },
+      MEXC: { address: '0x75e89d5979E4f6Fba9F97c104c2F0AFB3F1dcB88' },
+      INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6' },
+    },
   },
 
   polygon: {
@@ -199,9 +197,9 @@ const CONFIG_CHAINS = {
     },
     WALLET_CEX: {
       GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe' },
-            BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88', address2: '0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245' },
-            MEXC: { address: '0x51E3D44172868Acc60D68ca99591Ce4230bc75E0' },          
-            INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6', address2: '0x91Dca37856240E5e1906222ec79278b16420Dc92' },            
+      BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88' },
+      MEXC: { address: '0x51E3D44172868Acc60D68ca99591Ce4230bc75E0' },
+      INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6' },
     },
   },
 
@@ -222,7 +220,7 @@ const CONFIG_CHAINS = {
     },
     WALLET_CEX: {
       GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe' },
-      BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88', address2: '0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245' },
+      BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88' },
       MEXC: { address: '0x4982085C9e2F89F2eCb8131Eca71aFAD896e89CB' },
       INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6' },
     },
@@ -244,11 +242,42 @@ const CONFIG_CHAINS = {
       token: (addr) => `https://basescan.org/token/${addr}`,
     },
     WALLET_CEX: {
-         GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe'},
-            BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60'},
-            MEXC: { address: '0x4e3ae00E8323558fA5Cac04b152238924AA31B60'},
-            INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6', address2: '0x91Dca37856240E5e1906222ec79278b16420Dc92' },
-           
+      GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe' },
+      BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d' },
+      MEXC: { address: '0x4e3ae00E8323558fA5Cac04b152238924AA31B60' },
+      INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6' },
     },
   },
 };
+
+
+// ============================================================
+// OKX DEX API KEY POOL
+// Key pool di-rotate secara random untuk menghindari rate limit.
+// Digunakan oleh collectors/dex-okx.js
+// ============================================================
+const apiKeysOKXDEX = [
+  { ApiKeyOKX: "28bc65f0-8cd1-4ecb-9b53-14d84a75814b", secretKeyOKX: "E8C92510E44400D8A709FBF140AABEC1", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "04f923ec-98f2-4e60-bed3-b8f2d419c773", secretKeyOKX: "3D7D0BD3D985C8147F70592DF6BE3C48", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "cf214e57-8af2-42bf-8afa-3b7880c5a152", secretKeyOKX: "26AA1E415682BD8BBDF44A9B1CFF4759", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "a77871bd-7855-484c-a675-e429bad3490e", secretKeyOKX: "830C9BB8D963F293857DB0CCA5459089", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "87db4731-fbe3-416f-8bb4-a4f5e5cb64f7", secretKeyOKX: "B773838680FF09F2069AEE28337BBCD0", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "aec98aef-e2b6-4fb2-b63b-89e358ba1fe1", secretKeyOKX: "DB683C83FF6FB460227ACB57503F9233", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "6636873a-e8ab-4063-a602-7fbeb8d85835", secretKeyOKX: "B83EF91AFB861BA3E208F2680FAEDDC3", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "989d75b7-49ff-40a1-9c8a-ba94a5e76793", secretKeyOKX: "C30FCABB0B95BE4529D5BA1097954D34", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "43c169db-db8c-4aeb-9c25-a2761fdcae49", secretKeyOKX: "7F812C175823BBD9BD5461B0E3A106F5", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "904cefba-08ce-48e9-9e8b-33411bf44a0f", secretKeyOKX: "91F2761A0B77B1DEED87A54E75BE1CCE", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "bfbd60b5-9aee-461d-9c17-3b401f9671d1", secretKeyOKX: "D621020540042C41D984E2FB78BED5E4", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "86f40277-661c-4290-929b-29a25b851a87", secretKeyOKX: "9274F990B5BEDAB5EB0C035188880081", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "32503ada-3d34-411a-b50b-b3e0f36f3b47", secretKeyOKX: "196658185E65F93963323870B521A6F6", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "80932e81-45b1-497e-bc14-81bdb6ed38d5", secretKeyOKX: "4CA9689FA4DE86F4E4CBF2B777CBAA91", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "a81d5a32-569a-401c-b207-3f0dd8f949c7", secretKeyOKX: "307D988DA44D37C911AA8A171B0975DB", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "ca59e403-4bcb-410a-88bb-3e931a2829d5", secretKeyOKX: "AC7C6D593C29F3378BF93E7EDF74CB6D", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "97439591-ea8e-4d78-86bb-bdac8e43e835", secretKeyOKX: "54970C78369CE892E2D1B8B296B4E572", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "f7a23981-af15-47f4-8775-8200f9fdfe5d", secretKeyOKX: "4F61764255CEDE6D5E151714B3E1E93B", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "4f708f99-2e06-4c81-88cb-3c8323fa42c5", secretKeyOKX: "A5B7DCA10A874922F54DC2204D6A0435", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "61061ef4-6d0a-412a-92a9-bdc29c6161a7", secretKeyOKX: "4DDF73FD7C38EB50CD09BF84CDB418ED", PassphraseOKX: "Regi!#007" },
+  { ApiKeyOKX: "adad55d1-bf90-43ac-ac03-0a43dc7ccee2", secretKeyOKX: "528AFB3ECC88653A9070F05CC3839611", PassphraseOKX: "Cek_Horeg_911" },
+  { ApiKeyOKX: "6866441f-6510-4175-b032-342ad6798817", secretKeyOKX: "E6E4285106CB101B39FECC385B64CAB1", PassphraseOKX: "Arekpinter123." },
+  { ApiKeyOKX: "45e4e1f1-1229-456f-ad23-8e1341e76683", secretKeyOKX: "1BD8AC02C9461A6D1BEBDFE31B3BFF9F", PassphraseOKX: "Regi!#007" },
+];
