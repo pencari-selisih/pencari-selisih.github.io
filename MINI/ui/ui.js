@@ -13,28 +13,33 @@ function _getCexTradeUrl(cexKey, ticker, pairTicker) {
 function _getCexWithdrawUrl(cexKey, coin) {
     const c = (coin || '').toUpperCase();
     switch (cexKey) {
-        case 'binance': return `https://www.binance.com/en/my/wallet/account/detail/withdrawal?coin=${c}`;
-        case 'gate':    return `https://www.gate.io/myaccount/withdraw/${c}`;
+        case 'binance': return `https://www.binance.com/en/my/wallet/account/main/withdrawal/crypto/${c}`;
+        case 'gate':    return `https://www.gate.com/myaccount/withdraw/${c}`;
         case 'mexc':    return `https://www.mexc.com/assets/withdraw/${c}`;
+        case 'indodax': return `https://indodax.com/finance/${c}#kirim`;
         default:        return '';
     }
 }
 function _getCexDepositUrl(cexKey, coin) {
     const c = (coin || '').toUpperCase();
     switch (cexKey) {
-        case 'binance': return `https://www.binance.com/en/my/wallet/account/main/deposit/crypto?coin=${c}`;
-        case 'gate':    return `https://www.gate.io/myaccount/deposit/${c}`;
+        case 'binance': return `https://www.binance.com/en/my/wallet/account/main/deposit/crypto/${c}`;
+        case 'gate':    return `https://www.gate.com/myaccount/deposit/${c}`;
         case 'mexc':    return `https://www.mexc.com/assets/deposit/${c}`;
+        case 'indodax': return `https://indodax.com/finance/${c}`;
         default:        return '';
     }
 }
-function _getDexUrl(dexName, tok) {
+function _getDexUrl(dexName, tok, dir) {
     const dn = (dexName || '').toLowerCase();
     if (!tok) return '';
     const chainCfg = CONFIG_CHAINS[tok.chain] || {};
     const chainId  = chainCfg.Kode_Chain || '';
-    const from     = (tok.scToken || '').toLowerCase();
-    const to       = (tok.scPair || chainCfg.USDT_SC || '').toLowerCase();
+    const scToken  = (tok.scToken || '').toLowerCase();
+    const scPair   = (tok.scPair || chainCfg.USDT_SC || '').toLowerCase();
+    // CTD = sell token on DEX (token→pair), DTC = buy token on DEX (pair→token)
+    const from     = dir === 'dtc' ? scPair  : scToken;
+    const to       = dir === 'dtc' ? scToken : scPair;
     if (!from || !to) {
         // Fallback tanpa SC: link generic
         if (dn.includes('meta') || dn === 'mm') return 'https://portfolio.metamask.io/bridge';
@@ -207,24 +212,28 @@ function loadSettings() {
     if (!Array.isArray(CFG.activeCex)) CFG.activeCex = [];
     if (!Array.isArray(CFG.activeChains)) CFG.activeChains = [];
     if (!['all','stable','non'].includes(CFG.pairType)) CFG.pairType = 'all';
-    // Migration from old single quoteCount
+    // Migration: quoteCount legacy → dex config
     if (CFG.quoteCount && !CFG.quoteCountMetax) { CFG.quoteCountMetax = CFG.quoteCount; delete CFG.quoteCount; }
+    if (!CFG.dex) CFG.dex = {};
+    DEX_LIST.forEach(def => {
+        if (!CFG.dex[def.key]) CFG.dex[def.key] = { active: true, modalCtD: 100, modalDtC: 80 };
+    });
+    if (!CFG.dex.metax.count)  CFG.dex.metax.count  = CFG.quoteCountMetax  || APP_DEV_CONFIG.defaultQuoteCountMetax;
+    if (!CFG.dex.jumpx.count)  CFG.dex.jumpx.count  = CFG.quoteCountJumpx  || APP_DEV_CONFIG.defaultQuoteCountJumpx;
+    if (!CFG.dex.bungee.count) CFG.dex.bungee.count = CFG.quoteCountBungee || APP_DEV_CONFIG.defaultQuoteCountBungee;
+    _syncLegacyDexCounts();
     $('#setUsername').val(CFG.username);
     $('#setWallet').val(CFG.wallet);
     $('#setInterval').val(CFG.interval);
-    $('#setQuoteMetax').val(CFG.quoteCountMetax);
-    $('#setQuoteJumpx').val(CFG.quoteCountJumpx);
-    $('#setQuoteBungee').val(CFG.quoteCountBungee);
-    // Hide Jumpx settings row if disabled in config
-    if (!isJumpxEnabled()) {
-        CFG.quoteCountJumpx = 0;
-        $('#setQuoteJumpx').closest('.settings-field').hide();
-    }
     $('#setSoundMuted').prop('checked', !CFG.soundMuted); // centang = suara ON
+    // Quote count per DEX
+    $('#setQuoteMetax').val(CFG.dex.metax.count  || APP_DEV_CONFIG.defaultQuoteCountMetax);
+    $('#setQuoteJumpx').val(CFG.dex.jumpx.count  || APP_DEV_CONFIG.defaultQuoteCountJumpx);
+    $('#setQuoteBungee').val(CFG.dex.bungee.count || APP_DEV_CONFIG.defaultQuoteCountBungee);
     // Auto Level CEX — selalu aktif, on/off via config.js defaultAutoLevel
     CFG.autoLevel = isAutoLevelEnabled();
     if (!isAutoLevelEnabled()) {
-        $('#setLevelCount').closest('.settings-field').hide();
+        $('#autoLevelField').hide();
     } else {
         $('#setLevelCount').val(CFG.levelCount ?? APP_DEV_CONFIG.defaultLevelCount);
     }
@@ -260,20 +269,132 @@ function _persistCFG() {
 
 // Simpan field non-kritis langsung saat berubah (tanpa toast)
 function _autoSaveFields() {
-    const qMetax  = parseInt($('#setQuoteMetax').val());
-    const qJumpx  = parseInt($('#setQuoteJumpx').val());
-    const qBungee = parseInt($('#setQuoteBungee').val());
-    if (!isNaN(qMetax) && qMetax >= 1 && qMetax <= 5)
-        CFG.quoteCountMetax = qMetax;
-    if (isJumpxEnabled() && !isNaN(qJumpx) && qJumpx >= 1 && qJumpx <= 5)
-        CFG.quoteCountJumpx = qJumpx;
-    if (!isNaN(qBungee) && qBungee >= 1 && qBungee <= 5)
-        CFG.quoteCountBungee = qBungee;
     CFG.soundMuted = !$('#setSoundMuted').prop('checked'); // centang = suara ON = NOT muted
     CFG.levelCount = Math.min(4, Math.max(1, parseInt($('#setLevelCount').val()) || 2));
     _persistCFG();
     if (!scanning) buildMonitorRows();
     renderTokenList();
+}
+
+// ─── DEX Config (per-DEX modal & toggle aktif) ────
+// Draft state — diisi saat modal dibuka, diterapkan saat Simpan
+let _dexDraft = null;
+
+function _initDraft() {
+    _dexDraft = {};
+    DEX_LIST.forEach(def => {
+        const src = (CFG.dex || {})[def.key] || {};
+        _dexDraft[def.key] = {
+            active:   src.active !== false,
+            modalCtD: src.modalCtD != null ? src.modalCtD : 100,
+            modalDtC: src.modalDtC != null ? src.modalDtC : 80,
+            minPnl:   src.minPnl  != null ? src.minPnl  : 1,
+        };
+    });
+}
+
+function renderDexConfig() {
+    const d = _dexDraft || CFG.dex || {};
+    const html = DEX_LIST.map(def => {
+        const cfg = d[def.key] || {};
+        const active = cfg.active !== false;
+        const dis = active ? '' : 'disabled';
+        return `<div class="dex-cfg-row${active ? ' dex-on' : ''}">
+  <div class="dex-row-top">
+    <span class="dex-sw-wrap" onclick="draftToggle('${def.key}')" title="${active ? 'Klik untuk nonaktifkan' : 'Klik untuk aktifkan'}">
+      <span class="dex-sw${active ? ' on' : ''}"></span>
+    </span>
+    <span class="dex-badge dex-badge-${def.key}">${def.badge}</span>
+    <span class="dex-row-name">${def.label}</span>
+    <span class="dex-active-lbl${active ? ' on' : ''}">${active ? '✅ AKTIF' : '❌ NONAKTIF'}</span>
+  </div>
+  <div class="dex-row-fields${active ? '' : ' dex-cfg-disabled'}">
+    <div class="dex-field-grp">
+      <span class="dex-lbl">CEX→DEX $</span>
+      <input class="dex-inp" data-dex="${def.key}" data-field="modalCtD" type="number" min="1"
+        value="${cfg.modalCtD}" ${dis} oninput="draftChange(this)">
+    </div>
+    <div class="dex-field-grp">
+      <span class="dex-lbl">DEX→CEX $</span>
+      <input class="dex-inp" data-dex="${def.key}" data-field="modalDtC" type="number" min="1"
+        value="${cfg.modalDtC}" ${dis} oninput="draftChange(this)">
+    </div>
+    <div class="dex-field-grp">
+      <span class="dex-lbl">Min PnL $</span>
+      <input class="dex-inp" data-dex="${def.key}" data-field="minPnl" type="number" min="0" step="0.1"
+        value="${cfg.minPnl}" ${dis} oninput="draftChange(this)">
+    </div>
+  </div>
+</div>`;
+    }).join('');
+    $('#dexConfigList').html(html);
+}
+
+function draftToggle(key) {
+    if (!_dexDraft) _initDraft();
+    _dexDraft[key].active = !_dexDraft[key].active;
+    renderDexConfig();
+}
+
+function draftChange(el) {
+    if (!_dexDraft) return;
+    const key   = el.dataset.dex;
+    const field = el.dataset.field;
+    const v = parseFloat(el.value);
+    if (!isNaN(v)) _dexDraft[key][field] = v;
+}
+
+function saveDexModalAll() {
+    if (!_dexDraft) { closeBulkModal(); return; }
+    if (!CFG.dex) CFG.dex = {};
+    DEX_LIST.forEach(def => {
+        const dr = _dexDraft[def.key];
+        if (!CFG.dex[def.key]) CFG.dex[def.key] = {};
+        Object.assign(CFG.dex[def.key], dr);
+    });
+    _syncLegacyDexCounts();
+    _persistCFG();
+    _dexDraft = null;
+    closeBulkModal();
+    if (!scanning) buildMonitorRows();
+    showToast('✅ Pengaturan Modal DEX disimpan');
+}
+
+function cancelDexModal() {
+    _dexDraft = null;
+    closeBulkModal();
+}
+
+function toggleDexActive(key) {
+    if (!CFG.dex) CFG.dex = {};
+    if (!CFG.dex[key]) CFG.dex[key] = { active: false, modalCtD: 100, modalDtC: 80 };
+    CFG.dex[key].active = !CFG.dex[key].active;
+    _syncLegacyDexCounts();
+    _persistCFG();
+    renderDexConfig();
+    if (!scanning) buildMonitorRows();
+    const def = DEX_LIST.find(d => d.key === key);
+    showToast(`${def?.label || key.toUpperCase()}: ${CFG.dex[key].active ? '✅ Aktif' : '❌ Nonaktif'}`);
+}
+
+function saveDexModal(el) {
+    const key = el.dataset.dex;
+    const field = el.dataset.field;
+    if (!CFG.dex) CFG.dex = {};
+    if (!CFG.dex[key]) CFG.dex[key] = { active: true, modalCtD: 100, modalDtC: 80, minPnl: 1 };
+    if (field === 'minPnl') {
+        const v = Math.max(0, parseFloat(el.value) || 0);
+        CFG.dex[key].minPnl = v;
+        el.value = v;
+    } else {
+        const v = parseFloat(el.value);
+        if (isNaN(v) || v < 1) return;
+        CFG.dex[key][field] = v;
+    }
+    _persistCFG();
+    const def = DEX_LIST.find(d => d.key === key);
+    const lbl = field === 'modalCtD' ? 'CEX→DEX' : field === 'modalDtC' ? 'DEX→CEX' : 'Min PnL';
+    showToast(`✓ ${def?.label || key.toUpperCase()} ${lbl}: $${el.value}`);
 }
 
 // Simpan username & wallet saat blur — validasi inline
@@ -352,7 +473,9 @@ function switchTab(tabId) {
     document.body.classList.toggle('no-signal-bar', !isMonitor);
     $('.tab-pane').removeClass('active');
     $('#' + tabId).addClass('active');
-    if (tabId === 'tabToken') renderTokenList();
+    window.scrollTo(0, 0);
+    if (tabId === 'tabToken') { renderTokenList(); renderDexConfig(); }
+    if (tabId === 'tabSettings') loadSettings();
     if (tabId === 'tabMonitor' && _monitorNeedsRebuild && !scanning) {
         buildMonitorRows();
         _monitorNeedsRebuild = false;
@@ -360,7 +483,6 @@ function switchTab(tabId) {
 }
 $('.nav-item[data-tab]').on('click', function () { switchTab($(this).data('tab')); });
 $('.top-tab-btn[data-tab]').on('click', function () { switchTab($(this).data('tab')); });
-
 
 // ─── Bottom Sheet ────────────────────────────
 function openSheet(id) {
@@ -1003,13 +1125,14 @@ function buildMonitorRows(tokenList) {
         const _walletInfo = ch.WALLET_CEX && ch.WALLET_CEX[_cexKey];
         const _explorerBase = ch.URL_Chain || '';
         function _mkStokLinks(sc, label) {
-            if (!sc || !_walletInfo || !_explorerBase) return '';
+            if (!sc || !_walletInfo || !_explorerBase) return label;
             const addrs = [_walletInfo.address, _walletInfo.address2, _walletInfo.address3].filter(Boolean);
-            return addrs.map((addr, i) => {
+            const icons = addrs.map((addr, i) => {
                 const url = `${_explorerBase}/token/${sc}?a=${addr}`;
                 const tip = `Stok ${label} ${cc.label||t.cex}${i>0?' #'+(i+1):''} — klik buka di explorer`;
-                return `<a href="${url}" target="_blank" rel="noopener" class="stok-link" title="${tip}" onclick="event.stopPropagation()">📦&nbsp;</a>`;
+                return `<a href="${url}" target="_blank" rel="noopener" class="stok-link" title="${tip}" onclick="event.stopPropagation()">📦</a>`;
             }).join('');
+            return `<span class="stok-name">${label}</span>${icons}`;
         }
         const _stokCtd = _mkStokLinks(t.scToken, t.ticker);
         const _stokDtc = _mkStokLinks(t.scPair,  pairTk);
@@ -1039,28 +1162,28 @@ function buildMonitorRows(tokenList) {
   <div class="mon-table-scroll">
   <table class="mon-sub-table ctd-table">
     <thead><tr class="mon-sub-hdr">
-      <td class="mon-lbl-hdr" style="background:${MON_CTD_COLOR}">${_stokCtd}<span class="hdr-amt" data-modal-hdr="ctd">$${t.modalCtD}<span class="tbl-status"></span></span></td>
+      <td class="mon-lbl-hdr" style="background:${MON_CTD_COLOR}">${_stokCtd}<span class="hdr-amt" data-modal-hdr="ctd"><span class="tbl-status"></span></span></td>
       ${dexHdr('ctd', MON_CTD_COLOR, t.id)}
     </tr></thead>
     <tbody>
       <tr class="mon-row-cex"><td class="mon-lbl-side"><span style='color:green;'>BELI [${t.ticker}]</span></td>${dexRow('ctd', 'cex')}</tr>
       <tr class="mon-row-dex"><td class="mon-lbl-side"><span style='color:red;'>${t.ticker}→${pairTk}</span></td>${dexRow('ctd', 'dex')}</tr>
       <tr class="mon-row-recv"><td class="mon-lbl-side">ALL FEE</td>${dexRow('ctd', 'fee')}</tr>
-      <tr class="mon-row-pnl"><td class="mon-lbl-side">💰 PNL <span class="lbl-minpnl">($${minPnlLbl})</span></td>${dexRow('ctd', 'pnl')}</tr>
+      <tr class="mon-row-pnl"><td class="mon-lbl-side">💰 PNL</td>${dexRow('ctd', 'pnl')}</tr>
     </tbody>
   </table>
   </div>
   <div class="mon-table-scroll">
   <table class="mon-sub-table dtc-table">
     <thead><tr class="mon-sub-hdr">
-      <td class="mon-lbl-hdr" style="background:${MON_DTC_COLOR}">${_stokDtc}<span class="hdr-amt" data-modal-hdr="dtc">$${t.modalDtC}<span class="tbl-status"></span></span></td>
+      <td class="mon-lbl-hdr" style="background:${MON_DTC_COLOR}">${_stokDtc}<span class="hdr-amt" data-modal-hdr="dtc"><span class="tbl-status"></span></span></td>
       ${dexHdr('dtc', MON_DTC_COLOR, t.id)}
     </tr></thead>
     <tbody>
       <tr class="mon-row-dex"><td class="mon-lbl-side"><span style='color:green;'>${pairTk}→${t.ticker}</span></td>${dexRow('dtc', 'dex')}</tr>
       <tr class="mon-row-cex"><td class="mon-lbl-side lbl-pair"><span style='color:red;'>JUAL [${t.ticker}]</span></td>${dexRow('dtc', 'cex')}</tr>
       <tr class="mon-row-recv"><td class="mon-lbl-side">ALL FEE</td>${dexRow('dtc', 'fee')}</tr>
-      <tr class="mon-row-pnl"><td class="mon-lbl-side">💰 PNL <span class="lbl-minpnl">($${minPnlLbl})</span></td>${dexRow('dtc', 'pnl')}</tr>
+      <tr class="mon-row-pnl"><td class="mon-lbl-side">💰 PNL</td>${dexRow('dtc', 'pnl')}</tr>
     </tbody>
   </table>
   </div>
@@ -1114,7 +1237,21 @@ function buildMonitorRows(tokenList) {
 // Cached DOM references & chip counter to avoid querySelector scans
 const _signalBarEl = null; // lazy-init below
 let _signalChipCount = 0;
-function _getSignalBar() { return document.getElementById('signalBar'); }
+function _getSignalBar() { return document.getElementById('signalScroll'); }
+
+function _onSigScroll(el) {
+    const bar = document.getElementById('signalBar');
+    if (!bar) return;
+    bar.classList.toggle('can-scroll-l', el.scrollLeft > 2);
+    bar.classList.toggle('can-scroll-r', el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+}
+
+function _onSigArr(dir) {
+    const sc = document.getElementById('signalScroll');
+    if (!sc) return;
+    sc.scrollLeft += dir * 180;
+    _onSigScroll(sc);
+}
 
 function _clearAllSignalChips() {
     const bar = _getSignalBar();
@@ -1123,6 +1260,7 @@ function _clearAllSignalChips() {
     if (_signalChipCount > 0) {
         const chips = bar.querySelectorAll('.signal-chip');
         for (let i = chips.length - 1; i >= 0; i--) chips[i].remove();
+        bar.querySelectorAll('.sig-group-sep').forEach(el => el.remove());
         _signalChipCount = 0;
     }
 }
@@ -1150,43 +1288,79 @@ function updateSignalChips(tok, signals, dir) {
 
     const cexCfg  = CONFIG_CEX[tok.cex] || {};
     const cexLabel = (cexCfg.label || tok.cex || '').toUpperCase();
-    const modalLbl = dir === 'CTD' ? `$${tok.modalCtD}` : `$${tok.modalDtC}`;
     const dirClass = dir === 'CTD' ? 'dir-ctd' : 'dir-dtc';
 
     signals.forEach(r => {
         const chipId = `${prefix}${r.src}`;
+        const _dexM   = dir === 'CTD' ? (r.dexModalCtD || tok.modalCtD) : (r.dexModalDtC || tok.modalDtC);
+        const modalLbl = _dexM ? `$${_dexM}` : '';
         let chip = document.getElementById(chipId);
         if (!chip) {
             chip = document.createElement('div');
-            chip.className = 'signal-chip';
+            chip.className = 'signal-chip chip-' + dir.toLowerCase();
             chip.id = chipId;
             chip.dataset.tokId = tok.id;
+            chip.dataset.dir = dir;
             bar.appendChild(chip);
             _signalChipCount++;
         }
         const dexSrc   = r.src || '';
         const dexName  = r.name ? r.name.toUpperCase() : 'DEX';
-        const dexBadge = dexSrc === 'MX' ? '[MT]' : dexSrc === 'JX' ? '[JM]' : dexSrc === 'BG' ? '[BG]' : dexSrc === 'KB' ? '[KB]' : '';
-        const dexFull  = dexBadge ? `<span class="src-tag ${dexSrc.toLowerCase()}">${dexBadge}</span> ${dexName}` : dexName;
-        const dirLabel = dir === 'CTD' ? `${cexLabel}→${dexFull}` : `${dexFull}→${cexLabel}`;
+        const dexBadge = dexSrc === 'MX' ? 'MT' : dexSrc === 'JX' ? 'JM' : dexSrc === 'BG' ? 'BG' : dexSrc === 'KB' ? 'KB' : '';
+        const badgeHtml = dexBadge ? `<span class="src-tag ${dexSrc.toLowerCase()}">${dexBadge}</span>` : '';
+        const pairTicker = tok.tickerPair || 'USDT';
+        // Baris 1 (route exchange): CTD = CEX→DEX, DTC = DEX→CEX
+        const routeLabel = dir === 'CTD'
+            ? `${cexLabel}→${badgeHtml} ${dexName}`
+            : `${badgeHtml} ${dexName}→${cexLabel}`;
+        // Baris 2 (arah aset): CTD = TOKEN→PAIR, DTC = PAIR→TOKEN
+        const assetLabel = dir === 'CTD'
+            ? `${tok.ticker}→${pairTicker}`
+            : `${pairTicker}→${tok.ticker}`;
         const pnlClass = r.pnl >= 0 ? 'chip-pnl-pos' : 'chip-pnl-neg';
 
         chip.innerHTML = `
             <div class="chip-row-top">
                 <img src="icons/chains/${tok.chain}.png" class="chip-icon" onerror="this.style.display='none'">
-                <span class="chip-dir ${dirClass}">${dirLabel}</span>
+                <span class="chip-route ${dirClass}">${routeLabel}</span>
             </div>
             <div class="chip-row-bottom">
-                <span class="chip-ticker">${tok.ticker}<span class="chip-pair">/${tok.tickerPair || 'USDT'}</span></span>
+                <span class="chip-asset">${assetLabel}</span>
                 <span class="chip-sep">|</span>
                 <span class="chip-modal">${modalLbl}</span>
                 <span class="chip-sep">|</span>
                 <span class="chip-pnl ${pnlClass}">${fmtPnl(r.pnl)}$</span>
             </div>`;
-        chip.className = 'signal-chip' + (r.pnl < 0 ? ' loss' : '');
+        chip.className = 'signal-chip chip-' + dir.toLowerCase() + (r.pnl < 0 ? ' loss' : '');
     });
 
     updateNoSignalNotice();
+    const sc = document.getElementById('signalScroll');
+    if (sc) { _refreshSigGroups(sc); _onSigScroll(sc); }
+}
+
+function _refreshSigGroups(sc) {
+    // Remove old separators
+    sc.querySelectorAll('.sig-group-sep').forEach(el => el.remove());
+    const chips = Array.from(sc.querySelectorAll('.signal-chip'));
+    if (chips.length < 2) return;
+    // Sort chips by tokId so same-token chips are adjacent
+    chips.sort((a, b) => (a.dataset.tokId || '').localeCompare(b.dataset.tokId || ''));
+    // Re-insert sorted chips and add separators between groups
+    const notice = document.getElementById('noSignalNotice');
+    let lastTokId = null;
+    chips.forEach(chip => {
+        const tokId = chip.dataset.tokId;
+        if (lastTokId !== null && tokId !== lastTokId) {
+            const sep = document.createElement('span');
+            sep.className = 'sig-group-sep';
+            sc.appendChild(sep);
+        }
+        sc.appendChild(chip);
+        lastTokId = tokId;
+    });
+    // Keep notice at front
+    if (notice) sc.insertBefore(notice, sc.firstChild);
 }
 
 // ─── Toast ────────────────────────────────────
@@ -1218,23 +1392,38 @@ $('#setSoundMuted').on('change', function () {
     _autoSaveFields();
     showToast(this.checked ? '🔔 Notifikasi suara aktif' : '🔕 Notifikasi suara dimatikan');
 });
-$('#setQuoteMetax').on('change', function () {
-    _autoSaveFields();
-    showToast('✓ Quote MT tersimpan: ' + $(this).val());
-});
-$('#setQuoteJumpx').on('change', function () {
-    _autoSaveFields();
-    showToast('✓ Quote JM tersimpan: ' + $(this).val());
-});
-$('#setQuoteBungee').on('change', function () {
-    _autoSaveFields();
-    showToast('✓ Quote BG tersimpan: ' + $(this).val());
-});
 $('#setLevelCount').on('change', function () {
     const clamped = Math.min(4, Math.max(1, parseInt($(this).val()) || 2));
     $(this).val(clamped);
     _autoSaveFields();
     showToast('✓ Level CEX: ' + clamped);
+});
+$('#setQuoteMetax').on('change', function () {
+    const v = Math.min(5, Math.max(1, parseInt($(this).val()) || APP_DEV_CONFIG.defaultQuoteCountMetax));
+    $(this).val(v);
+    if (!CFG.dex.metax) CFG.dex.metax = {};
+    CFG.dex.metax.count = v;
+    _syncLegacyDexCounts();
+    _persistCFG();
+    showToast('✓ METAX Route: ' + v);
+});
+$('#setQuoteJumpx').on('change', function () {
+    const v = Math.min(5, Math.max(1, parseInt($(this).val()) || APP_DEV_CONFIG.defaultQuoteCountJumpx));
+    $(this).val(v);
+    if (!CFG.dex.jumpx) CFG.dex.jumpx = {};
+    CFG.dex.jumpx.count = v;
+    _syncLegacyDexCounts();
+    _persistCFG();
+    showToast('✓ JUMPX Route: ' + v);
+});
+$('#setQuoteBungee').on('change', function () {
+    const v = Math.min(5, Math.max(1, parseInt($(this).val()) || APP_DEV_CONFIG.defaultQuoteCountBungee));
+    $(this).val(v);
+    if (!CFG.dex.bungee) CFG.dex.bungee = {};
+    CFG.dex.bungee.count = v;
+    _syncLegacyDexCounts();
+    _persistCFG();
+    showToast('✓ BUNGEE Route: ' + v);
 });
 
 // ─── Reload with Toast ───────────────────────
@@ -1458,7 +1647,10 @@ function closeCalcModal() {
     if (el) el.classList.remove('open');
 }
 function openBulkModal() {
-    _loadUiExtra().then(() => { if (typeof window.openBulkModal === 'function') window.openBulkModal(); });
+    _initDraft();
+    renderDexConfig();
+    const el = document.getElementById('bulkOverlay');
+    if (el) el.classList.add('open');
 }
 function closeBulkModal() {
     const el = document.getElementById('bulkOverlay');
@@ -1509,6 +1701,7 @@ $(function () {
     autoReload = localStorage.getItem('scanAutoReload') === '1';
     _applyAutoReload();
     loadSettings();
+    renderDexConfig();
     renderCexChips('indodax');
     renderChainChips('bsc');
     renderTokenList();   // also builds monitor skeleton via buildMonitorRows()

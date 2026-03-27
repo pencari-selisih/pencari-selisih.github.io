@@ -11,11 +11,21 @@ const LS_SETTINGS = 'cexdex_settings';
 // ─── Runtime State ───────────────────────────
 const STABLE_COINS = new Set(['USDT','USDC','BUSD','DAI','TUSD','FDUSD','USDD','USDP','FRAX','LUSD','CRVUSD','PYUSD','GUSD','SUSD','MUSD','USDE','EUSD','USDS','USD0','USDX']);
 
+// ─── DEX List — metadata setiap DEX aggregator ─
+const DEX_LIST = [
+    { key: 'metax',  label: 'METAX',  badge: 'MT', hasCount: true,  defaultCount: APP_DEV_CONFIG.defaultQuoteCountMetax  },
+    { key: 'jumpx',  label: 'JUMPX',  badge: 'JM', hasCount: true,  defaultCount: APP_DEV_CONFIG.defaultQuoteCountJumpx  },
+    { key: 'kyber',  label: 'KYBER',  badge: 'KB', hasCount: false, defaultCount: 1 },
+    { key: 'okx',    label: 'OKX',    badge: 'OK', hasCount: false, defaultCount: 1 },
+    { key: 'bungee', label: 'BUNGEE', badge: 'BG', hasCount: true,  defaultCount: APP_DEV_CONFIG.defaultQuoteCountBungee  },
+];
+
 let CFG = {
     username: '',
     wallet: '',
     interval: APP_DEV_CONFIG.defaultInterval,
     sseTimeout: APP_DEV_CONFIG.defaultSseTimeout,
+    // Legacy fields — di-sync dari CFG.dex.*.count agar collectors tetap berfungsi
     quoteCountMetax:  APP_DEV_CONFIG.defaultQuoteCountMetax,
     quoteCountJumpx:  APP_DEV_CONFIG.defaultQuoteCountJumpx,
     quoteCountBungee: APP_DEV_CONFIG.defaultQuoteCountBungee,
@@ -23,21 +33,42 @@ let CFG = {
     activeCex: [],    // [] = semua aktif
     activeChains: [], // [] = semua aktif
     pairType: 'all',  // 'all' | 'stable' | 'non'
-    autoLevel: APP_DEV_CONFIG.defaultAutoLevel,  // Auto Level CEX default dari config.js
-    levelCount: APP_DEV_CONFIG.defaultLevelCount, // Level orderbook default dari config.js
+    autoLevel: APP_DEV_CONFIG.defaultAutoLevel,
+    levelCount: APP_DEV_CONFIG.defaultLevelCount,
+    dex: {
+        metax:  { active: true,  modalCtD: 100, modalDtC: 80, count: APP_DEV_CONFIG.defaultQuoteCountMetax  },
+        jumpx:  { active: APP_DEV_CONFIG.defaultQuoteCountJumpx  > 0, modalCtD: 100, modalDtC: 80, count: APP_DEV_CONFIG.defaultQuoteCountJumpx  },
+        kyber:  { active: APP_DEV_CONFIG.defaultEnableKyber === true, modalCtD: 100, modalDtC: 80 },
+        okx:    { active: APP_DEV_CONFIG.defaultEnableOkx   === true, modalCtD: 100, modalDtC: 80 },
+        bungee: { active: APP_DEV_CONFIG.defaultQuoteCountBungee > 0, modalCtD: 100, modalDtC: 80, count: APP_DEV_CONFIG.defaultQuoteCountBungee },
+    },
 };
-function totalQuoteCount() {
-    const raw = CFG.quoteCountMetax + CFG.quoteCountJumpx
-        + (isKyberEnabled() ? 1 : 0)
-        + (isOkxEnabled() ? 1 : 0)
-        + (isBungeeEnabled() ? CFG.quoteCountBungee : 0);
-    return Math.min(raw, APP_DEV_CONFIG.maxDexDisplay || 4);
+
+// Sync legacy quoteCount fields dari CFG.dex — diperlukan oleh collectors (dex-metax, jumpx, bungee)
+function _syncLegacyDexCounts() {
+    const d = CFG.dex || {};
+    CFG.quoteCountMetax  = d.metax?.active  ? (d.metax?.count  || APP_DEV_CONFIG.defaultQuoteCountMetax)  : 0;
+    CFG.quoteCountJumpx  = d.jumpx?.active  && APP_DEV_CONFIG.defaultQuoteCountJumpx > 0
+        ? (d.jumpx?.count  || APP_DEV_CONFIG.defaultQuoteCountJumpx)  : 0;
+    CFG.quoteCountBungee = d.bungee?.active ? (d.bungee?.count || APP_DEV_CONFIG.defaultQuoteCountBungee) : 0;
 }
-function isJumpxEnabled() { return APP_DEV_CONFIG.defaultQuoteCountJumpx > 0; }
+
+function totalQuoteCount() {
+    const d = CFG.dex || {};
+    const raw = (d.metax?.active  ? (d.metax?.count  || APP_DEV_CONFIG.defaultQuoteCountMetax)  : 0)
+        + (d.jumpx?.active  && APP_DEV_CONFIG.defaultQuoteCountJumpx > 0 ? (d.jumpx?.count  || APP_DEV_CONFIG.defaultQuoteCountJumpx)  : 0)
+        + (isKyberEnabled() ? 1 : 0)
+        + (isOkxEnabled()   ? 1 : 0)
+        + (d.bungee?.active ? (d.bungee?.count || APP_DEV_CONFIG.defaultQuoteCountBungee) : 0);
+    return Math.min(raw, APP_DEV_CONFIG.maxDexDisplay || 6);
+}
+
+function isMetaxEnabled()     { return !!(CFG.dex?.metax?.active  && APP_DEV_CONFIG.defaultQuoteCountMetax  > 0); }
+function isJumpxEnabled()     { return !!(CFG.dex?.jumpx?.active  && APP_DEV_CONFIG.defaultQuoteCountJumpx  > 0); }
 function isAutoLevelEnabled() { return APP_DEV_CONFIG.defaultAutoLevel !== false; }
-function isKyberEnabled() { return APP_DEV_CONFIG.defaultEnableKyber === true; }
-function isOkxEnabled() { return APP_DEV_CONFIG.defaultEnableOkx === true; }
-function isBungeeEnabled() { return (CFG.quoteCountBungee || 0) > 0; }
+function isKyberEnabled()     { return !!(CFG.dex?.kyber?.active  && APP_DEV_CONFIG.defaultEnableKyber === true); }
+function isOkxEnabled()       { return !!(CFG.dex?.okx?.active    && APP_DEV_CONFIG.defaultEnableOkx   === true); }
+function isBungeeEnabled()    { return !!(CFG.dex?.bungee?.active && (CFG.dex?.bungee?.count || 0) > 0); }
 
 // Kembalikan token yang lolos filter CEX+chain, diurutkan sesuai monitorSort
 let monitorSort = 'az'; // 'az' | 'za' | 'rand'

@@ -37,7 +37,8 @@ const APP_DEV_CONFIG = {
   defaultAutoLevel: true,  // Auto Level CEX orderbook
   defaultQuoteCountJumpx: 2,     // 0 = matikan Jumper/LiFi
   scanBatchSize: 10,     // jumlah koin yang di-scan paralel per batch
-  maxDexDisplay: 6,     // jumlah kolom DEX yang tampil di hasil scanning (maks = jumlah DEX aktif)
+  maxDexDisplay: 6, // jumlah kolom DEX yang tampil di hasil scanning (maks = jumlah DEX aktif)
+  offDexResultScan: ["OPENOCEAN","MAYAN"],     
 
   bungeeApiKey: "71XdjSawshaeie5DeH5b9avPjaoVtoOc2g5ZZx1d",
   bungeeAffiliate: "609913096e183b62cecd0dfdc13382f618baedceb5fef75aad43e6cbff367039708902197e0b2b78b1d76cb0837ad0b318baedceb5fef75aad43e6cb",
@@ -151,9 +152,9 @@ const CONFIG_CHAINS = {
     },
     WALLET_CEX: {
       GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe' },
-      BINANCE: { address: '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3' },
+      BINANCE: { address: '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3', address2: '0xe2fc31F816A9b94326492132018C3aEcC4a93aE1' },
       MEXC: { address: '0x4982085C9e2F89F2eCb8131Eca71aFAD896e89CB' },
-      INDODAX: { address: '0xaBa3002AB1597433bA79aBc48eeAd54DC10A45F2' },
+      INDODAX: { address: '0xaBa3002AB1597433bA79aBc48eeAd54DC10A45F2',address2: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6' },
     },
   },
 
@@ -173,11 +174,12 @@ const CONFIG_CHAINS = {
       token: (addr) => `https://etherscan.io/token/${addr}`,
     },
     WALLET_CEX: {
-      GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe' },
-      BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d' },
-      MEXC: { address: '0x75e89d5979E4f6Fba9F97c104c2F0AFB3F1dcB88' },
-      INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6' },
-    },
+        GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe'},
+            BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', address3: '0x21a31Ee1afC51d94C2eFcCAa2092aD1028285549'},
+            INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6', address2: '0x91Dca37856240E5e1906222ec79278b16420Dc92'},
+            MEXC: { address: '0x75e89d5979E4f6Fba9F97c104c2F0AFB3F1dcB88', address2: '0x9642b23Ed1E01Df1092B92641051881a322F5D4E'},
+    },  
+       
   },
 
   polygon: {
@@ -197,9 +199,9 @@ const CONFIG_CHAINS = {
     },
     WALLET_CEX: {
       GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe' },
-      BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88' },
-      MEXC: { address: '0x51E3D44172868Acc60D68ca99591Ce4230bc75E0' },
-      INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6' },
+            BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88', address2: '0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245' },
+            MEXC: { address: '0x51E3D44172868Acc60D68ca99591Ce4230bc75E0' },          
+            INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6', address2: '0x91Dca37856240E5e1906222ec79278b16420Dc92' },            
     },
   },
 
@@ -220,7 +222,7 @@ const CONFIG_CHAINS = {
     },
     WALLET_CEX: {
       GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe' },
-      BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88' },
+      BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88', address2: '0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245' },
       MEXC: { address: '0x4982085C9e2F89F2eCb8131Eca71aFAD896e89CB' },
       INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6' },
     },
@@ -242,10 +244,11 @@ const CONFIG_CHAINS = {
       token: (addr) => `https://basescan.org/token/${addr}`,
     },
     WALLET_CEX: {
-      GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe' },
-      BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d' },
-      MEXC: { address: '0x4e3ae00E8323558fA5Cac04b152238924AA31B60' },
-      INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6' },
+         GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe'},
+            BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60'},
+            MEXC: { address: '0x4e3ae00E8323558fA5Cac04b152238924AA31B60'},
+            INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6', address2: '0x91Dca37856240E5e1906222ec79278b16420Dc92' },
+           
     },
   },
 };

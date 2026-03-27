@@ -42,7 +42,7 @@ async function fetchDexQuotesOkx(chainId, srcToken, destToken, amountWei, decOut
             if (!toAmt) return [];
             // OKX DEX tidak mengembalikan biaya gas yang valid — feeSwapUsdt = 0
             // Akan di-fallback ke chainGasFallback (eth_gasPrice via RPC proxy) di scan.js
-            return [{ amount: parseFloat(toAmt), dec: decOut, name: 'OKX', src: 'OX', feeSwapUsdt: 0 }];
+            return [{ amount: parseFloat(toAmt), dec: decOut, name: 'OKXDEX', src: 'OX', feeSwapUsdt: 0 }];
         } catch { return []; }
     });
 }
