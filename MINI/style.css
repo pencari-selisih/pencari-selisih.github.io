@@ -45,6 +45,7 @@
   --shadow: 0 4px 20px rgba(100, 130, 180, 0.10);
   --shadow-lg: 0 8px 40px rgba(100, 130, 180, 0.18);
   --nav-h: 62px;
+  --fab-h: 42px;
   --topbar-h: 106px;
   /* 54 topbar + ~44 signal chips + 8 gap */
 }
@@ -1071,11 +1072,8 @@ mc-pnl {
 .scan-footer {
   display: none; /* default; JS show saat tab Scanner aktif */
   align-items: center;
-  gap: 5px;
-  flex: 1; /* ambil ruang tengah, dorong nav icons ke kanan */
-  justify-content: flex-end;
-  min-width: 0;
-  padding-right: 4px;
+  gap: 8px;
+  /* Inline di top-bar pada layar lebar — tidak perlu padding/background */
 }
 
 .scan-sort-group {
@@ -1084,9 +1082,9 @@ mc-pnl {
 }
 
 .scan-sort-group .sort-btn {
-  height: 25px;
-  min-width: 32px;
-  padding: 0 9px;
+  height: 32px;
+  min-width: 36px;
+  padding: 0 10px;
   font-size: 11px;
   line-height: 1;
   border-radius: 14px;
@@ -1102,9 +1100,9 @@ mc-pnl {
 .scan-sort-group .sort-btn[data-sort="rand"],
 #monFavFilter,
 #btnAutoReload {
-  width: 32px;
+  width: 36px;
   padding: 0;
-  font-size: 16px;
+  font-size: 17px;
 }
 
 .scan-sort-group .sort-btn.active {
@@ -1121,9 +1119,9 @@ body.is-scanning .scan-sort-group {
 }
 
 .fab-scan {
-  height: 25px;
-  padding: 0 14px;
-  border-radius: 14px;
+  height: 32px;
+  padding: 0 18px;
+  border-radius: 16px;
   background: #365cd3;
   color: #fff;
   border: none;
@@ -2898,6 +2896,33 @@ body.is-scanning .scan-sort-group {
   .bottom-sheet {
     max-height: 80dvh;
   }
+}
+
+/* ══════════════════════════════════════════
+   MOBILE PORTRAIT — FAB bar di bawah
+══════════════════════════════════════════ */
+@media (max-width: 639px), (orientation: portrait) {
+  .scan-footer {
+    position: fixed !important;
+    bottom: var(--nav-h);
+    left: 0;
+    right: 0;
+    justify-content: center;
+    padding: 5px 12px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.07);
+    z-index: 98;
+  }
+
+  .tab-pane {
+    padding-bottom: calc(var(--nav-h) + var(--fab-h) + 16px);
+  }
+
+  /* sort-btn ukuran kecil agar muat */
+  .scan-sort-group .sort-btn { height: 28px; min-width: 34px; }
+  .fab-scan { height: 28px; padding: 0 14px; }
 }
 
 /* ══════════════════════════════════════════

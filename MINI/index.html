@@ -73,21 +73,18 @@
             </button> -->
             </div>
 
-            <!-- Scan Controls — muncul hanya saat tab Scanner aktif -->
+            <!-- Scan Controls -->
             <div class="scan-footer" id="scanFooter" style="display:none">
-                |
                 <div class="scan-sort-group" id="monSortBar">
                     <button class="sort-btn active" data-sort="az" title="Sorting A→Z">A→Z</button>
                     <button class="sort-btn" data-sort="za" title="Sorting Z→A">Z→A</button>
-
                 </div>
+                <button class="sort-btn" id="monFavFilter" title="Filter Favorit">⭐</button>
                 <button class="fab-scan" id="btnScan">
                     <span id="btnScanIcon">▶</span>
                     <span id="btnScanLbl">START</span>
                     <span id="btnScanCount">[0]</span>
                 </button>
-                <!-- <button class="sort-btn" id="btnAutoReload" title="Auto Scanner">🔄</button> -->
-                <button class="sort-btn" id="monFavFilter" title="Filter Favorit">⭐</button>
             </div>
             <!-- <span class="username-chip" id="topUsername">@-</span> -->
         </div>
@@ -278,10 +275,10 @@
             <span class="nav-icon"><img src="icons/monitoring.png" class="nav-icon-img" alt="scanner price"></span>
             <span>SCANNER</span>
         </button>
-        <button class="nav-item" id="navReload" onclick="reloadWithToast()">
+        <!-- <button class="nav-item" id="navReload" onclick="reloadWithToast()">
             <span class="nav-icon"><img src="icons/reload.png" class="nav-icon-img" alt="reload"></span>
             <span>RELOAD</span>
-        </button>
+        </button> -->
         <button class="nav-item" data-tab="tabSettings" id="navSettings">
             <span class="nav-icon"><img src="icons/setting.png" class="nav-icon-img" alt="pengaturan aplikasi"></span>
             <span>PENGATURAN</span>
