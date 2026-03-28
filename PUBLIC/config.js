@@ -6,8 +6,8 @@ const CONFIG_APP = {
         VERSION: "2026.03.30",
         SCAN_LIMIT: true,
         AUTORUN: false,
-        AUTO_VOLUME: true,  // cek volume otomatis untuk filter dan alert
-        VOL_CHECK: false, // cek volume aktual
+        AUTO_VOLUME: false,  // cek volume otomatis untuk filter dan alert
+        VOL_CHECK: true, // cek volume aktual
         DEBUG_LOG: false,
         // META-DEX: fitur DEX TAMBAHAN yang menampilkan BANYAK quote sekaligus per token.
         // Berbeda dari DEX regular (single-quote). Berjalan TERPISAH dari scan DEX regular.
