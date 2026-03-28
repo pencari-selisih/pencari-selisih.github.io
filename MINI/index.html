@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title id="appTitle">MONITORING PRICE</title>
+    <title id="appTitle">MINI SCANNER</title>
     <link rel="icon" href="icons/favicon.png">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -58,22 +58,23 @@
             <div class="top-tabs" id="topTabs">
 
 
-                <button class="top-tab-btn active" data-tab="tabMonitor">
-                    <img src="icons/monitoring.png" class="top-tab-icon" alt="SCANNER HARGA CRYPTO">SCANNER
+                <button class="nav-item active" data-tab="tabMonitor">
+                     <span class="nav-icon"><img src="icons/monitoring.png" class="nav-icon-img" alt="SCANNER HARGA CRYPTO"></span>
                 </button>
-                <button class="top-tab-btn" data-tab="tabToken">
-                    <img src="icons/token.png" class="top-tab-icon" alt="DAFTAR KOIN CRYPTO">DATA KOIN
+                <button class="nav-item" data-tab="tabToken">
+                    <span class="nav-icon"><img src="icons/token.png" class="nav-icon-img" alt="DAFTAR KOIN CRYPTO"></span>
                 </button>
 
-                <button class="top-tab-btn" data-tab="tabSettings">
-                    <img src="icons/setting.png" class="top-tab-icon" alt="PENGATURAN APLIKASI">PENGATURAN
+                <button class="nav-item" data-tab="tabSettings">
+                    <span class="nav-icon"><img src="icons/setting.png" class="nav-icon-img" alt="SETTING APLIKASI"></span>
+                    <!-- <img src="icons/setting.png" class="top-tab-icon" alt="PENGATURAN APLIKASI"> -->
                 </button>
                 <!-- <button class="top-tab-btn" onclick="openCalcModal()">
                 <img src="icons/kalkulator.png" class="top-tab-icon" alt="KALKULATOR CRYPTO">
             </button> -->
-             <button class="nav-item" id="navReload" onclick="reloadWithToast()">
+             <!-- <button class="nav-item" id="navReload" onclick="reloadWithToast()">
                 <span class="nav-icon"><img src="icons/reload.png" class="nav-icon-img" alt="reload"></span>
-        </button>
+        </button> -->
             </div>
 
             <!-- Scan Controls -->
@@ -268,10 +269,10 @@
      BOTTOM NAV
 ═══════════════════════════════════════ -->
     <nav class="bottom-nav">
-        <button class="nav-item" id="navCalc" onclick="openCalcModal()">
+        <!-- <button class="nav-item" id="navCalc" onclick="openCalcModal()">
             <span class="nav-icon"><img src="icons/kalkulator.png" class="nav-icon-img" alt="kalkulator crypto"></span>
             <span>KALKULATOR</span>
-        </button>
+        </button> -->
         <button class="nav-item" data-tab="tabToken" id="navToken">
             <span class="nav-icon"><img src="icons/token.png" class="nav-icon-img" alt="daftar koin"></span>
             <span>DATA KOIN</span>
@@ -281,10 +282,10 @@
             <span class="nav-icon"><img src="icons/monitoring.png" class="nav-icon-img" alt="scanner price"></span>
             <span>SCANNER</span>
         </button>
-        <button class="nav-item" id="navReload" onclick="reloadWithToast()">
+        <!-- <button class="nav-item" id="navReload" onclick="reloadWithToast()">
             <span class="nav-icon"><img src="icons/reload.png" class="nav-icon-img" alt="reload"></span>
             <span>RELOAD</span>
-        </button>
+        </button> -->
         <button class="nav-item" data-tab="tabSettings" id="navSettings">
             <span class="nav-icon"><img src="icons/setting.png" class="nav-icon-img" alt="pengaturan aplikasi"></span>
             <span>PENGATURAN</span>
