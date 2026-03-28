@@ -3074,19 +3074,8 @@ body.is-scanning .scan-sort-group {
 /* ══════════════════════════════════════════
    LANDSCAPE
 ══════════════════════════════════════════ */
+/* ── Landscape ALL: layout konten saja ────────────────────────── */
 @media (orientation: landscape) {
-  .top-tabs {
-    display: flex;
-  }
-
-  .bottom-nav {
-    display: none;
-  }
-
-  .tab-pane {
-    padding-bottom: 12px;
-  }
-
   .mon-tables-wrap {
     flex-direction: row;
   }
@@ -3140,10 +3129,23 @@ body.is-scanning .scan-sort-group {
   }
 }
 
-/* ══════════════════════════════════════════
-   MOBILE PORTRAIT — FAB bar di bawah
-══════════════════════════════════════════ */
-@media (max-width: 639px), (orientation: portrait) {
+/* ── Landscape Desktop (≥768px): nav pindah ke top-bar ─────────── */
+@media (orientation: landscape) and (min-width: 768px) {
+  .top-tabs {
+    display: flex;
+  }
+
+  .bottom-nav {
+    display: none;
+  }
+
+  .tab-pane {
+    padding-bottom: 12px;
+  }
+}
+
+/* ── Portrait + Mobile Landscape (<768px): FAB bar di bawah ─────── */
+@media (orientation: portrait), (orientation: landscape) and (max-width: 767px) {
   .scan-footer {
     position: fixed !important;
     bottom: var(--nav-h);
@@ -3162,9 +3164,63 @@ body.is-scanning .scan-sort-group {
     padding-bottom: calc(var(--nav-h) + var(--fab-h) + 16px);
   }
 
-  /* sort-btn ukuran kecil agar muat */
   .scan-sort-group .sort-btn { height: 22px; min-width: 34px; }
   .fab-scan { height: 22px; padding: 0 14px; }
+}
+
+/* ── Mobile Landscape khusus: kompakkan top-bar & nav ──────────── */
+@media (orientation: landscape) and (max-width: 767px) {
+  :root {
+    --nav-h: 44px;
+    --fab-h: 34px;
+    --topbar-h: 76px;
+  }
+
+  .top-bar {
+    height: 40px;
+    padding: 0 8px 0 10px;
+  }
+
+  .scan-status-badge {
+    font-size: 9px;
+    padding: 3px 8px;
+  }
+
+  .bottom-nav {
+    height: 44px;
+  }
+
+  .nav-item {
+    font-size: 9px;
+    gap: 1px;
+  }
+
+  .nav-item .nav-icon {
+    height: 16px;
+  }
+
+  .nav-icon-img {
+    width: 16px;
+    height: 16px;
+  }
+
+  .signal-bar {
+    min-height: 28px;
+    padding: 2px 6px;
+  }
+
+  .app-name {
+    font-size: 13px !important;
+  }
+
+  .app-logo {
+    width: 20px;
+    height: 20px;
+  }
+
+  .app-version {
+    font-size: 10px;
+  }
 }
 
 /* ══════════════════════════════════════════
@@ -4275,7 +4331,7 @@ body.is-scanning .scan-sort-group {
 .wdp-txt  { font-size: 11px; font-weight: 700; letter-spacing: 0.2px; padding: 0 1px; }
 .wdp-na   {
   font-size: 11px;
-  color: rgba(255,255,255,0.6);
+  color: rgb(168, 165, 165);
   font-style: italic;
   letter-spacing: 0.5px;
 }
