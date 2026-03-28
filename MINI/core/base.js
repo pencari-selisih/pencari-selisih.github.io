@@ -152,7 +152,24 @@ const getTokens = () => {
     try { _tokenCache = JSON.parse(localStorage.getItem(LS_TOKENS)) || []; } catch { _tokenCache = []; }
     return _tokenCache;
 };
-const saveTokens = (a) => { _tokenCache = a; localStorage.setItem(LS_TOKENS, JSON.stringify(a)); };
+const saveTokens = (a) => {
+    // Guard: jangan simpan array kosong jika sebelumnya ada data — cegah data hilang akibat race condition
+    if (!a || !a.length) {
+        try {
+            const existing = JSON.parse(localStorage.getItem(LS_TOKENS));
+            if (Array.isArray(existing) && existing.length > 0) {
+                console.warn('[saveTokens] Blocked empty save — existing data preserved (' + existing.length + ' tokens)');
+                return;
+            }
+        } catch { }
+    }
+    _tokenCache = a;
+    try {
+        localStorage.setItem(LS_TOKENS, JSON.stringify(a));
+    } catch (e) {
+        console.error('[saveTokens] localStorage write failed:', e);
+    }
+};
 const clearTokenCache = () => { _tokenCache = null; };
 const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const toWei = (amt, dec) => {

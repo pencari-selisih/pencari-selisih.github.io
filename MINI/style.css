@@ -3152,8 +3152,8 @@ body.is-scanning .scan-sort-group {
   }
 
   /* sort-btn ukuran kecil agar muat */
-  .scan-sort-group .sort-btn { height: 28px; min-width: 34px; }
-  .fab-scan { height: 28px; padding: 0 14px; }
+  .scan-sort-group .sort-btn { height: 22px; min-width: 34px; }
+  .fab-scan { height: 22px; padding: 0 14px; }
 }
 
 /* ══════════════════════════════════════════

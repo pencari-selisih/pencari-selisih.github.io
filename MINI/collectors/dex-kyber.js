@@ -12,33 +12,26 @@ async function fetchDexQuotesKyber(chainKey, srcToken, destToken, amountWei, dec
     const cached = cacheGet(cacheKey);
     if (cached !== undefined) return cached;
     try {
-        // if (dir === 'dtc') {
-        //     // DTC: gunakan Railway API untuk hindari 429
-        //     const chainId = CONFIG_CHAINS[chainKey]?.Kode_Chain;
-        //     if (!chainId) return [];
-        //     const sender = CFG.wallet || '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
-        //     const resp = await fetch('https://bzvwrjfhuefn.up.railway.app/swap', {
-        //         method: 'POST',
-        //         headers: { 'Content-Type': 'application/json' },
-        //         body: JSON.stringify({
-        //             chainId,
-        //             aggregatorSlug: 'kyberswap',
-        //             sender,
-        //             inToken:  { chainId, type: 'TOKEN', address: srcToken,  decimals: decIn  },
-        //             outToken: { chainId, type: 'TOKEN', address: destToken, decimals: decOut },
-        //             amountInWei: String(amountWei),
-        //             slippageBps: '100',
-        //             gasPriceGwei: 0,
-        //         }),
-        //     });
-        //     if (!resp.ok) return [];
-        //     const data = await resp.json();
-        //     const amountOut = data?.amountOutWei ?? data?.amountOutNoFeeWei;
-        //     if (!amountOut) return [];
-        //     const res = [{ amount: parseFloat(amountOut), dec: decOut, name: 'KYBER', src: 'KB' }];
-        //     cacheSet(cacheKey, res, 900);
-        //     return res;
-        // } else {
+        if (dir === 'dtc') {
+            // DTC: gunakan Krystal allRates API — filter hanya route Kyber
+            const chainName = KYBER_CHAIN_MAP[chainKey];
+            if (!chainName) return [];
+            const platformWallet = '0x168E4c3AC8d89B00958B6bE6400B066f0347DDc9';
+            const url = `https://api.krystal.app/${chainName}/v2/swap/allRates` +
+                `?src=${srcToken}&srcAmount=${amountWei}&dest=${destToken}&platformWallet=${platformWallet}`;
+            const resp = await fetch(url);
+            if (!resp.ok) return [];
+            const data = await resp.json();
+            const rates = data?.rates || [];
+            // Filter hanya DEX Kyber dari semua rate yang dikembalikan Krystal
+            const kyberRate = rates.find(r => /kyber/i.test(r.platform || r.exchange || r.name || ''));
+            if (!kyberRate) return [];
+            const amountOut = kyberRate.amount || kyberRate.destAmount || kyberRate.toAmount || kyberRate.amountOut;
+            if (!amountOut) return [];
+            const res = [{ amount: parseFloat(amountOut), dec: decOut, name: 'KYBER', src: 'KB', feeSwapUsdt: 0 }];
+            cacheSet(cacheKey, res, 900);
+            return res;
+        } else {
             // CTD: gunakan Kyber Aggregator API langsung
             const chainName = KYBER_CHAIN_MAP[chainKey];
             if (!chainName) return [];
@@ -55,6 +48,6 @@ async function fetchDexQuotesKyber(chainKey, srcToken, destToken, amountWei, dec
             const res = [{ amount: parseFloat(amountOut), dec: decOut, name: 'KYBER', src: 'KB', feeSwapUsdt }];
             cacheSet(cacheKey, res, 900);
             return res;
-      //  }
+        }
     } catch { return []; }
 }
