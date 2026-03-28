@@ -3763,6 +3763,178 @@
   };
 
   // =============================
+  // ONEKEY Strategy - OneKey Swap SSE Streaming Multi-Quote
+  // =============================
+  // Protokol: SSE (Server-Sent Events) via EventSource
+  // Endpoint: https://swap.onekeycn.com/swap/v1/quote/events
+  // Provider: OKX Dex (SwapOKX), 1inch (Swap1inch), 0x/Matcha (Swap0x)
+  // EVM only — toAmount sudah human-readable (tidak perlu /10^decimals)
+  dexStrategies.onekey = {
+    execute: ({ chainName, sc_input_in, sc_output_in, amount_in_big, des_input, SavedSettingData }) => {
+      return new Promise((resolve, reject) => {
+
+        const onekeyChainMap = {
+          'ethereum': 1, 'eth': 1,
+          'bsc': 56,     'bnb': 56,
+          'polygon': 137, 'matic': 137,
+          'arbitrum': 42161, 'arb': 42161,
+          'base': 8453,
+          'optimism': 10, 'op': 10,
+          'avalanche': 43114, 'avax': 43114
+        };
+
+        // Provider OneKey → dexTitle mapping (skip SwapLifi = meta-of-meta)
+        const PROVIDER_MAP = {
+          'swapokx':   'OKX',
+          'swap1inch': '1INCH',
+          'swap0x':    'MATCHA'
+        };
+
+        const chain = String(chainName || '').toLowerCase();
+        const chainId = onekeyChainMap[chain];
+        if (!chainId) return reject(new Error(`OneKey: Chain tidak didukung: ${chainName}`));
+
+        const walletAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+        const NATIVE = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
+        // OneKey pakai empty string untuk native token
+        const fromAddr = String(sc_input_in || '').toLowerCase() === NATIVE ? '' : sc_input_in;
+        const toAddr   = sc_output_in;
+        const networkId = `evm--${chainId}`;
+
+        // fromTokenAmount dalam human-readable (bukan wei)
+        const fromAmountHuman = (parseFloat(amount_in_big.toString()) / Math.pow(10, des_input)).toString();
+
+        const params = new URLSearchParams({
+          fromTokenAddress:      fromAddr,
+          toTokenAddress:        toAddr,
+          fromTokenAmount:       fromAmountHuman,
+          fromNetworkId:         networkId,
+          toNetworkId:           networkId,
+          protocol:              'Swap',
+          userAddress:           walletAddr,
+          slippagePercentage:    '1',
+          autoSlippage:          'true',
+          receivingAddress:      walletAddr,
+          kind:                  'sell',
+          denySingleSwapProvider: ''
+        });
+
+        const url = `https://swap.onekeycn.com/swap/v1/quote/events?${params.toString()}`;
+
+        const quotes = [];
+        let settled   = false;
+        let es;
+
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          try { es.close(); } catch (_) {}
+
+          if (quotes.length === 0) return reject(new Error('OneKey: Tidak ada quote diterima'));
+
+          const subResults = [];
+          for (const item of quotes) {
+            try {
+              const toAmount = parseFloat(item.toAmount || 0);
+              if (!Number.isFinite(toAmount) || toAmount <= 0) continue;
+
+              // toAmount SUDAH human-readable dari OneKey API
+              const amount_out = toAmount;
+
+              // Gas fee: gasLimit + gwei + tokenPrice dari ALL_GAS_FEES
+              let FeeSwap = getFeeSwap(chainName);
+              try {
+                const gasUnits = parseFloat(item.gasLimit || 0);
+                if (gasUnits > 0) {
+                  const allGasData = (typeof getFromLocalStorage === 'function')
+                    ? getFromLocalStorage('ALL_GAS_FEES') : null;
+                  if (allGasData) {
+                    const gasInfo = allGasData.find(g =>
+                      String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase()
+                    );
+                    if (gasInfo && gasInfo.gwei && gasInfo.tokenPrice) {
+                      const feeUsd = (gasUnits * gasInfo.gwei * gasInfo.tokenPrice) / 1e9;
+                      if (Number.isFinite(feeUsd) && feeUsd > 0) FeeSwap = feeUsd;
+                    }
+                  }
+                }
+              } catch (_) {}
+
+              const providerKey = String(item.info?.provider || '').toLowerCase();
+              const dexTitle    = PROVIDER_MAP[providerKey] || String(item.info?.providerName || providerKey).toUpperCase();
+
+              subResults.push({ amount_out, FeeSwap, dexTitle });
+            } catch (_) { continue; }
+          }
+
+          if (subResults.length === 0) return reject(new Error('OneKey: Tidak ada quote valid'));
+
+          subResults.sort((a, b) => b.amount_out - a.amount_out);
+
+          const maxN = (() => {
+            try {
+              const v = parseInt((getFromLocalStorage('SETTING_SCANNER') || {}).metaDex?.topRoutes);
+              if (v > 0) return v;
+            } catch (_) {}
+            return (typeof window !== 'undefined' && window.CONFIG_DEXS?.onekey?.maxProviders) || 3;
+          })();
+
+          const topN = subResults.slice(0, maxN);
+          console.log(`[ONEKEY] Top ${topN.length} quotes dari ${quotes.length} SSE events`);
+
+          resolve({
+            amount_out:  topN[0].amount_out,
+            FeeSwap:     topN[0].FeeSwap,
+            dexTitle:    'ONEKEY',
+            subResults:  topN,
+            isMultiDex:  true,
+            routeTool:   'ONEKEY'
+          });
+        };
+
+        // Timeout: tutup stream setelah 8 detik
+        const timer = setTimeout(finish, 8000);
+
+        try {
+          es = new EventSource(url);
+
+          // OneKey SSE tidak pakai named event — pakai default 'message'
+          es.onmessage = (event) => {
+            try {
+              const parsed = JSON.parse(event.data);
+              // Hanya proses event yang punya data[] dengan provider info
+              if (parsed.data && Array.isArray(parsed.data) && parsed.data.length > 0) {
+                const item = parsed.data[0];
+                if (item.info?.provider && item.toAmount) {
+                  const providerKey = String(item.info.provider).toLowerCase();
+                  // Skip SwapLifi (meta-of-meta, terlalu kompleks)
+                  if (providerKey !== 'swaplifi') {
+                    quotes.push(item);
+                  }
+                }
+              }
+              // Cek apakah semua quote sudah datang
+              if (parsed.totalQuoteCount && quotes.length >= parsed.totalQuoteCount) {
+                clearTimeout(timer);
+                finish();
+              }
+            } catch (_) {}
+          };
+
+          es.onerror = () => {
+            clearTimeout(timer);
+            finish(); // proses quote yang sudah masuk
+          };
+
+        } catch (e) {
+          clearTimeout(timer);
+          reject(new Error(`OneKey: EventSource gagal: ${e.message}`));
+        }
+      });
+    }
+  };
+
+  // =============================
   // RANGO Filtered Strategy Factory - Rango as REST API Provider
   // =============================
   /**

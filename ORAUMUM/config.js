@@ -13,7 +13,7 @@ const CONFIG_APP = {
         // Berbeda dari DEX regular (single-quote). Berjalan TERPISAH dari scan DEX regular.
         // Jika true → Settings menampilkan panel: Modal DEX, Filter Scanner, Card Signal, Jeda DEX.
         META_DEX: true,
-        LIMIT_METADEX: 2,
+        LIMIT_METADEX: 3,
     },
     // ========================================================================
     // META-DEX CONFIGURATION
@@ -36,7 +36,8 @@ const CONFIG_APP = {
             // rubic: { enabled: true, evmOnly: false, jedaDex: 500, label: 'Rubic' },     // EVM + Solana multi-quote
             // rango: { enabled: true, evmOnly: false, jedaDex: 500, label: 'RANGO' },       // EVM + Solana multi-quote
             //rocketx: { enabled: true, evmOnly: false, jedaDex: 600, label: 'ROCKET' },    // EVM + Solana multi-quote
-            metax: { enabled: true, evmOnly: true, jedaDex: 800, label: 'METAX' },        // EVM only (no Solana support)
+            metax: { enabled: true, evmOnly: true, jedaDex: 800, label: 'METAX' },       // EVM only (no Solana support)
+            onekey: { enabled: true, evmOnly: true, jedaDex: 800, label: 'ONEKEY' },       // EVM only — SSE streaming (OKX, 1inch, 0x)
         },
 
         // Chain yang didukung semua META-DEX aggregators (EVM + Solana)
@@ -556,7 +557,8 @@ const CONFIG_UI = {
             'rubic': 6000,           // Rubic multi-quote: 6s
             'rocketx': 8000,         // RocketX standalone (unused as column, reserved)
             'rocketx-velora': 8000,  // RocketX filtered → Velora/ParaSwap route (backend transport)
-            'metax': 7000,          // MetaMask Bridge: 12s (SSE stream, collect all quotes)
+            'metax': 7000,          // MetaMask Bridge: SSE stream, collect all quotes
+            'onekey': 10000,         // OneKey Swap: SSE stream (OKX, 1inch, 0x) — 10s
 
             // ========== Default Fallback ==========
             'default': 5000          // Default: 5s (balanced)
@@ -1220,6 +1222,28 @@ const CONFIG_DEXS = {
             primary: {
                 tokentopair: 'metax',
                 pairtotoken: 'metax'
+            }
+        },
+        allowFallback: false
+    },
+
+    onekey: {
+        label: 'ONEKEY',
+        badgeClass: 'bg-onekey',
+        disabled: false,
+        proxy: false,        // SSE langsung dari browser (EventSource), tidak lewat proxy
+        warna: "#00b812ff",  // OneKey green
+        isMetaDex: true,     // ✅ Meta-DEX: SSE streaming multi-quote
+        evmOnly: true,       // EVM only (no Solana support)
+        delay: 800,
+        isMultiDex: true,
+        maxProviders: 3,     // Provider: OKX, 1inch, 0x/Matcha
+        builder: ({ chainCode, tokenAddress, pairAddress }) =>
+            `https://app.onekey.so/swap/?networkId=evm--${chainCode}&inputTokenAddress=${tokenAddress}&outputTokenAddress=${pairAddress}`,
+        fetchdex: {
+            primary: {
+                tokentopair: 'onekey',
+                pairtotoken: 'onekey'
             }
         },
         allowFallback: false
