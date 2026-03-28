@@ -216,8 +216,8 @@ async function scanToken(tok) {
         return { modal, price: obToken.bidPrice, full: true };
     }
 
-    const dxCtD = { metax: _dexEffCtD('metax'), jumpx: _dexEffCtD('jumpx'), kyber: _dexEffCtD('kyber'), okx: _dexEffCtD('okx'), bungee: _dexEffCtD('bungee') };
-    const dxDtC = { metax: _dexEffDtC('metax'), jumpx: _dexEffDtC('jumpx'), kyber: _dexEffDtC('kyber'), okx: _dexEffDtC('okx'), bungee: _dexEffDtC('bungee') };
+    const dxCtD = { metax: _dexEffCtD('metax'), jumpx: _dexEffCtD('jumpx'), kyber: _dexEffCtD('kyber'), okx: _dexEffCtD('okx'), krystal: _dexEffCtD('krystal') };
+    const dxDtC = { metax: _dexEffDtC('metax'), jumpx: _dexEffDtC('jumpx'), kyber: _dexEffDtC('kyber'), okx: _dexEffDtC('okx'), krystal: _dexEffDtC('krystal') };
 
     // Simpan dispAsk/dispBid + fee WD ke cache agar tooltip bisa mengaksesnya
     _obCache[tok.id].dispAsk  = dispAskCtD;
@@ -243,25 +243,25 @@ async function scanToken(tok) {
     const diagCtD = diagnoseWei(_refWeiCtD);
     const diagDtC = diagnoseWei(_refWeiDtC);
     const chainId = chainCfg.Kode_Chain;
-    const [mxCtD, mxDtC, jxCtD, jxDtC, kbCtD, kbDtC, okCtD, okDtC, bgCtD, bgDtC] = await Promise.all([
-        isMetaxEnabled()  ? fetchDexQuotesMetax(chainId, tok.scToken, pairSc, _wCtD(dxCtD.metax))  : Promise.resolve([]),
-        isMetaxEnabled()  ? fetchDexQuotesMetax(chainId, pairSc, tok.scToken, _wDtC(dxDtC.metax))  : Promise.resolve([]),
-        isJumpxEnabled()  ? fetchDexQuotesJumpx(chainId, tok.scToken, pairSc, _wCtD(dxCtD.jumpx))  : Promise.resolve([]),
-        isJumpxEnabled()  ? fetchDexQuotesJumpx(chainId, pairSc, tok.scToken, _wDtC(dxDtC.jumpx))  : Promise.resolve([]),
-        isKyberEnabled()  ? fetchDexQuotesKyber(tok.chain, tok.scToken, pairSc, _wCtD(dxCtD.kyber), pairDec) : Promise.resolve([]),
-        isKyberEnabled()  ? fetchDexQuotesKyber(tok.chain, pairSc, tok.scToken, _wDtC(dxDtC.kyber), tok.decToken, pairDec, 'dtc') : Promise.resolve([]),
-        isOkxEnabled()    ? fetchDexQuotesOkx(chainId, tok.scToken, pairSc, _wCtD(dxCtD.okx), pairDec, tok.decToken, tok.ticker, pairSymbol)    : Promise.resolve([]),
-        isOkxEnabled()    ? fetchDexQuotesOkx(chainId, pairSc, tok.scToken, _wDtC(dxDtC.okx), tok.decToken, pairDec, pairSymbol, tok.ticker) : Promise.resolve([]),
-        isBungeeEnabled() ? fetchDexQuotesBungee(chainId, tok.scToken, pairSc, _wCtD(dxCtD.bungee)) : Promise.resolve([]),
-        isBungeeEnabled() ? fetchDexQuotesBungee(chainId, pairSc, tok.scToken, _wDtC(dxDtC.bungee)) : Promise.resolve([]),
+    const [mxCtD, mxDtC, jxCtD, jxDtC, kbCtD, kbDtC, okCtD, okDtC, krCtD, krDtC] = await Promise.all([
+        isMetaxEnabled()   ? fetchDexQuotesMetax(chainId, tok.scToken, pairSc, _wCtD(dxCtD.metax))  : Promise.resolve([]),
+        isMetaxEnabled()   ? fetchDexQuotesMetax(chainId, pairSc, tok.scToken, _wDtC(dxDtC.metax))  : Promise.resolve([]),
+        isJumpxEnabled()   ? fetchDexQuotesJumpx(chainId, tok.scToken, pairSc, _wCtD(dxCtD.jumpx))  : Promise.resolve([]),
+        isJumpxEnabled()   ? fetchDexQuotesJumpx(chainId, pairSc, tok.scToken, _wDtC(dxDtC.jumpx))  : Promise.resolve([]),
+        isKyberEnabled()   ? fetchDexQuotesKyber(tok.chain, tok.scToken, pairSc, _wCtD(dxCtD.kyber), pairDec) : Promise.resolve([]),
+        isKyberEnabled()   ? fetchDexQuotesKyber(tok.chain, pairSc, tok.scToken, _wDtC(dxDtC.kyber), tok.decToken, pairDec, 'dtc') : Promise.resolve([]),
+        isOkxEnabled()     ? fetchDexQuotesOkx(chainId, tok.scToken, pairSc, _wCtD(dxCtD.okx), pairDec, tok.decToken, tok.ticker, pairSymbol)    : Promise.resolve([]),
+        isOkxEnabled()     ? fetchDexQuotesOkx(chainId, pairSc, tok.scToken, _wDtC(dxDtC.okx), tok.decToken, pairDec, pairSymbol, tok.ticker) : Promise.resolve([]),
+        isKrystalEnabled() ? fetchDexQuotesKrystal(chainId, tok.scToken, pairSc, _wCtD(dxCtD.krystal)) : Promise.resolve([]),
+        isKrystalEnabled() ? fetchDexQuotesKrystal(chainId, pairSc, tok.scToken, _wDtC(dxDtC.krystal)) : Promise.resolve([]),
     ]);
 
     // helper: build list of {name, error} for empty columns
-    function buildMissingLabels(allData, mxRaw, jxRaw, kbRaw, okRaw, bgRaw) {
+    function buildMissingLabels(allData, mxRaw, jxRaw, kbRaw, okRaw, krRaw) {
         const labels = [];
         const mtIn = allData.filter(r => r.src === 'MX').length;
         const jxIn = allData.filter(r => r.src === 'JX').length;
-        const bgIn = allData.filter(r => r.src === 'BG').length;
+        const krIn = allData.filter(r => r.src === 'KR').length;
         const kbIn = allData.some(r => r.src === 'KB');
         const okIn = allData.some(r => r.src === 'OX');
         for (let i = mtIn; i < CFG.quoteCountMetax; i++)
@@ -272,9 +272,9 @@ async function scanToken(tok) {
             labels.push({ name: 'KYBER', error: kbRaw.length === 0 ? 'NO QUOTE' : 'NO ROUTE' });
         if (isOkxEnabled() && !okIn)
             labels.push({ name: 'OKX', error: okRaw.length === 0 ? 'NO QUOTE' : 'NO ROUTE' });
-        if (isBungeeEnabled()) {
-            for (let i = bgIn; i < CFG.quoteCountBungee; i++)
-                labels.push({ name: 'BUNGEE', error: bgRaw.length === 0 ? 'NO QUOTE' : 'NO ROUTE' });
+        if (isKrystalEnabled()) {
+            for (let i = krIn; i < CFG.quoteCountKrystal; i++)
+                labels.push({ name: 'KRYSTAL', error: krRaw.length === 0 ? 'NO QUOTE' : 'NO ROUTE' });
         }
         return labels;
     }
@@ -299,7 +299,7 @@ async function scanToken(tok) {
     // Wrap parse + normalize + filter; returns null if filtered out
     const _parseMx  = q => { const p = parseDexQuoteMetax(q);  if (!p) return null; p.name = _normDexName(p.name); return _isOff(p.name) ? null : p; };
     const _parseJx  = q => { const p = parseDexQuoteJumpx(q);  if (!p) return null; p.name = _normDexName(p.name); return _isOff(p.name) ? null : p; };
-    const _parseBg  = q => { const p = parseDexQuoteBungee(q); if (!p) return null; p.name = _normDexName(p.name); return _isOff(p.name) ? null : p; };
+    const _parseKr  = q => { const p = parseDexQuoteKrystal(q); if (!p) return null; p.name = _normDexName(p.name); return _isOff(p.name) ? null : p; };
     const _normQ    = q => { if (!q) return null; q.name = _normDexName(q.name); return q; }; // for Kyber/OKX pre-built objects
 
     const allCtD = [];
@@ -309,11 +309,11 @@ async function scanToken(tok) {
         jxCtD.forEach(q => { const p = _parseJx(q); if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD.jumpx.modal, tok.cex, dxCtD.jumpx.price, 'ctd', feeWdCtD, isPairStable, chainGasFee), 'jumpx'); });
         kbCtD.forEach(q => { const p = _normQ(q); if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD.kyber.modal, tok.cex, dxCtD.kyber.price, 'ctd', feeWdCtD, isPairStable, chainGasFee), 'kyber'); });
         okCtD.forEach(q => { const p = _normQ(q); if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD.okx.modal,   tok.cex, dxCtD.okx.price,   'ctd', feeWdCtD, isPairStable, chainGasFee), 'okx'); });
-        bgCtD.forEach(q => { const p = _parseBg(q); if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD.bungee.modal, tok.cex, dxCtD.bungee.price, 'ctd', feeWdCtD, isPairStable, chainGasFee), 'bungee'); });
+        krCtD.forEach(q => { const p = _parseKr(q); if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD.krystal.modal, tok.cex, dxCtD.krystal.price, 'ctd', feeWdCtD, isPairStable, chainGasFee), 'krystal'); });
     }
     allCtD.sort((a, b) => b.pnl - a.pnl);
     const ctdData = allCtD.slice(0, n);
-    const missingCtdLabels = blockCtD ? [] : buildMissingLabels(allCtD, mxCtD, jxCtD, kbCtD, okCtD, bgCtD);
+    const missingCtdLabels = blockCtD ? [] : buildMissingLabels(allCtD, mxCtD, jxCtD, kbCtD, okCtD, krCtD);
 
     // 6. Combine & sort DTC quotes — skip jika DP token ditutup (blockDtC)
     const allDtC = [];
@@ -323,11 +323,11 @@ async function scanToken(tok) {
         jxDtC.forEach(q => { const p = _parseJx(q); if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC.jumpx.price, dxDtC.jumpx.modal, tok.cex, dxCtD.jumpx.price, 'dtc', 0, isPairStable, chainGasFee), 'jumpx'); });
         kbDtC.forEach(q => { const p = _normQ(q); if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC.kyber.price, dxDtC.kyber.modal, tok.cex, dxCtD.kyber.price, 'dtc', 0, isPairStable, chainGasFee), 'kyber'); });
         okDtC.forEach(q => { const p = _normQ(q); if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC.okx.price,   dxDtC.okx.modal,   tok.cex, dxCtD.okx.price,   'dtc', 0, isPairStable, chainGasFee), 'okx'); });
-        bgDtC.forEach(q => { const p = _parseBg(q); if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC.bungee.price, dxDtC.bungee.modal, tok.cex, dxCtD.bungee.price, 'dtc', 0, isPairStable, chainGasFee), 'bungee'); });
+        krDtC.forEach(q => { const p = _parseKr(q); if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC.krystal.price, dxDtC.krystal.modal, tok.cex, dxCtD.krystal.price, 'dtc', 0, isPairStable, chainGasFee), 'krystal'); });
     }
     allDtC.sort((a, b) => b.pnl - a.pnl); // best first
     const dtcData = allDtC.slice(0, n);
-    const missingDtcLabels = buildMissingLabels(allDtC, mxDtC, jxDtC, kbDtC, okDtC, bgDtC);
+    const missingDtcLabels = buildMissingLabels(allDtC, mxDtC, jxDtC, kbDtC, okDtC, krDtC);
 
     // 6. Fill CTD table
     const _tradeUrl = typeof _getCexTradeUrl === 'function' ? _getCexTradeUrl(tok.cex, tok.ticker, pairSymbol) : '';
@@ -376,7 +376,7 @@ async function scanToken(tok) {
             const isSignal = r.pnl >= (r.dexMinPnl ?? tokMinPnl);
             const sigCls = isSignal ? ' col-signal' : '';
             const ctdName = (r.name || '').slice(0, 6).toUpperCase();
-            const ctdSrcTag = r.src === 'MX' ? '<span class="src-tag mx">MT</span>' : r.src === 'JX' ? '<span class="src-tag jx">JM</span>' : r.src === 'BG' ? '<span class="src-tag bg">BG</span>' : '';
+            const ctdSrcTag = r.src === 'MX' ? '<span class="src-tag mx">MT</span>' : r.src === 'JX' ? '<span class="src-tag jx">LF</span>' : r.src === 'KR' ? '<span class="src-tag kc">KC</span>' : '';
             const ctdModalSet = r.dexModalCtD;
             const ctdInsuf    = r.modalFull === false && r.modalActual && ctdModalSet && r.modalActual < ctdModalSet;
             const ctdModalLbl = ctdInsuf
@@ -445,7 +445,7 @@ async function scanToken(tok) {
             const isSignal = r.pnl >= (r.dexMinPnl ?? tokMinPnl);
             const sigCls = isSignal ? ' col-signal' : '';
             const dtcName = (r.name || '').slice(0, 6).toUpperCase();
-            const dtcSrcTag = r.src === 'MX' ? '<span class="src-tag mx">MT</span>' : r.src === 'JX' ? '<span class="src-tag jx">JM</span>' : r.src === 'BG' ? '<span class="src-tag bg">BG</span>' : '';
+            const dtcSrcTag = r.src === 'MX' ? '<span class="src-tag mx">MT</span>' : r.src === 'JX' ? '<span class="src-tag jx">LF</span>' : r.src === 'KR' ? '<span class="src-tag kc">KC</span>' : '';
             const dtcModalSet = r.dexModalDtC;
             const dtcInsuf    = r.modalFull === false && r.modalActual && dtcModalSet && r.modalActual < dtcModalSet;
             const dtcModalLbl = dtcInsuf
@@ -614,7 +614,7 @@ async function sendTelegram(tok, pnl, info) {
             indodax:`https://indodax.com/account/deposit/idr` })[tok.cex] || '';
     }
     function _lnk(url, txt) { return url ? `<a href="${url}">${txt}</a>` : txt; }
-    function _badge(src) { return src==='MX'?'[MT]':src==='JX'?'[JM]':src==='BG'?'[BG]':src==='KB'?'[KB]':''; }
+    function _badge(src) { return src==='MX'?'[MT]':src==='JX'?'[LF]':src==='KR'?'[KC]':src==='KB'?'[KB]':''; }
 
     // ── Build one section per arah yang ada signalnya ─────────────────────
     function _section(signals, dir, modal, cexPrice) {

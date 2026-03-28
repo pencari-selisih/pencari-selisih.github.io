@@ -14,10 +14,10 @@ const STABLE_COINS = new Set(['USDT','USDC','BUSD','DAI','TUSD','FDUSD','USDD','
 // ─── DEX List — metadata setiap DEX aggregator ─
 const DEX_LIST = [
     { key: 'metax',  label: 'METAX',  badge: 'MT', hasCount: true,  defaultCount: APP_DEV_CONFIG.defaultQuoteCountMetax  },
-    { key: 'jumpx',  label: 'JUMPX',  badge: 'JM', hasCount: true,  defaultCount: APP_DEV_CONFIG.defaultQuoteCountJumpx  },
+    { key: 'jumpx',  label: 'LIFI',   badge: 'LF', hasCount: true,  defaultCount: APP_DEV_CONFIG.defaultQuoteCountJumpx  },
     { key: 'kyber',  label: 'KYBER',  badge: 'KB', hasCount: false, defaultCount: 1 },
     { key: 'okx',    label: 'OKX',    badge: 'OK', hasCount: false, defaultCount: 1 },
-    { key: 'bungee', label: 'BUNGEE', badge: 'BG', hasCount: true,  defaultCount: APP_DEV_CONFIG.defaultQuoteCountBungee  },
+    { key: 'krystal', label: 'KRYSTAL', badge: 'KC', hasCount: true,  defaultCount: APP_DEV_CONFIG.defaultQuoteCountKrystal  },
 ];
 
 let CFG = {
@@ -28,7 +28,7 @@ let CFG = {
     // Legacy fields — di-sync dari CFG.dex.*.count agar collectors tetap berfungsi
     quoteCountMetax:  APP_DEV_CONFIG.defaultQuoteCountMetax,
     quoteCountJumpx:  APP_DEV_CONFIG.defaultQuoteCountJumpx,
-    quoteCountBungee: APP_DEV_CONFIG.defaultQuoteCountBungee,
+    quoteCountKrystal: APP_DEV_CONFIG.defaultQuoteCountKrystal,
     soundMuted: false,
     activeCex: [],    // [] = semua aktif
     activeChains: [], // [] = semua aktif
@@ -40,17 +40,17 @@ let CFG = {
         jumpx:  { active: APP_DEV_CONFIG.defaultQuoteCountJumpx  > 0, modalCtD: 100, modalDtC: 80, count: APP_DEV_CONFIG.defaultQuoteCountJumpx  },
         kyber:  { active: APP_DEV_CONFIG.defaultEnableKyber === true, modalCtD: 100, modalDtC: 80 },
         okx:    { active: APP_DEV_CONFIG.defaultEnableOkx   === true, modalCtD: 100, modalDtC: 80 },
-        bungee: { active: APP_DEV_CONFIG.defaultQuoteCountBungee > 0, modalCtD: 100, modalDtC: 80, count: APP_DEV_CONFIG.defaultQuoteCountBungee },
+        krystal: { active: APP_DEV_CONFIG.defaultQuoteCountKrystal > 0, modalCtD: 100, modalDtC: 80, count: APP_DEV_CONFIG.defaultQuoteCountKrystal },
     },
 };
 
-// Sync legacy quoteCount fields dari CFG.dex — diperlukan oleh collectors (dex-metax, jumpx, bungee)
+// Sync legacy quoteCount fields dari CFG.dex — diperlukan oleh collectors (dex-metax, jumpx, krystal)
 function _syncLegacyDexCounts() {
     const d = CFG.dex || {};
-    CFG.quoteCountMetax  = d.metax?.active  ? (d.metax?.count  || APP_DEV_CONFIG.defaultQuoteCountMetax)  : 0;
-    CFG.quoteCountJumpx  = d.jumpx?.active  && APP_DEV_CONFIG.defaultQuoteCountJumpx > 0
+    CFG.quoteCountMetax   = d.metax?.active   ? (d.metax?.count   || APP_DEV_CONFIG.defaultQuoteCountMetax)   : 0;
+    CFG.quoteCountJumpx   = d.jumpx?.active   && APP_DEV_CONFIG.defaultQuoteCountJumpx > 0
         ? (d.jumpx?.count  || APP_DEV_CONFIG.defaultQuoteCountJumpx)  : 0;
-    CFG.quoteCountBungee = d.bungee?.active ? (d.bungee?.count || APP_DEV_CONFIG.defaultQuoteCountBungee) : 0;
+    CFG.quoteCountKrystal = d.krystal?.active ? (d.krystal?.count || APP_DEV_CONFIG.defaultQuoteCountKrystal) : 0;
 }
 
 function totalQuoteCount() {
@@ -59,7 +59,7 @@ function totalQuoteCount() {
         + (d.jumpx?.active  && APP_DEV_CONFIG.defaultQuoteCountJumpx > 0 ? (d.jumpx?.count  || APP_DEV_CONFIG.defaultQuoteCountJumpx)  : 0)
         + (isKyberEnabled() ? 1 : 0)
         + (isOkxEnabled()   ? 1 : 0)
-        + (d.bungee?.active ? (d.bungee?.count || APP_DEV_CONFIG.defaultQuoteCountBungee) : 0);
+        + (d.krystal?.active ? (d.krystal?.count || APP_DEV_CONFIG.defaultQuoteCountKrystal) : 0);
     return Math.min(raw, APP_DEV_CONFIG.maxDexDisplay || 6);
 }
 
@@ -68,7 +68,7 @@ function isJumpxEnabled()     { return !!(CFG.dex?.jumpx?.active  && APP_DEV_CON
 function isAutoLevelEnabled() { return APP_DEV_CONFIG.defaultAutoLevel !== false; }
 function isKyberEnabled()     { return !!(CFG.dex?.kyber?.active  && APP_DEV_CONFIG.defaultEnableKyber === true); }
 function isOkxEnabled()       { return !!(CFG.dex?.okx?.active    && APP_DEV_CONFIG.defaultEnableOkx   === true); }
-function isBungeeEnabled()    { return !!(CFG.dex?.bungee?.active && (CFG.dex?.bungee?.count || 0) > 0); }
+function isKrystalEnabled()   { return !!(CFG.dex?.krystal?.active && (CFG.dex?.krystal?.count || 0) > 0); }
 
 // DEX yang diizinkan tampil di UI (bulk modal, CRUD form, token list chip)
 // — dikendalikan developer lewat config.js, bukan user
@@ -77,7 +77,7 @@ const _DEX_ENABLED_BY_CONFIG = {
     jumpx:  () => APP_DEV_CONFIG.defaultQuoteCountJumpx  > 0,
     kyber:  () => APP_DEV_CONFIG.defaultEnableKyber === true,
     okx:    () => APP_DEV_CONFIG.defaultEnableOkx   === true,
-    bungee: () => APP_DEV_CONFIG.defaultQuoteCountBungee > 0,
+    krystal: () => APP_DEV_CONFIG.defaultQuoteCountKrystal > 0,
 };
 const getEnabledDexList = () => DEX_LIST.filter(def => _DEX_ENABLED_BY_CONFIG[def.key]?.() !== false);
 

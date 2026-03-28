@@ -33,10 +33,12 @@
   --loss: #e63950;
   --warn: #f59e0b;
 
-  /* ─── METAX & JUMPX & BUNGEE Colors ─── */
-  --metax-color: #e87122;
-  --jumpx-color: #8b5cf6;
-  --bungee-color: #171716;
+  /* ─── DEX Colors ─── */
+  --metax-color:   #e87122;
+  --lifi-color:    #8b5cf6;
+  --kyber-color:   #2980b9;
+  --okx-color:     #333333;
+  --krystal-color: #ed92d9;
 
   /* ─── Misc ─── */
   --radius: 16px;
@@ -44,7 +46,7 @@
   --radius-xs: 7px;
   --shadow: 0 4px 20px rgba(100, 130, 180, 0.10);
   --shadow-lg: 0 8px 40px rgba(100, 130, 180, 0.18);
-  --nav-h: 40px;
+  --nav-h: 60px;
   --fab-h: 42px;
   --topbar-h: 106px;
   /* 54 topbar + ~44 signal chips + 8 gap */
@@ -107,7 +109,7 @@ body {
 
 .badge-jumpx {
   display: inline-block;
-  background: var(--jumpx-color);
+  background: var(--lifi-color);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -117,9 +119,9 @@ body {
   vertical-align: middle;
 }
 
-.badge-bungee {
+.badge-krystal {
   display: inline-block;
-  background: var(--bungee-color);
+  background: var(--krystal-color);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -983,23 +985,23 @@ body {
 }
 
 .src-tag.jx {
-  background: var(--jumpx-color);
+  background: var(--lifi-color);
   color: #fff;
   font-size: 6px;
 }
 
 .src-tag.kb {
-  background: #0b7e18;
+  background: var(--kyber-color);
   color: #fff;
 }
 
 .src-tag.ox {
-  background: #1a1a1a;
+  background: var(--okx-color);
   color: #fff;
 }
 
-.src-tag.bg {
-  background: var(--bungee-color);
+.src-tag.kc {
+  background: var(--krystal-color);
   color: #fff;
   font-size: 6px;
 }
@@ -1322,6 +1324,7 @@ body.is-scanning .scan-sort-group {
   flex-direction: column;
   gap: 4px;
   flex-shrink: 0;
+  min-width: 90px;
 }
 
 /* ══════════════════════════════════════════
@@ -1466,7 +1469,7 @@ body.is-scanning .scan-sort-group {
 .fav-count {
   font-size: 13px;
   font-weight: 600;
-  color: #c9870a;
+  color: #0e0e0d;
   background: rgba(255, 200, 50, 0.15);
   padding: 2px 10px;
   border-radius: 20px;
@@ -1644,11 +1647,17 @@ body.is-scanning .scan-sort-group {
   border-radius: var(--radius-sm);
   padding: 10px 14px;
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow);
   transition: border-color .2s;
+}
+
+.token-list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .token-list-item:hover {
@@ -1675,23 +1684,17 @@ body.is-scanning .scan-sort-group {
 .token-list-info {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
 }
 
 .token-list-sym {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 3px;
-  min-width: 80px;
-  max-width: 110px;
-  flex-shrink: 0;
+  gap: 2px;
+  margin-bottom: 4px;
 }
 
 /* Token name container in token list (inline with wdp icons) */
@@ -1709,7 +1712,7 @@ body.is-scanning .scan-sort-group {
 
 .tl-dex-table {
   display: grid;
-  grid-template-columns: 40px 72px 72px 50px;
+  grid-template-columns: 40px 55px 55px 50px;
   gap: 2px 3px;
   margin-top: 0;
   align-items: center;
@@ -1721,7 +1724,6 @@ body.is-scanning .scan-sort-group {
 .tl-dex-th {
   font-size: 11px;
   font-weight: 700;
-  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.3px;
   text-align: center;
@@ -1739,7 +1741,7 @@ body.is-scanning .scan-sort-group {
   white-space: nowrap;
 }
 .tl-dex-tb.tl-over {
-  outline: 1.5px solid #0abf7a;
+  outline: 1.5px solid #0aee16;
   outline-offset: 1px;
 }
 .tl-dex-tc {
@@ -1751,11 +1753,11 @@ body.is-scanning .scan-sort-group {
 .tl-dex-tc-ctd { color: #0abf7a; font-size: 11px; text-align: center;}
 .tl-dex-tc-dtc { color: #c0504d; font-size: 11px; text-align: center;}
 .tl-dex-tc-pnl { color: #f5a623;  font-size: 11px; text-align: center;}
-.tl-dex-badge-metax  { background: #e67e22; }
-.tl-dex-badge-jumpx  { background: #8e44ad; }
-.tl-dex-badge-kyber  { background: #0de01e; }
-.tl-dex-badge-okx    { background: #1a1a1a; }
-.tl-dex-badge-bungee { background: #c0392b; }
+.tl-dex-badge-metax  { background: var(--metax-color); }
+.tl-dex-badge-jumpx  { background: var(--lifi-color); }
+.tl-dex-badge-kyber  { background: var(--kyber-color); }
+.tl-dex-badge-okx    { background: var(--okx-color); }
+.tl-dex-badge-krystal { background: var(--krystal-color); }
 .tl-modal-divider {
   color: rgba(128,128,128,0.4);
   font-size: 10px;
@@ -1767,6 +1769,15 @@ body.is-scanning .scan-sort-group {
 .tl-pnl-lbl b {
   color: var(--text);
   font-weight: 600;
+}
+
+.token-list-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+  border-top: 1px solid var(--glass-border);
+  justify-content: space-around;
 }
 
 .token-list-actions {
@@ -2335,11 +2346,11 @@ body.is-scanning .scan-sort-group {
 }
 
 /* Warna aksen kiri per DEX */
-.dex-cfg-row.dex-cfg-metax  { border-left-color: #e67e22; background: rgba(230,126,34,0.05); }
-.dex-cfg-row.dex-cfg-jumpx  { border-left-color: #8e44ad; background: rgba(142,68,173,0.05); }
-.dex-cfg-row.dex-cfg-kyber  { border-left-color: #2980b9; background: rgba(41,128,185,0.05); }
-.dex-cfg-row.dex-cfg-okx    { border-left-color: #444;    background: rgba(60,60,60,0.04);   }
-.dex-cfg-row.dex-cfg-bungee { border-left-color: #c0392b; background: rgba(192,57,43,0.05);  }
+.dex-cfg-row.dex-cfg-metax  { border-left-color: var(--metax-color);   background: rgba(232,113,34,0.05);  }
+.dex-cfg-row.dex-cfg-jumpx  { border-left-color: var(--lifi-color);    background: rgba(139,92,246,0.05);  }
+.dex-cfg-row.dex-cfg-kyber  { border-left-color: var(--kyber-color);   background: rgba(41,128,185,0.05);  }
+.dex-cfg-row.dex-cfg-okx    { border-left-color: var(--okx-color);     background: rgba(51,51,51,0.04);    }
+.dex-cfg-row.dex-cfg-krystal { border-left-color: var(--krystal-color); background: rgba(10,191,122,0.05); }
 
 .dex-cfg-row.dex-on {
   filter: brightness(0.97);
@@ -2358,11 +2369,11 @@ body.is-scanning .scan-sort-group {
   color: var(--text);
   flex: 1;
 }
-.dex-cfg-metax  .dex-row-name { color: #e67e22; }
-.dex-cfg-jumpx  .dex-row-name { color: #8e44ad; }
-.dex-cfg-kyber  .dex-row-name { color: #2980b9; }
-.dex-cfg-okx    .dex-row-name { color: #444;    }
-.dex-cfg-bungee .dex-row-name { color: #c0392b; }
+.dex-cfg-metax  .dex-row-name { color: var(--metax-color);   }
+.dex-cfg-jumpx  .dex-row-name { color: var(--lifi-color);    }
+.dex-cfg-kyber  .dex-row-name { color: var(--kyber-color);   }
+.dex-cfg-okx    .dex-row-name { color: #888;                 }
+.dex-cfg-krystal .dex-row-name { color: var(--krystal-color); }
 
 
 .dex-active-lbl {
@@ -2423,11 +2434,11 @@ body.is-scanning .scan-sort-group {
   color: #fff;
 }
 
-.dex-badge-mx { background: var(--metax-color); }
-.dex-badge-jx { background: var(--jumpx-color); }
-.dex-badge-kb { background: #0b7e18; }
-.dex-badge-ok { background: #1a1a1a; }
-.dex-badge-bg { background: var(--bungee-color); }
+.dex-badge-mx { background: var(--metax-color);   }
+.dex-badge-jx { background: var(--lifi-color);    }
+.dex-badge-kb { background: var(--kyber-color);   }
+.dex-badge-ok { background: var(--okx-color);     }
+.dex-badge-kr { background: var(--krystal-color); }
 
 /* Fields row: 3 compact inputs in one line */
 .dex-row-fields {
@@ -2642,11 +2653,11 @@ body.is-scanning .scan-sort-group {
   min-width: 24px;
   text-align: center;
 }
-.dex-modal-per-badge.dex-badge-metax  { background: #e67e22; }
-.dex-modal-per-badge.dex-badge-jumpx  { background: #8e44ad; }
-.dex-modal-per-badge.dex-badge-kyber  { background: #2980b9; }
-.dex-modal-per-badge.dex-badge-okx    { background: #27ae60; }
-.dex-modal-per-badge.dex-badge-bungee { background: #c0392b; }
+.dex-modal-per-badge.dex-badge-metax   { background: var(--metax-color);   }
+.dex-modal-per-badge.dex-badge-jumpx   { background: var(--lifi-color);    }
+.dex-modal-per-badge.dex-badge-kyber   { background: var(--kyber-color);   }
+.dex-modal-per-badge.dex-badge-okx     { background: var(--okx-color);     }
+.dex-modal-per-badge.dex-badge-krystal { background: var(--krystal-color); }
 .dex-modal-per-name {
   font-size: 11px;
   font-weight: 600;

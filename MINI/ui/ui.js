@@ -220,7 +220,7 @@ function loadSettings() {
     });
     if (!CFG.dex.metax.count)  CFG.dex.metax.count  = CFG.quoteCountMetax  || APP_DEV_CONFIG.defaultQuoteCountMetax;
     if (!CFG.dex.jumpx.count)  CFG.dex.jumpx.count  = CFG.quoteCountJumpx  || APP_DEV_CONFIG.defaultQuoteCountJumpx;
-    if (!CFG.dex.bungee.count) CFG.dex.bungee.count = CFG.quoteCountBungee || APP_DEV_CONFIG.defaultQuoteCountBungee;
+    if (!CFG.dex.krystal.count) CFG.dex.krystal.count = CFG.quoteCountKrystal || APP_DEV_CONFIG.defaultQuoteCountKrystal;
     _syncLegacyDexCounts();
     $('#setUsername').val(CFG.username);
     $('#setWallet').val(CFG.wallet);
@@ -239,11 +239,11 @@ function loadSettings() {
     } else {
         $('#fieldQuoteJumpx').hide();
     }
-    if (APP_DEV_CONFIG.defaultQuoteCountBungee > 0) {
-        $('#fieldQuoteBungee').show();
-        $('#setQuoteBungee').val(CFG.dex.bungee.count || APP_DEV_CONFIG.defaultQuoteCountBungee);
+    if (APP_DEV_CONFIG.defaultQuoteCountKrystal > 0) {
+        $('#fieldQuoteKrystal').show();
+        $('#setQuoteKrystal').val(CFG.dex.krystal.count || APP_DEV_CONFIG.defaultQuoteCountKrystal);
     } else {
-        $('#fieldQuoteBungee').hide();
+        $('#fieldQuoteKrystal').hide();
     }
     // Auto Level CEX — selalu aktif, on/off via config.js defaultAutoLevel
     CFG.autoLevel = isAutoLevelEnabled();
@@ -937,47 +937,49 @@ function renderTokenList() {
             const _icPair = _wdpIcons(_stPair, _wf, t.cex, _pairTk);
             return `
     <div class="token-list-item${valid ? '' : ' token-invalid'}" id="li-${t.id}">
-      <div class="token-list-badges">
-        <span class="badge-cex" style="background:${cexCfg.WARNA || '#555'}">
-          <img src="icons/cex/${t.cex}.png" class="badge-icon" onerror="this.style.display='none'">${cexCfg.label || t.cex}
-        </span>
-        <span class="badge-chain" style="background:${chainCfg.WARNA || '#555'}">
-          <img src="icons/chains/${t.chain}.png" class="badge-icon" onerror="this.style.display='none'">${chainCfg.label || t.chain}
-        </span>
-      </div>
-      <div class="token-list-info">
-        <div class="token-list-sym">
-          <span class="tl-tok-name">${t.ticker}<span class="wdp-ic">${_icTok}</span></span>
-          <span class="tl-tok-name">${t.tickerPair || t.ticker}<span class="wdp-ic">${_icPair}</span></span>
-          ${invalidBadge}
-        </div>
-        <div class="tl-dex-table">
-          <span class="tl-dex-th"></span>
-          <span class="tl-dex-th">CextoDEX</span>
-          <span class="tl-dex-th">DextoCEX</span>
-          <span class="tl-dex-th">PNL</span>
-          ${getEnabledDexList().map(def => {
-              const dm     = t.dexModals?.[def.key];
-              const bulk   = CFG.dex?.[def.key] || {};
-              const ctd    = dm?.ctd ?? bulk.modalCtD ?? '?';
-              const dtc    = dm?.dtc ?? bulk.modalDtC ?? '?';
-              const pnl    = dm?.pnl ?? t.minPnl ?? bulk.minPnl ?? null;
-              const isOver = dm?.ctd != null || dm?.dtc != null;
-              const pnlTxt = pnl != null ? `$${pnl}` : '-';
-              return `<span class="tl-dex-tb tl-dex-badge-${def.key}${isOver ? ' tl-over' : ''}" title="${def.label}${isOver ? ' (override)' : ' (bulk)'}">${def.badge}</span>
-                <span class="tl-dex-tc tl-dex-tc-ctd">$${ctd}</span>
-                <span class="tl-dex-tc tl-dex-tc-dtc">$${dtc}</span>
-                <span class="tl-dex-tc tl-dex-tc-pnl">${pnlTxt}</span>`;
-          }).join('')}
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px">
+      <div class="token-list-row">
+        <div class="token-list-badges">
+          <div class="token-list-sym">
+            <span class="tl-tok-name">${t.ticker}<span class="wdp-ic">${_icTok}</span></span>
+            <span class="tl-tok-name">${t.tickerPair || t.ticker}<span class="wdp-ic">${_icPair}</span></span>
+            ${invalidBadge}
+          </div>
+          <span class="badge-cex" style="background:${cexCfg.WARNA || '#555'}">
+             ${cexCfg.label || t.cex}
+          </span>
+          <span class="badge-chain" style="background:${chainCfg.WARNA || '#555'}">
+            ${chainCfg.label || t.chain}
+          </span>
+           <div class="token-list-actions-bar">
         <button class="tok-fav btn-icon ${t.favorite ? 'fav-active' : ''}" onclick="toggleFavorite('${t.id}')" title="Favorit">⭐</button>
-        <div class="token-list-actions">
-          <button class="btn-icon" onclick="openSheet('${t.id}')">✏️</button>
-          <button class="btn-icon danger" onclick="deleteToken('${t.id}')">🗑️</button>
+        <button class="btn-icon" onclick="openSheet('${t.id}')">✏️</button>
+        <button class="btn-icon danger" onclick="deleteToken('${t.id}')">🗑️</button>
+      </div>
+        </div>
+        
+        <div class="token-list-info">
+          <div class="tl-dex-table">
+            <span class="tl-dex-th"></span>
+            <span class="tl-dex-th">CEX</span>
+            <span class="tl-dex-th">DEX</span>
+            <span class="tl-dex-th">PNL</span>
+            ${getEnabledDexList().map(def => {
+                const dm     = t.dexModals?.[def.key];
+                const bulk   = CFG.dex?.[def.key] || {};
+                const ctd    = dm?.ctd ?? bulk.modalCtD ?? '?';
+                const dtc    = dm?.dtc ?? bulk.modalDtC ?? '?';
+                const pnl    = dm?.pnl ?? t.minPnl ?? bulk.minPnl ?? null;
+                const isOver = dm?.ctd != null || dm?.dtc != null;
+                const pnlTxt = pnl != null ? `$${pnl}` : '-';
+                return `<span class="tl-dex-tb tl-dex-badge-${def.key}${isOver ? ' tl-over' : ''}" title="${def.label}${isOver ? ' (override)' : ' (bulk)'}">${def.badge}</span>
+                  <span class="tl-dex-tc tl-dex-tc-ctd">$${ctd}</span>
+                  <span class="tl-dex-tc tl-dex-tc-dtc">$${dtc}</span>
+                  <span class="tl-dex-tc tl-dex-tc-pnl">${pnlTxt}</span>`;
+            }).join('')}
+          </div>
         </div>
       </div>
+     
     </div>`;
         }).join('');
         if (tokens.length > tokenRenderLimit) {
@@ -1508,8 +1510,9 @@ function updateSignalChips(tok, signals, dir) {
         }
         const dexSrc   = r.src || '';
         const dexName  = r.name ? r.name.toUpperCase() : 'DEX';
-        const dexBadge = dexSrc === 'MX' ? 'MT' : dexSrc === 'JX' ? 'JM' : dexSrc === 'BG' ? 'BG' : dexSrc === 'KB' ? 'KB' : '';
-        const badgeHtml = dexBadge ? `<span class="src-tag ${dexSrc.toLowerCase()}">${dexBadge}</span>` : '';
+        const dexBadge = dexSrc === 'MX' ? 'MT' : dexSrc === 'JX' ? 'LF' : dexSrc === 'KR' ? 'KC' : dexSrc === 'KB' ? 'KB' : '';
+        const dexSrcCls = dexSrc === 'KR' ? 'kc' : dexSrc.toLowerCase();
+        const badgeHtml = dexBadge ? `<span class="src-tag ${dexSrcCls}">${dexBadge}</span>` : '';
         const pairTicker = tok.tickerPair || 'USDT';
         // Baris 1 (route exchange): CTD = CEX→DEX, DTC = DEX→CEX
         const routeLabel = dir === 'CTD'
@@ -1594,14 +1597,14 @@ $('#setQuoteJumpx').on('change', function () {
     _persistCFG();
     showToast('✓ JUMPX Route: ' + v);
 });
-$('#setQuoteBungee').on('change', function () {
-    const v = Math.min(5, Math.max(1, parseInt($(this).val()) || APP_DEV_CONFIG.defaultQuoteCountBungee));
+$('#setQuoteKrystal').on('change', function () {
+    const v = Math.min(5, Math.max(1, parseInt($(this).val()) || APP_DEV_CONFIG.defaultQuoteCountKrystal));
     $(this).val(v);
-    if (!CFG.dex.bungee) CFG.dex.bungee = {};
-    CFG.dex.bungee.count = v;
+    if (!CFG.dex.krystal) CFG.dex.krystal = {};
+    CFG.dex.krystal.count = v;
     _syncLegacyDexCounts();
     _persistCFG();
-    showToast('✓ BUNGEE Route: ' + v);
+    showToast('✓ KRYSTAL Route: ' + v);
 });
 
 // ─── Reload with Toast ───────────────────────

@@ -86,6 +86,8 @@
                     <span id="btnScanLbl">START</span>
                     <span id="btnScanCount">[0]</span>
                 </button>
+                                <button class="sort-btn" id="btnAutoReload" title="Mode: Sekali Scan">🔄</button>
+
             </div>
             <!-- <span class="username-chip" id="topUsername">@-</span> -->
         </div>
@@ -196,9 +198,9 @@
                         <label class="settings-label">DEX <span class="src-tag jx">JM</span></label>
                         <input class="settings-input" id="setQuoteJumpx" type="number" min="1" max="5" value="2">
                     </div>
-                    <div class="settings-field" id="fieldQuoteBungee">
-                        <label class="settings-label">DEX <span class="src-tag bg">BG</span></label>
-                        <input class="settings-input" id="setQuoteBungee" type="number" min="1" max="5" value="2">
+                    <div class="settings-field" id="fieldQuoteKrystal">
+                        <label class="settings-label">DEX <span class="src-tag bg">KR</span></label>
+                        <input class="settings-input" id="setQuoteKrystal" type="number" min="1" max="5" value="2">
                     </div>
                     <div class="settings-field" id="autoLevelField">
                         <label class="settings-label">Auto Level</label>
@@ -492,7 +494,7 @@
     <script src="collectors/dex-jumpx.js"></script>
     <script src="collectors/dex-kyber.js"></script>
     <script src="collectors/dex-okx.js"></script>
-    <script src="collectors/dex-bungee.js"></script>
+    <script src="collectors/dex-krystal.js"></script>
     <script src="services/cex-wallet.js"></script>
     <script src="services/scan.js"></script>
     <script src="ui/ui.js"></script>

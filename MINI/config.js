@@ -29,7 +29,7 @@ const APP_DEV_CONFIG = {
   defaultInterval: 800,
   defaultSseTimeout: 6000,
   defaultQuoteCountMetax: 2,     // 0 = matikan MetaMask SSE
-  defaultQuoteCountBungee: 2,    // jumlah route Bungee (1–4), 0 = matikan Bungee
+  defaultQuoteCountKrystal: 2,   // jumlah route Krystal (1–4), 0 = matikan Krystal
   defaultLevelCount: 4,     // jumlah level orderbook (1–4)
   defaultEnableKyber: true,  // KyberSwap DEX
 
