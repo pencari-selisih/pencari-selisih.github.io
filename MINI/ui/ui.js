@@ -1027,17 +1027,31 @@ function deleteToken(id) {
 }
 
 // ─── CSV Export / Import ─────────────────────
-// CSV_COLS: kolom inti token (untuk import/export)
-const CSV_COLS = ['ticker', 'cex', 'symbolToken', 'scToken', 'decToken', 'tickerPair', 'symbolPair', 'scPair', 'decPair', 'chain', 'modalCtD', 'modalDtC', 'minPnl', 'favorite'];
+// Kolom inti token (tidak termasuk dexModals — di-expand per-DEX di bawah)
+const CSV_BASE_COLS = ['ticker', 'cex', 'symbolToken', 'scToken', 'decToken', 'tickerPair', 'symbolPair', 'scPair', 'decPair', 'chain', 'favorite'];
 // Kolom info tambahan untuk export (read-only dari cache, tidak dipakai saat import)
 const CSV_EXTRA_COLS = ['feeWd_token_usdt', 'feeWd_pair_usdt', 'wd_token_ok', 'dp_pair_ok'];
+// Kolom per-DEX: dex_[key]_ctd, dex_[key]_dtc, dex_[key]_pnl
+const _csvDexCols = () => DEX_LIST.flatMap(d => [
+    `dex_${d.key}_ctd`, `dex_${d.key}_dtc`, `dex_${d.key}_pnl`
+]);
 
 $('#btnExport').on('click', () => {
     const tokens = getTokens();
-    const allCols = [...CSV_COLS, ...CSV_EXTRA_COLS];
+    const dexCols = _csvDexCols();
+    const allCols = [...CSV_BASE_COLS, ...dexCols, ...CSV_EXTRA_COLS];
     const rows = [allCols.join(','), ...tokens.map(t => {
         // Kolom inti
-        const base = CSV_COLS.map(c => `"${t[c] ?? ''}"`);
+        const base = CSV_BASE_COLS.map(c => `"${t[c] ?? ''}"`);
+        // Kolom per-DEX modal & PNL
+        const dexVals = DEX_LIST.flatMap(d => {
+            const dm = t.dexModals?.[d.key] || {};
+            const bulk = CFG.dex?.[d.key] || {};
+            const ctd = dm.ctd ?? bulk.modalCtD ?? '';
+            const dtc = dm.dtc ?? bulk.modalDtC ?? '';
+            const pnl = dm.pnl ?? bulk.minPnl ?? '';
+            return [`"${ctd}"`, `"${dtc}"`, `"${pnl}"`];
+        });
         // Kolom info fee WD dari cache (informatif saja)
         let feeWdTok = '', feeWdPair = '', wdOk = '', dpOk = '';
         if (typeof getCexTokenStatus === 'function') {
@@ -1046,7 +1060,7 @@ $('#btnExport').on('click', () => {
             if (stTok)  { feeWdTok = stTok.feeWd;  wdOk = stTok.withdrawEnable ? '1' : '0'; }
             if (stPair) { feeWdPair = stPair.feeWd; dpOk = stPair.depositEnable ? '1' : '0'; }
         }
-        return [...base, `"${feeWdTok}"`, `"${feeWdPair}"`, `"${wdOk}"`, `"${dpOk}"`].join(',');
+        return [...base, ...dexVals, `"${feeWdTok}"`, `"${feeWdPair}"`, `"${wdOk}"`, `"${dpOk}"`].join(',');
     })];
     const csvContent = rows.join('\n');
 
@@ -1105,37 +1119,86 @@ $('#importFile').on('change', e => {
             }
             // Kolom extra (fee WD info) — diabaikan saat import, hanya untuk referensi
             const SKIP_COLS = new Set(['feeWd_token_usdt', 'feeWd_pair_usdt', 'wd_token_ok', 'dp_pair_ok']);
-            const tokens = lines.slice(1)
-                .filter(line => line.trim()) // skip baris benar-benar kosong
+            // Kolom dex per-key yang akan di-parse ke dexModals
+            const DEX_KEYS = DEX_LIST.map(d => d.key);
+
+            // Parse semua baris CSV menjadi objek token
+            const incoming = lines.slice(1)
+                .filter(line => line.trim())
                 .map(line => {
                     const vals = parseCSVLine(line);
-                    const obj = {};
-                    // Map by header name — urutan kolom tidak harus sama, skip kolom extra
+                    const raw = {};
                     headers.forEach((h, i) => {
-                        if (!SKIP_COLS.has(h)) obj[h] = (vals[i] ?? '').replace(/["\r]/g, '').trim();
+                        if (!SKIP_COLS.has(h)) raw[h] = (vals[i] ?? '').replace(/["\r]/g, '').trim();
                     });
-                    obj.decToken = parseInt(obj.decToken) || 18;
-                    obj.decPair = parseInt(obj.decPair) || 18;
-                    obj.modalCtD = parseFloat(obj.modalCtD) || 100;
-                    obj.modalDtC = parseFloat(obj.modalDtC) || 80;
-                    const pnlRaw = parseFloat(obj.minPnl);
-                    obj.minPnl = isFinite(pnlRaw) ? pnlRaw : null;
-                    obj.favorite = String(obj.favorite).toLowerCase() === 'true';
-                    obj.id = obj.id || genId();
-                    return obj;
+                    // Bangun dexModals dari kolom dex_[key]_ctd/dtc/pnl
+                    const dexModals = {};
+                    DEX_KEYS.forEach(key => {
+                        const ctd = parseFloat(raw[`dex_${key}_ctd`]);
+                        const dtc = parseFloat(raw[`dex_${key}_dtc`]);
+                        const pnl = parseFloat(raw[`dex_${key}_pnl`]);
+                        if (isFinite(ctd) || isFinite(dtc) || isFinite(pnl)) {
+                            dexModals[key] = {};
+                            if (isFinite(ctd)) dexModals[key].ctd = ctd;
+                            if (isFinite(dtc)) dexModals[key].dtc = dtc;
+                            if (isFinite(pnl)) dexModals[key].pnl = pnl;
+                        }
+                        delete raw[`dex_${key}_ctd`];
+                        delete raw[`dex_${key}_dtc`];
+                        delete raw[`dex_${key}_pnl`];
+                    });
+                    raw.dexModals = dexModals;
+                    raw.decToken = parseInt(raw.decToken) || 18;
+                    raw.decPair  = parseInt(raw.decPair)  || 18;
+                    raw.favorite = String(raw.favorite).toLowerCase() === 'true';
+                    return raw;
                 })
-                .filter(t => t.ticker); // skip baris tanpa ticker
-            if (!tokens.length) {
+                .filter(t => t.ticker);
+
+            if (!incoming.length) {
                 showAlert('Tidak ada baris data koin yang valid di dalam file CSV.', 'Import Gagal', 'error');
                 return;
             }
-            saveTokens(tokens); renderTokenList();
-            showToast(`✅ ${tokens.length} Data koin berhasil diimpor`);
+
+            // Upsert: cocokkan berdasarkan scToken + scPair + chain + cex
+            const existing = getTokens();
+            // Key: scToken|scPair|chain|cex (semua lowercase/trim untuk konsistensi)
+            const makeKey = t => [
+                (t.scToken  || '').toLowerCase().trim(),
+                (t.scPair   || '').toLowerCase().trim(),
+                (t.chain    || '').toLowerCase().trim(),
+                (t.cex      || '').toLowerCase().trim()
+            ].join('|');
+
+            const resultMap = new Map(existing.map(t => [makeKey(t), t]));
+            let added = 0, updated = 0;
+
+            incoming.forEach(tok => {
+                const key = makeKey(tok);
+                if (resultMap.has(key)) {
+                    // Update: timpa semua field kecuali id & favorite
+                    const prev = resultMap.get(key);
+                    resultMap.set(key, { ...tok, id: prev.id, favorite: prev.favorite });
+                    updated++;
+                } else {
+                    // Tambah baru
+                    resultMap.set(key, { ...tok, id: genId() });
+                    added++;
+                }
+            });
+
+            saveTokens([...resultMap.values()]);
+            renderTokenList();
+            const parts = [];
+            if (added)   parts.push(`${added} koin baru`);
+            if (updated) parts.push(`${updated} diperbarui`);
+            showToast(`✅ Import: ${parts.join(', ')}`);
         } catch (err) { showAlert('Terjadi kesalahan saat membaca file:<br>' + err.message, 'Error Import', 'error'); }
     };
     r.readAsText(f);
     e.target.value = '';
 });
+
 
 // ─── Favorite Toggle ──────────────────────────
 function toggleFavorite(id) {
@@ -1344,6 +1407,7 @@ function _cacheCard(t, card) {
 }
 
 let _buildBatchToken = null; // token untuk cancel batch build lama
+let _buildCompleteCallback = null; // callback setelah _finalizeBuildOrder selesai
 
 function buildMonitorRows(tokenList) {
     const tokens = tokenList || getFilteredTokens();
@@ -1421,6 +1485,12 @@ function _finalizeBuildOrder(tokens, monList) {
         const numEl = _cardEls.get(t.id)?.numEl;
         if (numEl) numEl.textContent = idx + 1;
     });
+    // Panggil callback scroll jika ada (dari signal chip click saat tab switch)
+    if (_buildCompleteCallback) {
+        const cb = _buildCompleteCallback;
+        _buildCompleteCallback = null;
+        requestAnimationFrame(cb);
+    }
 }
 
 // ─── Signal Chips ─────────────────────────────
@@ -1514,6 +1584,10 @@ function updateSignalChips(tok, signals, dir) {
         const dexSrcCls = dexSrc === 'KR' ? 'kc' : dexSrc.toLowerCase();
         const badgeHtml = dexBadge ? `<span class="src-tag ${dexSrcCls}">${dexBadge}</span>` : '';
         const pairTicker = tok.tickerPair || 'USDT';
+        // Simpan index kolom untuk navigasi langsung ke kolom DEX yang tepat
+        chip.dataset.hdrIdx = r.hdrIdx ?? '';
+        // Nomor koin dari card yang sudah dirender
+        const _cardNum = document.getElementById('card-' + tok.id)?.querySelector('.mon-num')?.textContent || '?';
         // Baris 1 (route exchange): CTD = CEX→DEX, DTC = DEX→CEX
         const routeLabel = dir === 'CTD'
             ? `${cexLabel}→${badgeHtml} ${dexName}`
@@ -1526,6 +1600,7 @@ function updateSignalChips(tok, signals, dir) {
 
         chip.innerHTML = `
             <div class="chip-row-top">
+                <span class="chip-num">#${_cardNum}</span>
                 <img src="icons/chains/${tok.chain}.png" class="chip-icon" onerror="this.style.display='none'">
                 <span class="chip-route ${dirClass}">${routeLabel}</span>
             </div>
@@ -1882,8 +1957,38 @@ $('#tokenList').on('click', '#btnLoadMore', function () {
 
 // ─── Signal chip: event delegation ───────────
 $('#signalBar').on('click', '.signal-chip', function () {
-    const card = document.getElementById('card-' + this.dataset.tokId);
-    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const tokId  = this.dataset.tokId;
+    const dir    = (this.dataset.dir || '').toLowerCase(); // 'ctd' | 'dtc'
+    const hdrIdx = this.dataset.hdrIdx;
+
+    function _doScroll() {
+        const card = document.getElementById('card-' + tokId);
+        if (!card) return;
+        // Navigasi langsung ke kolom DEX via index (tidak bergantung pada data-src)
+        const dexHdr = hdrIdx !== '' && hdrIdx != null
+            ? card.querySelector(`.mon-dex-hdr[data-${dir}-hdr="${hdrIdx}"]`)
+            : null;
+        (dexHdr || card).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('card-flash');
+        setTimeout(() => card.classList.remove('card-flash'), 1600);
+    }
+
+    const isMonitorActive = !!document.getElementById('tabMonitor')?.classList.contains('active');
+    if (!isMonitorActive) {
+        if (scanning) {
+            // Scan aktif: kartu sudah ada di DOM, tab switch tanpa rebuild
+            switchTab('tabMonitor');
+            requestAnimationFrame(_doScroll);
+        } else {
+            // Tidak scan: tab switch memicu buildMonitorRows (batched rAF)
+            // Pasang callback — akan dipanggil setelah _finalizeBuildOrder selesai
+            _buildCompleteCallback = _doScroll;
+            switchTab('tabMonitor');
+        }
+    } else {
+        // Sudah di tab monitor, scroll langsung (1 rAF agar paint sudah siap)
+        requestAnimationFrame(_doScroll);
+    }
 });
 
 // ─── Tooltip hover keep-open ─────────────────

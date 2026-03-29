@@ -514,6 +514,17 @@ body {
   white-space: nowrap;
 }
 
+.chip-num {
+  font-size: 10px;
+  font-weight: 800;
+  color: #000000;
+  background: #ffffff;
+  border-radius: 5px;
+  padding: 0 4px;
+  letter-spacing: .3px;
+  flex-shrink: 0;
+}
+
 .chip-icon {
   width: 14px;
   height: 14px;
@@ -864,6 +875,24 @@ body {
   font-size: 11px !important;
   letter-spacing: 0 !important;
   font-style: italic;
+}
+
+/* Flash highlight saat signal chip diklik → navigasi ke kolom DEX */
+@keyframes hdrFlash {
+  0%   { outline: 3px solid #f5a623; box-shadow: 0 0 0 4px rgba(245,166,35,0.4); }
+  60%  { outline: 3px solid #f5a623; box-shadow: 0 0 0 8px rgba(245,166,35,0.15); }
+  100% { outline: none; box-shadow: none; }
+}
+.hdr-flash {
+  animation: hdrFlash 1.6s ease-out forwards;
+}
+@keyframes cardFlash {
+  0%   { outline: 3px solid #0abf7a; box-shadow: 0 0 0 4px rgba(10,191,122,0.4); }
+  60%  { outline: 3px solid #0abf7a; box-shadow: 0 0 0 10px rgba(10,191,122,0.12); }
+  100% { outline: none; box-shadow: none; }
+}
+.card-flash {
+  animation: cardFlash 1.6s ease-out forwards;
 }
 
 /* Cell content showing an actionable hint */
@@ -1651,8 +1680,8 @@ body.is-scanning .scan-sort-group {
 }
 
 #btnImportTrigger {
-  background: #18a55e;
-  border-color: #18a55e;
+  background: #e20e41;
+  border-color: #e20e41;
   color: #fff;
 }
 
@@ -1662,13 +1691,23 @@ body.is-scanning .scan-sort-group {
 }
 
 .btn-add-koin {
-  background: #6c5ce7 !important;
-  border-color: #6c5ce7 !important;
+  background: #18a55e !important;
+  border-color: #18a55e !important;
   color: #fff !important;
 }
 
 .btn-add-koin:active {
   background: #5a4bd1 !important;
+}
+
+.btn-import-hybrid {
+  background: #00897b !important;
+  border-color: #00897b !important;
+  color: #fff !important;
+}
+
+.btn-import-hybrid:active {
+  background: #00695c !important;
 }
 
 .token-list {
@@ -2016,7 +2055,7 @@ body.is-scanning .scan-sort-group {
   border-radius: var(--radius-sm);
   border: 1px solid rgba(0, 0, 0, 0.10);
   background: #f39c12;
-  color: #fff;
+  color: #fff; 
   font-size: 13px;
   font-weight: 700;
   font-family: 'Montserrat', sans-serif;

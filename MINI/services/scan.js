@@ -368,7 +368,10 @@ async function scanToken(tok) {
         for (let i = 1; i < n; i++) { const d = els?.ctdDex[i]; if (d) { d.textContent = '—'; d.className = 'mon-dex-cell mc-muted'; } }
     } else {
         ctdData.forEach((r, i) => {
-            const hdrEl = els?.ctdHdr[i];
+            r.hdrIdx = i; // simpan index kolom untuk navigasi signal chip
+            // els?.ctdHdr[i] bisa undefined jika card baru dibuat & belum di-cache _cardEls
+            // Fallback: langsung query dari DOM agar data-src selalu ter-set
+            const hdrEl = els?.ctdHdr[i] || card.querySelector(`.mon-dex-hdr[data-dir="ctd"][data-ctd-hdr="${i}"]`);
             const cexEl = els?.ctdCex[i];
             const dexEl = els?.ctdDex[i];
             const feeEl = els?.ctdFee[i];
@@ -382,7 +385,7 @@ async function scanToken(tok) {
             const ctdModalLbl = ctdInsuf
                 ? `<span class="hdr-modal-set">$${ctdModalSet}</span> | <span class="hdr-modal-act">$${r.modalActual}✅</span>`
                 : (ctdModalSet ? `<span class="hdr-modal-ok">$${ctdModalSet}✅</span>` : '');
-            if (hdrEl) { hdrEl.innerHTML = ctdName + (ctdSrcTag ? ' ' + ctdSrcTag : '') + (ctdModalLbl ? `<span class="hdr-dex-modal">${ctdModalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = ctdModalSet || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); const _ctdBadge = r.src === 'MX' ? 'MT' : r.src === 'JX' ? 'JM' : r.src === 'BG' ? 'BG' : r.src === 'KB' ? 'KB' : ''; hdrEl.dataset.dexName = ctdName + (_ctdBadge ? ' ' + _ctdBadge : ''); }
+            if (hdrEl) { hdrEl.innerHTML = ctdName + (ctdSrcTag ? ' ' + ctdSrcTag : '') + (ctdModalLbl ? `<span class="hdr-dex-modal">${ctdModalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = ctdModalSet || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); const _ctdBadge = r.src === 'MX' ? 'MT' : r.src === 'JX' ? 'LF' : r.src === 'KR' ? 'KC' : r.src === 'KB' ? 'KB' : ''; hdrEl.dataset.dexName = ctdName + (_ctdBadge ? ' ' + _ctdBadge : ''); hdrEl.dataset.src = r.src; }
             if (cexEl) { cexEl.innerHTML = _cexPriceHtml(`↑ ${fmtCompact(dispAskCtD)}$`, _tradeUrl); cexEl.className = 'mon-dex-cell mc-ask' + sigCls; }
             if (dexEl) { dexEl.innerHTML = _dexPriceHtml(`↓ ${fmtCompact(r.effPrice)}$`, r.name, 'ctd'); dexEl.className = 'mon-dex-cell mc-bid' + sigCls; }
             if (feeEl) { feeEl.textContent = _fmtFeeCell(r.wdFee, r.cexFee1 + r.cexFee2, r.feeSwap || 0); feeEl.className = 'mon-dex-cell mc-recv' + sigCls; }
@@ -437,7 +440,8 @@ async function scanToken(tok) {
         for (let i = 1; i < n; i++) { const d = els?.dtcDex[i]; if (d) { d.textContent = '—'; d.className = 'mon-dex-cell mc-muted'; } }
     } else {
         dtcData.forEach((r, i) => {
-            const hdrEl = els?.dtcHdr[i];
+            r.hdrIdx = i; // simpan index kolom untuk navigasi signal chip
+            const hdrEl = els?.dtcHdr[i] || card.querySelector(`.mon-dex-hdr[data-dir="dtc"][data-dtc-hdr="${i}"]`);
             const cexEl = els?.dtcCex[i];
             const dexEl = els?.dtcDex[i];
             const feeEl = els?.dtcFee[i];
@@ -451,7 +455,7 @@ async function scanToken(tok) {
             const dtcModalLbl = dtcInsuf
                 ? `<span class="hdr-modal-set">$${dtcModalSet}</span> | <span class="hdr-modal-act">$${r.modalActual}✅</span>`
                 : (dtcModalSet ? `<span class="hdr-modal-ok">$${dtcModalSet}✅</span>` : '');
-            if (hdrEl) { hdrEl.innerHTML = dtcName + (dtcSrcTag ? ' ' + dtcSrcTag : '') + (dtcModalLbl ? `<span class="hdr-dex-modal">${dtcModalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = dtcModalSet || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); const _dtcBadge = r.src === 'MX' ? 'MT' : r.src === 'JX' ? 'JM' : r.src === 'BG' ? 'BG' : r.src === 'KB' ? 'KB' : ''; hdrEl.dataset.dexName = dtcName + (_dtcBadge ? ' ' + _dtcBadge : ''); }
+            if (hdrEl) { hdrEl.innerHTML = dtcName + (dtcSrcTag ? ' ' + dtcSrcTag : '') + (dtcModalLbl ? `<span class="hdr-dex-modal">${dtcModalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = dtcModalSet || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); const _dtcBadge = r.src === 'MX' ? 'MT' : r.src === 'JX' ? 'LF' : r.src === 'KR' ? 'KC' : r.src === 'KB' ? 'KB' : ''; hdrEl.dataset.dexName = dtcName + (_dtcBadge ? ' ' + _dtcBadge : ''); hdrEl.dataset.src = r.src; }
             if (cexEl) { cexEl.innerHTML = _cexPriceHtml(`↓ ${fmtCompact(dispBidDtC)}$`, _tradeUrl); cexEl.className = 'mon-dex-cell mc-bid' + sigCls; }
             if (dexEl) { dexEl.innerHTML = _dexPriceHtml(`↑ ${fmtCompact(r.effPrice)}$`, r.name, 'dtc'); dexEl.className = 'mon-dex-cell mc-ask' + sigCls; }
             if (feeEl) { feeEl.textContent = _fmtFeeCell(r.wdFee, r.cexFee1 + r.cexFee2, r.feeSwap || 0); feeEl.className = 'mon-dex-cell mc-recv' + sigCls; }
