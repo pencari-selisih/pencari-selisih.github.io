@@ -862,7 +862,14 @@ function renderSettingsForm() {
 
             return isActive;
         })
-        .sort();
+        .sort((a, b) => {
+            const solanaA = !!(CONFIG_DEXS[a]?.supportsSolana);
+            const solanaB = !!(CONFIG_DEXS[b]?.supportsSolana);
+            if (solanaA !== solanaB) return solanaA ? 1 : -1; // Solana di akhir
+            const labelA = (CONFIG_DEXS[a]?.label || a).toUpperCase();
+            const labelB = (CONFIG_DEXS[b]?.label || b).toUpperCase();
+            return labelA.localeCompare(labelB);
+        });
 
     // ✅ DEBUG: Log active DEX list untuk troubleshooting
     console.log('[Settings] Active DEX list from CONFIG_DEXS:', activeDexList);
@@ -890,7 +897,7 @@ function renderSettingsForm() {
                         <div class="uk-flex uk-flex-middle" style="gap: 4px;">
                             <input type="number" class="uk-input uk-form-small dex-delay-input"
                                    data-dex="${dexKey}"
-                                   value="${dexConfig.delay || 150}"
+                                   value="${dexConfig.delay || 250}"
                                    style="width:60px; text-align:center; border-color: ${dexColor}40; padding: 2px 4px;"
                                    min="0">
                             <span class="uk-text-meta" style="font-size: 10px;">ms</span>

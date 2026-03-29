@@ -608,7 +608,17 @@ function exportKoinForHybrid() {
     };
 
     // 4. Build CSV rows
-    const CSV_COLS = ['ticker', 'cex', 'symbolToken', 'scToken', 'decToken', 'tickerPair', 'symbolPair', 'scPair', 'decPair', 'chain', 'modalCtD', 'modalDtC', 'minPnl'];
+    // DEX yang pakai modal dari metax (bukan dari dataDexs masing-masing)
+    const META_DEXES = ['metax', 'jumpx', 'krystal'];
+    const OWN_DEXES  = ['kyber', 'okx']; // pakai modal sendiri, tanpa pnl
+    const ALL_DEXES  = [...META_DEXES, ...OWN_DEXES]; // urutan kolom
+
+    const CSV_COLS = [
+        'ticker', 'cex', 'symbolToken', 'scToken', 'decToken',
+        'tickerPair', 'symbolPair', 'scPair', 'decPair', 'chain', 'favorite',
+        ...ALL_DEXES.flatMap(k => [`dex_${k}_ctd`, `dex_${k}_dtc`, `dex_${k}_pnl`]),
+        'feeWd_token_usdt', 'feeWd_pair_usdt', 'wd_token_ok', 'dp_pair_ok'
+    ];
     const rows = [];
 
     tokenData.forEach(token => {
@@ -616,30 +626,47 @@ function exportKoinForHybrid() {
         const selectedCexs = (token.selectedCexs || []).map(c => String(c).toUpperCase());
         if (selectedCexs.length === 0) return;
 
-        // ✅ Baca modal MetaDEX dari per-token dataDexs
         const tokenDexData = token.dataDexs || {};
-        const metaxModal = tokenDexData['metax'] || {};
-        const modalCtD = parseFloat(metaxModal.left) || 100;
-        const modalDtC = parseFloat(metaxModal.right) || 100;
-        const minPnl = +(modalCtD * 0.002).toFixed(4);
 
-        const chain = String(token.chain || '').toLowerCase();
-        const ticker = String(token.symbol_in || '').toUpperCase();
+        // Modal metax (dipakai untuk metax, jumpx, krystal)
+        const metaxModal = tokenDexData['metax'] || {};
+        const metaCtD = parseFloat(metaxModal.left) || 100;
+        const metaDtC = parseFloat(metaxModal.right) || 100;
+        const metaPnl = +(metaCtD * 0.002).toFixed(4);
+
+        const chain     = String(token.chain || '').toLowerCase();
+        const ticker    = String(token.symbol_in || '').toUpperCase();
         const tickerPair = String(token.symbol_out || '').toUpperCase();
-        const scToken = String(token.sc_in || '');
-        const scPair = String(token.sc_out || '');
-        const decToken = Number(token.des_in) || 18;
-        const decPair = Number(token.des_out) || 18;
+        const scToken   = String(token.sc_in || '');
+        const scPair    = String(token.sc_out || '');
+        const decToken  = Number(token.des_in) || 18;
+        const decPair   = Number(token.des_out) || 18;
+        const favorite  = token.favorite ? 'TRUE' : 'FALSE';
+
+        // Bangun nilai per-DEX
+        const dexVals = ALL_DEXES.flatMap(key => {
+            if (META_DEXES.includes(key)) {
+                return [metaCtD, metaDtC, metaPnl];
+            } else {
+                // kyber, okx: dari dataDexs sendiri, tanpa pnl
+                const d = tokenDexData[key] || {};
+                const ctd = parseFloat(d.left) || 100;
+                const dtc = parseFloat(d.right) || 100;
+                return [ctd, dtc, ''];
+            }
+        });
 
         selectedCexs.forEach(cex => {
             const cexLower = cex.toLowerCase();
             const symbolToken = getSymbol(cex, ticker);
-            const symbolPair = getSymbol(cex, tickerPair);
+            const symbolPair  = getSymbol(cex, tickerPair);
 
             rows.push([
                 ticker, cexLower, symbolToken, scToken, decToken,
                 tickerPair, symbolPair, scPair, decPair,
-                chain, modalCtD, modalDtC, minPnl
+                chain, favorite,
+                ...dexVals,
+                '', '', '', ''  // feeWd_token_usdt, feeWd_pair_usdt, wd_token_ok, dp_pair_ok
             ]);
         });
     });

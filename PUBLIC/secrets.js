@@ -437,6 +437,21 @@ function getRandomApiKeyRango() {
 // Solana Matcha uses direct endpoint without API key
 
 // =============================
+// Bungee API Keys
+// =============================
+const apiKeysBungee = [
+    '71XdjSawshaeie5DeH5b9avPjaoVtoOc2g5ZZx1d'
+];
+const BUNGEE_AFFILIATE = '609913096e183b62cecd0dfdc13382f618baedceb5fef75aad43e6cbff367039708902197e0b2b78b1d76cb0837ad0b318baedceb5fef75aad43e6cb';
+
+let bungeeKeyIndex = 0;
+function getRandomApiKeyBungee() {
+    const key = apiKeysBungee[bungeeKeyIndex];
+    bungeeKeyIndex = (bungeeKeyIndex + 1) % apiKeysBungee.length;
+    return key;
+}
+
+// =============================
 // Swing Project IDs
 // =============================
 // Using only 'galaxy-exchange' (demo project) - pre-configured for all chains
@@ -460,5 +475,8 @@ try {
         window.getRandomApiKeyRango = window.getRandomApiKeyRango || getRandomApiKeyRango;
         window.SWING_PROJECT_IDS = window.SWING_PROJECT_IDS || SWING_PROJECT_IDS;
         window.getRandomSwingProjectId = window.getRandomSwingProjectId || getRandomSwingProjectId;
+        window.apiKeysBungee = window.apiKeysBungee || apiKeysBungee;
+        window.BUNGEE_AFFILIATE = window.BUNGEE_AFFILIATE || BUNGEE_AFFILIATE;
+        window.getRandomApiKeyBungee = window.getRandomApiKeyBungee || getRandomApiKeyBungee;
     }
 } catch (_) { }
