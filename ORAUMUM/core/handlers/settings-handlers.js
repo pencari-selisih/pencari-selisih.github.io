@@ -76,7 +76,7 @@
 
         $('.dex-delay-input').each(function () {
             const dexKey = $(this).data('dex');
-            const dexValue = parseFloat($(this).val()) || 100;
+            const dexValue = parseFloat($(this).val()) || 250;
 
             // ✅ VALIDATION: Skip invalid/legacy DEX keys
             if (invalidKeys.includes(String(dexKey).toLowerCase())) {

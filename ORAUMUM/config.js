@@ -3,7 +3,7 @@ const CONFIG_APP = {
         NAME: "PENCARI SELISIH",
         // NAME: "WATCHMARKET",
         // NAME: "APP PRIVATE",
-        VERSION: "2026.03.30",
+        VERSION: "2026.03.33",
         SCAN_LIMIT: false,
         AUTORUN: true,
         AUTO_VOLUME: true,  // cek volume otomatis untuk filter dan alert
@@ -274,7 +274,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://bscscan.com/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "sushi", "okx", "flytrade", "odos", "velora", "matcha", "oneinch"],  // ✅ Removed Meta-DEX: lifi, rubic, rango
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "odos", "velora", "flytrade"],  // ✅ lifidex = standalone LIFI (via Temple API)
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BSC' },
             BINANCE: { address: '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3', address2: '0xe2fc31F816A9b94326492132018C3aEcC4a93aE1', chainCEX: 'BSC' },
@@ -303,7 +303,7 @@ const CONFIG_CHAINS = {
         DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_POLYGON.json',
         BaseFEEDEX: "MATICUSDT", // Corrected from POLUSDT
         GASLIMIT: 80000,
-        DEXS: ["kyber", "sushi", "okx", "flytrade", "odos", "velora", "matcha", "oneinch"],   // ✅ Removed Meta-DEX: lifi, rubic, rango
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "odos", "velora", "flytrade"],   // ✅ lifidex = standalone LIFI (via Temple API)
         LINKS: {
             explorer: {
                 token: (address) => `https://polygonscan.com/token/${address}`,
@@ -338,7 +338,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://arbiscan.io/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "sushi", "okx", "flytrade", "odos", "velora", "matcha", "oneinch"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "odos", "velora", "flytrade"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'ARBITRUM' },
             BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88', address2: '0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245', chainCEX: 'ARBITRUM' },
@@ -365,7 +365,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://etherscan.io/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "sushi", "okx", "flytrade", "odos", "velora", "matcha", "oneinch"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "odos", "velora", "flytrade"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'ETH' },
             BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', address3: '0x21a31Ee1afC51d94C2eFcCAa2092aD1028285549', chainCEX: 'ETH' },
@@ -395,7 +395,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://basescan.org/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "sushi", "okx", "flytrade", "odos", "velora", "matcha", "oneinch"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "odos", "velora", "flytrade"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BASE' },
             BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', chainCEX: 'BASE' },
@@ -469,8 +469,9 @@ const CONFIG_UI = {
     ],
     DEXES: [
         { key: 'kyber', label: 'KyberSwap', badgeClass: 'bg-kyberswap', fallbackSlug: 'kyberswap' },
-        { key: 'sushi', label: 'SUSHI', badgeClass: 'bg-sushi', fallbackSlug: 'sushi' },
+        //  { key: 'sushi', label: 'SUSHI', badgeClass: 'bg-sushi', fallbackSlug: 'sushi' },
         { key: 'lifi', label: 'JUMPER', badgeClass: 'bg-lifi', fallbackSlug: 'lifi' },
+        { key: 'lifidex', label: 'LIFIDX', badgeClass: 'bg-lifidex', fallbackSlug: 'lifidex' },
         { key: 'okx', label: 'OKX', badgeClass: 'bg-okx', fallbackSlug: 'okx' },
         //  { key: 'relay', label: 'Relay', badgeClass: 'bg-relay', fallbackSlug: 'relay' },
         { key: 'odos', label: 'ODOS', badgeClass: 'bg-odos', fallbackSlug: 'odos', skipDelay: true },
@@ -546,10 +547,12 @@ const CONFIG_UI = {
             'dzap-*': 6000,          // DZAP filtered: 6s (WARNING: 429 rate limit issues)
             'rango-*': 6000,         // Rango filtered: 6s (WARNING: 403 forbidden issues)
             'rubic-*': 6000,         // Rubic filtered: 6s
+            'c98-*': 6000,           // C98 Superlink filtered: 6s (Coin98 multi-aggregator proxy)
 
             // ========== Multi-DEX Aggregators ==========
             // Direct calls to meta-aggregators (not filtered)
             'lifi': 6000,            // LIFI multi-quote: 6s
+            'temple': 5000,          // Temple API (LIFI proxy): 5s — standalone LIFI DEX
             'swoop': 10000,          // SWOOP multi-quote: 10s (railway.app needs more time)
             'swing': 6000,           // SWING multi-quote: 6s
             'dzap': 6000,            // DZAP multi-quote: 6s
@@ -559,6 +562,8 @@ const CONFIG_UI = {
             'rocketx-velora': 8000,  // RocketX filtered → Velora/ParaSwap route (backend transport)
             'metax': 7000,          // MetaMask Bridge: SSE stream, collect all quotes
             'onekey': 10000,         // OneKey Swap: SSE stream (OKX, 1inch, 0x) — 10s
+            'onekey-1inch': 10000,   // OneKey filtered → 1inch provider only
+            'onekey-lifidex': 10000, // OneKey filtered → LiFi/SwapLifi provider only
 
             // ========== Default Fallback ==========
             'default': 5000          // Default: 5s (balanced)
@@ -842,26 +847,26 @@ const CONFIG_DEXS = {
         },
         allowFallback: true,  // ✅ Enable rotation between primary and alternative
     },
-    sushi: {
-        label: 'SUSHI',
-        badgeClass: 'bg-sushi',
-        proxy: true, // ✅ Enable proxy - SushiSwap API may have CORS restrictions
-        warna: "#f085b7ff", // Pink/magenta SushiSwap brand color
-        builder: ({ chainName, tokenAddress, pairAddress, swapAmount }) =>
-            `https://www.sushi.com/${chainName}/swap?token0=${tokenAddress}&token1=${pairAddress}${swapAmount ? `&swapAmount=${swapAmount}` : ''}`,
-        // ⚡ ROTATION STRATEGY: Alternate between different aggregators
-        fetchdex: {
-            primary: {
-                tokentopair: 'sushi',     // CEX→DEX: LIFI filtered
-                pairtotoken: 'sushi'     // DEX→CEX: SWOOP filtered
-            },
-            alternative: {
-                tokentopair: 'sushi',    // CEX→DEX: Rango filtered (rotation)
-                pairtotoken: 'sushi'     // DEX→CEX: Rubic filtered (rotation)
-            }
-        },
-        allowFallback: false,  // ✅ Enable rotation between primary and alternative
-    },
+    // sushi: {
+    //     label: 'SUSHI',
+    //     badgeClass: 'bg-sushi',
+    //     proxy: true, // ✅ Enable proxy - SushiSwap API may have CORS restrictions
+    //     warna: "#f085b7ff", // Pink/magenta SushiSwap brand color
+    //     builder: ({ chainName, tokenAddress, pairAddress, swapAmount }) =>
+    //         `https://www.sushi.com/${chainName}/swap?token0=${tokenAddress}&token1=${pairAddress}${swapAmount ? `&swapAmount=${swapAmount}` : ''}`,
+    //     // ⚡ ROTATION STRATEGY: Alternate between different aggregators
+    //     fetchdex: {
+    //         primary: {
+    //             tokentopair: 'sushi',     // CEX→DEX: LIFI filtered
+    //             pairtotoken: 'sushi'     // DEX→CEX: SWOOP filtered
+    //         },
+    //         alternative: {
+    //             tokentopair: 'sushi',    // CEX→DEX: Rango filtered (rotation)
+    //             pairtotoken: 'sushi'     // DEX→CEX: Rubic filtered (rotation)
+    //         }
+    //     },
+    //     allowFallback: false,  // ✅ Enable rotation between primary and alternative
+    // },
     okx: {
         label: 'OKXDEX',
         badgeClass: 'bg-okxdex',
@@ -1009,8 +1014,51 @@ const CONFIG_DEXS = {
         },
         allowFallback: true,  // ✅ Enable rotation between primary and alternative
     },
+    oneinch: {
+        label: '1INCH',
+        badgeClass: 'bg-1inch',
+        warna: "#fd0404ff",  // 1inch blue brand color
+        builder: ({ codeChain, tokenAddress, pairAddress }) =>
+            `https://1inch.io/swap?src=${codeChain}:${tokenAddress}&dst=${codeChain}:${pairAddress}`,
+        // ⚡ STRATEGY: Multiple proxy endpoints, no direct 1inch API key needed
+        // ⚠️ lifi-1inch: Only works for swaps >$10000 on some chains
+        fetchdex: {
+            primary: {
+                tokentopair: 'rabby-1inch',      // CEX→DEX: Hinkal 1inch proxy (no API key)
+                pairtotoken: 'rainbow-1inch'      // DEX→CEX: Rainbow API (source=1inch)
+            },
 
-
+            alternative: {
+                tokentopair: 'onekey-1inch',        // CEX→DEX: OneKey filtered → 1inch provider
+                pairtotoken: 'hinkal-1inch'         // DEX→CEX: OneKey filtered → 1inch provider
+            }
+        },
+        allowFallback: true,  // ✅ Enable fallback on error
+    },
+    // ============ STANDALONE LIFI DEX (via Temple API) ============
+    // DEX regular berdiri sendiri (seperti kyber, odos, dll.)
+    // BERBEDA dari JUMPER (MetaDex, key 'lifi') yang multi-route.
+    // Temple API adalah proxy untuk LIFI yang mengembalikan single-quote.
+    lifidex: {
+        label: 'LIFIDX',
+        badgeClass: 'bg-lifidex',
+        disabled: false,
+        warna: "#e44be8ff",       // Magenta — beda dari JUMPER (#f764bc)
+        proxy: true,              // ✅ Enable proxy — Temple API mungkin butuh CORS proxy
+        builder: ({ chainCode, tokenAddress, pairAddress }) =>
+            `https://jumper.exchange/?fromChain=${chainCode}&fromToken=${tokenAddress}&toChain=${chainCode}&toToken=${pairAddress}`,
+        fetchdex: {
+            primary: {
+                tokentopair: 'temple',          // CEX→DEX: Temple API (LIFI proxy)
+                pairtotoken: 'c98-lifidex'      // DEX→CEX: C98 best-quote (isAuto:true, no backer)
+            },
+            alternative: {
+                tokentopair: 'onekey-lifidex',  // CEX→DEX: OneKey filtered → LiFi/SwapLifi provider
+                pairtotoken: 'onekey-lifidex'   // DEX→CEX: OneKey filtered → LiFi/SwapLifi provider
+            }
+        },
+        allowFallback: true,   // ✅ Fallback ke LIFI filtered jika Temple gagal
+    },
     // ============ SOLANA DEXes ============
     jupiter: {
         label: 'Jupiter',
@@ -1238,8 +1286,7 @@ const CONFIG_DEXS = {
         delay: 800,
         isMultiDex: true,
         maxProviders: 3,     // Provider: OKX, 1inch, 0x/Matcha
-        builder: ({ chainCode, tokenAddress, pairAddress }) =>
-            `https://app.onekey.so/swap/?networkId=evm--${chainCode}&inputTokenAddress=${tokenAddress}&outputTokenAddress=${pairAddress}`,
+        builder: () => `https://app.onekey.so/swap/`,
         fetchdex: {
             primary: {
                 tokentopair: 'onekey',
@@ -1249,27 +1296,9 @@ const CONFIG_DEXS = {
         allowFallback: false
     },
 
-    oneinch: {
-        label: '1INCH',
-        badgeClass: 'bg-1inch',
-        warna: "#fd0404ff",  // 1inch blue brand color
-        builder: ({ codeChain, tokenAddress, pairAddress }) =>
-            `https://1inch.io/swap?src=${codeChain}:${tokenAddress}&dst=${codeChain}:${pairAddress}`,
-        // ⚡ STRATEGY: Multiple proxy endpoints, no direct 1inch API key needed
-        // ⚠️ lifi-1inch: Only works for swaps >$10000 on some chains
-        fetchdex: {
-            primary: {
-                tokentopair: 'rabby-1inch',      // CEX→DEX: Hinkal 1inch proxy (no API key)
-                pairtotoken: 'rainbow-1inch'      // DEX→CEX: Rainbow API (source=1inch)
-            },
 
-            alternative: {
-                tokentopair: 'hinkal-1inch',        // CEX→DEX: LIFI filtered (>$10000 only!)
-                pairtotoken: 'lifi-1inch'        // DEX→CEX: Rabby filtered
-            }
-        },
-        allowFallback: true,  // ✅ Enable fallback on error
-    },
+
+
 
 };
 

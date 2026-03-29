@@ -2255,9 +2255,15 @@ body.dark-mode .db-table-title .uk-badge {
     color: white !important;
 }
 
-/* LIFI badge color */
+/* LIFI badge color (JUMPER MetaDex) */
 .bg-lifi {
     background-color: #bf0cff !important;
+    color: white !important;
+}
+
+/* LIFI DEX standalone badge color (via Temple API) */
+.bg-lifidex {
+    background-color: #e44be8 !important;
     color: white !important;
 }
 

@@ -1195,6 +1195,121 @@
         };
       }
     },
+    // =============================
+    // TEMPLE Strategy - REST API Provider for standalone LIFI DEX
+    // =============================
+    // Temple API wraps LIFI (li.quest) via temple-api-evm.prod.templewallet.com
+    // Returns single-quote response (EVM only — Solana not supported)
+    // Used as primary strategy for the standalone 'lifidex' column (label: LIFI)
+    temple: {
+      buildRequest: ({ codeChain, sc_input, sc_output, sc_input_in, sc_output_in, amount_in_big, SavedSettingData, chainName }) => {
+        /**
+         * Temple Swap API (LIFI proxy)
+         * Endpoint: https://temple-api-evm.prod.templewallet.com/api/swap-route
+         * Method: GET
+         *
+         * Query params:
+         * - fromChain: Chain ID (1=Ethereum, 56=BSC, 137=Polygon, etc.)
+         * - toChain: Same as fromChain (same-chain swap)
+         * - fromToken: Input token address (0x0000...0000 for native token)
+         * - toToken: Output token address
+         * - amount: Amount in base units (wei)
+         * - fromAddress: User wallet address
+         * - slippage: Slippage tolerance (0.005 = 0.5%)
+         *
+         * Response format (LIFI-compatible):
+         * - toAmount: Output amount in base units (string)
+         * - gasCostUSD: Gas cost in USD (string)
+         * - steps[]: Array of swap steps with tool/toolDetails info
+         */
+
+        const chainId = Number(codeChain);
+        const userAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+
+        // Use original (checksummed) addresses for Temple API
+        const fromToken = sc_input_in;
+        const toToken = sc_output_in;
+
+        const params = new URLSearchParams({
+          fromChain: chainId.toString(),
+          toChain: chainId.toString(),
+          fromToken: fromToken,
+          toToken: toToken,
+          amount: amount_in_big.toString(),
+          fromAddress: userAddr,
+          slippage: '0.005'   // 0.5% slippage
+        });
+
+        const url = `https://temple-api-evm.prod.templewallet.com/api/swap-route?${params.toString()}`;
+
+        console.log(`[Temple/LIFI API] Request: chain=${chainId} ${fromToken} -> ${toToken}`);
+
+        return {
+          url,
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8'
+          }
+        };
+      },
+      parseResponse: (response, { des_output, chainName }) => {
+        /**
+         * Parse Temple API response (LIFI-compatible format)
+         *
+         * Key fields:
+         * - toAmount: output amount in base units (e.g., "239214574")
+         * - gasCostUSD: gas cost in USD (e.g., "0.0865")
+         * - steps[0].tool: DEX aggregator used (e.g., "sushiswap")
+         * - steps[0].toolDetails.name: Human-readable DEX name
+         * - steps[0].estimate.gasCosts[]: Detailed gas cost breakdown
+         * - steps[0].estimate.feeCosts[]: Integrator/LIFI fee breakdown (included in toAmount)
+         */
+
+        if (!response || !response.toAmount) {
+          throw new Error("Invalid Temple/LIFI response - missing toAmount");
+        }
+
+        // Parse output amount
+        const outputAmount = parseFloat(response.toAmount);
+        const amount_out = outputAmount / Math.pow(10, des_output);
+
+        if (!Number.isFinite(amount_out) || amount_out <= 0) {
+          throw new Error(`Invalid Temple/LIFI output amount: ${response.toAmount}`);
+        }
+
+        // Get gas cost from top-level gasCostUSD
+        let FeeSwap = getFeeSwap(chainName);
+        try {
+          const gasCostUsd = parseFloat(response.gasCostUSD || 0);
+          if (Number.isFinite(gasCostUsd) && gasCostUsd > 0 && gasCostUsd < 100) {
+            FeeSwap = gasCostUsd;
+          }
+        } catch (e) {
+          console.warn('[Temple/LIFI] Could not parse gasCostUSD, using default');
+        }
+
+        // Extract tool/DEX name from steps for transparency
+        let routeTool = 'LIFI';
+        try {
+          if (response.steps && Array.isArray(response.steps) && response.steps.length > 0) {
+            const firstStep = response.steps[0];
+            const toolName = firstStep?.toolDetails?.name || firstStep?.tool || '';
+            if (toolName) {
+              routeTool = String(toolName).toUpperCase();
+            }
+          }
+        } catch (_) { }
+
+        console.log(`[Temple/LIFI] Route via ${routeTool}: ${amount_out.toFixed(6)} output, gas: $${FeeSwap.toFixed(4)}`);
+
+        return {
+          amount_out,
+          FeeSwap,
+          dexTitle: 'LIFIDX',
+          routeTool: `LIFIDEX (${routeTool})`  // Show underlying DEX in tooltip
+        };
+      }
+    },
   };
   /**
    * ODOS Strategy Factory - Official API Implementation
@@ -1739,6 +1854,78 @@
   dexStrategies['lifi-relay'] = createFilteredLifiRelayStrategy();
 
   // =============================
+  // LIFI-LIFIDEX Strategy - LIFI unfiltered single-quote (best route from ALL DEXes)
+  // =============================
+  // Fallback untuk kolom LIFIDEX: memanggil LIFI /v1/quote TANPA filter allowExchanges
+  // Mengembalikan 1 best quote dari semua DEX yang tersedia di LIFI
+  dexStrategies['lifi-lifidex'] = {
+    buildRequest: ({ codeChain, sc_input, sc_output, sc_input_in, sc_output_in, amount_in_big, SavedSettingData, chainName }) => {
+      const apiKey = (typeof getRandomApiKeyLIFI === 'function') ? getRandomApiKeyLIFI() : '';
+
+      const chainConfig = (root.CONFIG_CHAINS || {})[String(chainName || '').toLowerCase()];
+      const lifiChainId = chainConfig?.LIFI_CHAIN_ID || Number(codeChain);
+      const isSolana = String(chainName || '').toLowerCase() === 'solana';
+
+      const fromToken = isSolana ? sc_input_in : sc_input.toLowerCase();
+      const toToken = isSolana ? sc_output_in : sc_output.toLowerCase();
+
+      const defaultEvmAddr = '0x0000000000000000000000000000000000000000';
+      const defaultSolAddr = 'So11111111111111111111111111111111111111112';
+      const userAddr = isSolana
+        ? (SavedSettingData?.walletSolana || defaultSolAddr)
+        : (SavedSettingData?.walletMeta || defaultEvmAddr);
+
+      // ✅ NO allowExchanges filter — LIFI picks the best route from ALL DEXes
+      const params = new URLSearchParams({
+        fromChain: lifiChainId.toString(),
+        toChain: lifiChainId.toString(),
+        fromToken: fromToken,
+        toToken: toToken,
+        fromAmount: amount_in_big.toString(),
+        fromAddress: userAddr,
+        slippage: '0.03',
+        order: 'RECOMMENDED'
+      });
+
+      return {
+        url: `https://li.quest/v1/quote?${params.toString()}`,
+        method: 'GET',
+        headers: {
+          'x-lifi-api-key': apiKey
+        }
+      };
+    },
+    parseResponse: (response, { des_output, chainName }) => {
+      // /v1/quote returns a single Step object
+      if (!response || !response.estimate || !response.estimate.toAmount) {
+        throw new Error('LIFI-LIFIDEX: No valid quote received');
+      }
+
+      const estimate = response.estimate;
+      const amount_out = parseFloat(estimate.toAmount) / Math.pow(10, des_output);
+
+      // Get gas cost from estimate
+      let gasCostUsd = 0;
+      if (estimate.gasCosts && Array.isArray(estimate.gasCosts)) {
+        gasCostUsd = estimate.gasCosts.reduce((sum, gc) => sum + parseFloat(gc.amountUSD || 0), 0);
+      }
+      const FeeSwap = (Number.isFinite(gasCostUsd) && gasCostUsd > 0) ? gasCostUsd : getFeeSwap(chainName);
+
+      // Extract tool name from response for transparency
+      const toolUsed = response.tool || response.toolDetails?.name || response.toolDetails?.key || 'LIFI';
+
+      console.log(`[LIFI-LIFIDEX] Best route via ${String(toolUsed).toUpperCase()}: ${amount_out.toFixed(6)} output, gas: $${FeeSwap.toFixed(4)}`);
+
+      return {
+        amount_out: amount_out,
+        FeeSwap: FeeSwap,
+        dexTitle: 'LIFIDX',
+        routeTool: `LIFIDEX (${String(toolUsed).toUpperCase()} via LIFI)`
+      };
+    }
+  };
+
+  // =============================
   // SWOOP Filtered Strategy Factory - SWOOP as REST API Provider
   // =============================
   /**
@@ -2063,6 +2250,83 @@
   // Create filtered C98 strategies
   dexStrategies['c98-okx']    = createFilteredC98Strategy('okx', 'OKX');      // ✅ OKX via Coin98 Superlink
   dexStrategies['c98-matcha'] = createFilteredC98Strategy('0x',  'MATCHA');   // ✅ Matcha/0x via Coin98 Superlink
+
+  // ✅ C98-LIFIDEX: C98 tanpa filter backer — ambil best quote dari semua backer
+  // Digunakan sebagai alternative/fallback untuk kolom LIFIDEX
+  dexStrategies['c98-lifidex'] = {
+    buildRequest: ({ codeChain, sc_input_in, sc_output_in, amount_in_big, des_input, des_output, SavedSettingData }) => {
+      const NATIVE_TOKEN = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
+      const NATIVE_SYMBOLS = { '1': 'ETH', '56': 'BNB', '137': 'MATIC', '42161': 'ETH', '8453': 'ETH', '10': 'ETH', '43114': 'AVAX' };
+      const userAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+      const chainId = parseInt(codeChain);
+      const amountHuman = parseFloat(amount_in_big) / Math.pow(10, des_input);
+
+      const token0 = { chainId, decimals: des_input };
+      if (sc_input_in.toLowerCase() === NATIVE_TOKEN) {
+        token0.symbol = NATIVE_SYMBOLS[String(codeChain)] || 'ETH';
+      } else {
+        token0.address = sc_input_in;
+      }
+
+      const token1 = { chainId, decimals: des_output };
+      if (sc_output_in.toLowerCase() === NATIVE_TOKEN) {
+        token1.symbol = NATIVE_SYMBOLS[String(codeChain)] || 'ETH';
+      } else {
+        token1.address = sc_output_in;
+      }
+
+      // ✅ isAuto:true + NO backer filter → C98 returns best quote from ALL providers
+      const body = {
+        isAuto: true,
+        amount: amountHuman,
+        token0,
+        token1,
+        wallet: userAddr
+      };
+
+      return {
+        url: 'https://superlink-server.coin98.tech/quote',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        data: JSON.stringify(body)
+      };
+    },
+    parseResponse: (response, { des_output, chainName }) => {
+      if (!response?.data || !Array.isArray(response.data) || response.data.length === 0) {
+        throw new Error('C98-LIFIDEX: No quote data received');
+      }
+
+      // Sort by amount descending, pick the best quote
+      const sorted = response.data
+        .filter(q => Number.isFinite(parseFloat(q.amount)) && parseFloat(q.amount) > 0)
+        .sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount));
+
+      if (sorted.length === 0) {
+        throw new Error('C98-LIFIDEX: No valid quotes');
+      }
+
+      const best = sorted[0];
+      const amount_out = parseFloat(best.amount);
+
+      let FeeSwap = getFeeSwap(chainName);
+      try {
+        if (best.additionalData?.gas?.amountUSD) {
+          const gasUsd = parseFloat(best.additionalData.gas.amountUSD);
+          if (Number.isFinite(gasUsd) && gasUsd > 0) FeeSwap = gasUsd;
+        }
+      } catch (_) { }
+
+      const backerUsed = String(best.id || best.name || 'C98').toUpperCase();
+      console.log(`[C98-LIFIDEX] Best backer: ${backerUsed}, amount_out=${amount_out.toFixed(6)}`);
+
+      return {
+        amount_out,
+        FeeSwap,
+        dexTitle: 'LIFIDX',
+        routeTool: `LIFIDEX (${backerUsed} via C98)`
+      };
+    }
+  };
 
   // =============================
   // Krystal Filtered Strategy Factory
@@ -3933,6 +4197,162 @@
       });
     }
   };
+
+  // =============================
+  // ONEKEY Filtered Strategy Factory
+  // =============================
+  // Factory untuk membuat strategi OneKey yang difilter ke provider tertentu.
+  // Endpoint: https://swap.onekeycn.com/swap/v1/quote/events (SSE)
+  // Provider keys: 'swap1inch' (1inch), 'swaplifi' (LiFi/Jumper), 'swapokx' (OKX), 'swap0x' (Matcha)
+  //
+  // @param {string} providerKey  - Provider key dari OneKey SSE response (e.g. 'swap1inch', 'swaplifi')
+  // @param {string} dexTitle     - Label tampilan (e.g. '1INCH', 'LIFIDX')
+  // @returns {object} Strategy object dengan execute method
+  function createFilteredOnekeyStrategy(providerKey, dexTitle) {
+    return {
+      execute: ({ chainName, sc_input_in, sc_output_in, amount_in_big, des_input, SavedSettingData }) => {
+        return new Promise((resolve, reject) => {
+
+          const onekeyChainMap = {
+            'ethereum': 1, 'eth': 1,
+            'bsc': 56,     'bnb': 56,
+            'polygon': 137, 'matic': 137,
+            'arbitrum': 42161, 'arb': 42161,
+            'base': 8453,
+            'optimism': 10, 'op': 10,
+            'avalanche': 43114, 'avax': 43114
+          };
+
+          const chain = String(chainName || '').toLowerCase();
+          const chainId = onekeyChainMap[chain];
+          if (!chainId) return reject(new Error(`OneKey-${dexTitle}: Chain tidak didukung: ${chainName}`));
+
+          const walletAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+          const NATIVE = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
+          const fromAddr = String(sc_input_in || '').toLowerCase() === NATIVE ? '' : sc_input_in;
+          const toAddr   = sc_output_in;
+          const networkId = `evm--${chainId}`;
+
+          const fromAmountHuman = (parseFloat(amount_in_big.toString()) / Math.pow(10, des_input)).toString();
+
+          const params = new URLSearchParams({
+            fromTokenAddress:       fromAddr,
+            toTokenAddress:         toAddr,
+            fromTokenAmount:        fromAmountHuman,
+            fromNetworkId:          networkId,
+            toNetworkId:            networkId,
+            protocol:               'Swap',
+            userAddress:            walletAddr,
+            slippagePercentage:     '1',
+            autoSlippage:           'true',
+            receivingAddress:       walletAddr,
+            kind:                   'sell',
+            denySingleSwapProvider: ''
+          });
+
+          const url = `https://swap.onekeycn.com/swap/v1/quote/events?${params.toString()}`;
+
+          let bestQuote     = null;
+          let settled       = false;
+          let es;
+          let totalExpected = 0;   // dari totalQuoteCount event
+          let receivedCount = 0;   // jumlah data provider yang sudah masuk
+
+          const finish = () => {
+            if (settled) return;
+            settled = true;
+            try { es.close(); } catch (_) {}
+
+            if (!bestQuote) return reject(new Error(`OneKey-${dexTitle}: Tidak ada quote dari provider ${providerKey}`));
+
+            const toAmount = parseFloat(bestQuote.toAmount || 0);
+            if (!Number.isFinite(toAmount) || toAmount <= 0) {
+              return reject(new Error(`OneKey-${dexTitle}: toAmount tidak valid`));
+            }
+
+            const amount_out = toAmount;
+
+            let FeeSwap = getFeeSwap(chainName);
+            try {
+              const gasUnits = parseFloat(bestQuote.gasLimit || 0);
+              if (gasUnits > 0) {
+                const allGasData = (typeof getFromLocalStorage === 'function')
+                  ? getFromLocalStorage('ALL_GAS_FEES') : null;
+                if (allGasData) {
+                  const gasInfo = allGasData.find(g =>
+                    String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase()
+                  );
+                  if (gasInfo && gasInfo.gwei && gasInfo.tokenPrice) {
+                    const feeUsd = (gasUnits * gasInfo.gwei * gasInfo.tokenPrice) / 1e9;
+                    if (Number.isFinite(feeUsd) && feeUsd > 0) FeeSwap = feeUsd;
+                  }
+                }
+              }
+            } catch (_) {}
+
+            console.log(`[ONEKEY-${dexTitle}] Quote dari provider ${providerKey}: ${amount_out}`);
+
+            resolve({
+              amount_out,
+              FeeSwap,
+              dexTitle,
+              isMultiDex:  false,
+              routeTool:   `ONEKEY-${dexTitle}`
+            });
+          };
+
+          const timer = setTimeout(finish, 8000);
+
+          try {
+            es = new EventSource(url);
+
+            es.onmessage = (event) => {
+              try {
+                const parsed = JSON.parse(event.data);
+
+                // Simpan total provider yang akan datang (event ini datang SEBELUM data provider)
+                if (parsed.totalQuoteCount > 0) {
+                  totalExpected = parsed.totalQuoteCount;
+                }
+
+                if (parsed.data && Array.isArray(parsed.data) && parsed.data.length > 0) {
+                  const item = parsed.data[0];
+                  if (item.info?.provider && item.toAmount) {
+                    receivedCount++; // hitung semua data provider yang masuk
+                    const itemProvider = String(item.info.provider).toLowerCase();
+                    if (itemProvider === providerKey.toLowerCase()) {
+                      const amt = parseFloat(item.toAmount || 0);
+                      if (!bestQuote || amt > parseFloat(bestQuote.toAmount || 0)) {
+                        bestQuote = item;
+                      }
+                    }
+                    // Selesaikan hanya setelah semua provider data sudah masuk
+                    if (totalExpected > 0 && receivedCount >= totalExpected) {
+                      clearTimeout(timer);
+                      finish();
+                    }
+                  }
+                }
+              } catch (_) {}
+            };
+
+            es.onerror = () => {
+              clearTimeout(timer);
+              finish();
+            };
+
+          } catch (e) {
+            clearTimeout(timer);
+            reject(new Error(`OneKey-${dexTitle}: EventSource gagal: ${e.message}`));
+          }
+        });
+      }
+    };
+  }
+
+  // ✅ OneKey filtered strategies — alternatif untuk 1inch dan LiFi DEX
+  dexStrategies['onekey-1inch']   = createFilteredOnekeyStrategy('swap1inch', '1INCH');    // OneKey → hanya provider 1inch
+  dexStrategies['onekey-lifidex'] = createFilteredOnekeyStrategy('swaplifi',  'LIFIDX');  // OneKey → hanya provider LiFi/Jumper
 
   // =============================
   // RANGO Filtered Strategy Factory - Rango as REST API Provider
