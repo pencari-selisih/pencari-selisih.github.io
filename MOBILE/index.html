@@ -45,8 +45,8 @@
             <img src="icons/favicon.png" class="app-logo" alt="">
             <span id="appNameDisplay" class="app-name-txt"></span>
             <span class="app-version" id="appVersion"></span>
-            <span class="scanning-badge" id="scanBadge" style="display:none">▶ SCANNING...</span>
-            <span id="notStartedNotice"  class="scan-status-badge">■ BELUM SCANNING</span>
+            <span class="scan-status-badge" id="scanBadge" style="display:none">▶ SCANNING.. 00:00</span>
+            <span id="notStartedNotice"  class="scan-status-badge">■ BELUM SCAN</span>
             <span id="scanDoneNotice"    class="scan-status-badge scan-done"  style="display:none">✅ SELESAI SCAN</span>
             <span id="scanStopNotice"    class="scan-status-badge scan-stop"  style="display:none">■ STOP SCANNER</span>
         </div>
@@ -161,6 +161,7 @@
              <span class="nav-icon"><img src="icons/setting.png" class="nav-icon-img" alt="settings"></span>
              <span>PENGATURAN</span>
         </button>
+          <button class="top-tab-btn" data-tab="tabSettings"><img src="icons/setting.png" class="nav-icon-img" alt="pengaturan"></button>
     </nav>
 
     <!-- ═══════════════════════════════════════
@@ -182,8 +183,8 @@
                     <label class="set-label">Kecepatan Scan</label>
                     <div class="speed-chips" id="speedChips">
                         <button class="sort-btn" data-speed="800">SLOW</button>
-                        <button class="sort-btn" data-speed="700">MEDIUM</button>
-                        <button class="sort-btn" data-speed="500">FAST</button>
+                        <button class="sort-btn" data-speed="600">MEDIUM</button>
+                        <button class="sort-btn" data-speed="400">FAST</button>
                     </div>
                 </div>
                 <div class="set-toggle-inline">
@@ -197,7 +198,7 @@
             </div>
 
             <!-- DEX Settings — dirender JS dari CONFIG_DEX -->
-            <div class="set-section">📊 DEX & AUTO LEVEL</div>
+            <div class="set-section">📊 DEX & AUTO ROUTE</div>
             <div id="dexSettingsGrid" class="dex-settings-grid">
                 <!-- Dirender oleh renderDexSettings() -->
             </div>
@@ -219,7 +220,7 @@
             <div class="set-section">💳 CEK BIAYA WD & STATUS WD/DP</div>
             <div class="set-cexwallet-row">
                 <button class="btn-outline" id="btnUpdateCexWallet" onclick="runUpdateCexWallet()">🔄 Check Wallet Exchanger</button>
-                <span class="set-label set-hint" style="margin:0;">Diperbarui: <span id="walletLastUpdate">—</span></span>
+                <span class="set-label set-hint" style="margin:0;"><span id="walletLastUpdate">—</span></span>
             </div>
             <div class="cex-wallet-status" id="cexWalletStatus">
                 Belum ada info. Ketuk tombol di atas untuk mengambil data dari Exchanger.

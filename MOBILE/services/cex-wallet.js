@@ -93,7 +93,7 @@ async function _fetchJson(url, opts = {}) {
 // GET /sapi/v1/capital/config/getall — signed HMAC-SHA256
 // Proxy khusus: proxykanan.awokawok.workers.dev (tidak pakai corsProxy biasa)
 async function _fetchBinanceWallet() {
-  const { ApiKey, ApiSecret } = CONFIG_CEX_KEYS.BINANCE;
+  const { ApiKey, ApiSecret } = CONFIG_CEX.binance.apiKeys;
   const ts = Date.now();
   const qs = `timestamp=${ts}&recvWindow=10000`;
   const sig = await _hmacSha256(ApiSecret, qs);
@@ -127,7 +127,7 @@ async function _fetchBinanceWallet() {
 // ─── MEXC ─────────────────────────────────────────────────
 // GET /api/v3/capital/config/getall — signed HMAC-SHA256
 async function _fetchMexcWallet() {
-  const { ApiKey, ApiSecret } = CONFIG_CEX_KEYS.MEXC;
+  const { ApiKey, ApiSecret } = CONFIG_CEX.mexc.apiKeys;
   const ts = Date.now();
   const qs = `timestamp=${ts}`;
   const sig = await _hmacSha256(ApiSecret, qs);
@@ -182,7 +182,7 @@ async function _fetchGateWallet() {
   }
 
   // ── 2. Withdraw status (authenticated) → fee WD per chain ──
-  const { ApiKey, ApiSecret } = CONFIG_CEX_KEYS.GATE;
+  const { ApiKey, ApiSecret } = CONFIG_CEX.gate.apiKeys;
   const ts = Math.floor(Date.now() / 1000).toString();
   const bodyHash = await _sha512hex('');
   const sigPayload = `GET\n/api/v4/wallet/withdraw_status\n\n${bodyHash}\n${ts}`;
@@ -237,7 +237,7 @@ async function _fetchGateWallet() {
 // Public endpoint: GET /api/summaries (tanpa auth, no withdraw fee detail)
 // TAPI dengan auth: method=withdrawFee
 async function _fetchIndodaxWallet() {
-  const { ApiKey, ApiSecret } = CONFIG_CEX_KEYS.INDODAX;
+  const { ApiKey, ApiSecret } = CONFIG_CEX.indodax.apiKeys;
   const ts = Date.now();
   const nonce = ts;
   const body = `method=getInfo&timestamp=${ts}&nonce=${nonce}`;

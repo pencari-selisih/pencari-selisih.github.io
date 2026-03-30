@@ -137,8 +137,8 @@ html, body {
   display: flex; align-items: center; gap: 6px;
   flex: 1; min-width: 0;
 }
-.app-logo { width: 24px; height: 24px; flex-shrink: 0; }
-.app-name-txt { font-size: 16px !important; font-weight: 500; color: var(--accent); white-space: nowrap; }
+.app-logo { width: 20px; height: 20px; flex-shrink: 0; }
+.app-name-txt { font-size: 15px !important; font-weight: 500; color: var(--accent); white-space: nowrap; }
 .app-version { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
 .scanning-badge {
   font-size: 10px; font-weight: 700;
@@ -148,7 +148,7 @@ html, body {
 }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
 .scan-status-badge {
-  font-size: 10px; color: var(--text-muted); white-space: nowrap;
+  font-size: 12px; color: var(--accent); white-space: nowrap; font-weight: 700;
 }
 .scan-done { color: var(--success); }
 .scan-stop { color: var(--danger); }

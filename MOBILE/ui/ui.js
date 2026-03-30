@@ -198,8 +198,8 @@ function renderDexSettings() {
         let countHtml = '';
         if (def.hasCount) {
             const cnt = dc.count || def.defaultCount;
-            countHtml = `<span class="dex-row-lbl">Route:</span>
-              <input type="number" min="1" max="5" value="${cnt}"
+            countHtml = `<span class="dex-row-lbl">Jumlah DEX:</span>
+              <input type="number" min="1" max="6" value="${cnt}"
                 data-dex="${def.key}" data-field="count"
                 onchange="_onDexSettingChange(this)"
                 style="width:44px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:3px 5px;color:var(--text);font-size:11px;text-align:center">`;
@@ -243,7 +243,7 @@ function _onDexSettingChange(el) {
         CFG.dex[key].count = v;
         _syncLegacyDexCounts();
         _persistCFG();
-        showToast(`✓ ${DEX_LIST.find(d=>d.key===key)?.label||key} Route: ${v}`);
+        showToast(`✓ JUMLAH DEX ${DEX_LIST.find(d=>d.key===key)?.label||key} : ${v} `);
     }
 }
 

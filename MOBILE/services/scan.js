@@ -87,11 +87,11 @@ function calculateAutoVolume(orderbook, maxModal, levels, side) {
 // ─── WD/DP Icons di Header Card ───────────────
 // Update icon ✅⛔ di sebelah nama token & pair di header card
 function _updateWdBadge(card, tok, stToken, stPair, cardEls, walletFetched) {
-    const tokEl   = cardEls?.wdTokEl  || document.getElementById('wdic-tok-'  + tok.id);
-    const pairEl  = cardEls?.wdPairEl || document.getElementById('wdic-pair-' + tok.id);
+    const tokEl = cardEls?.wdTokEl || document.getElementById('wdic-tok-' + tok.id);
+    const pairEl = cardEls?.wdPairEl || document.getElementById('wdic-pair-' + tok.id);
     const pairSym = (tok.tickerPair || 'USDT').toUpperCase();
-    if (tokEl)  tokEl.innerHTML  = _wdpIcons(stToken, walletFetched, tok.cex, tok.ticker);
-    if (pairEl) pairEl.innerHTML = _wdpIcons(stPair,  walletFetched, tok.cex, pairSym);
+    if (tokEl) tokEl.innerHTML = _wdpIcons(stToken, walletFetched, tok.cex, tok.ticker);
+    if (pairEl) pairEl.innerHTML = _wdpIcons(stPair, walletFetched, tok.cex, pairSym);
 }
 
 // Refresh semua WD/DP icon di card yang sudah dirender (dipanggil setelah wallet data diupdate)
@@ -103,10 +103,10 @@ function refreshAllWdIcons() {
         if (!tok) return;
         const pairSym = (tok.tickerPair || 'USDT').toUpperCase();
         const stToken = getCexTokenStatus(tok.cex, tok.ticker, tok.chain, 1);
-        const stPair  = getCexTokenStatus(tok.cex, pairSym, tok.chain, 1);
+        const stPair = getCexTokenStatus(tok.cex, pairSym, tok.chain, 1);
         const wf = tok.cex !== 'indodax' && isCexWalletFetched(tok.cex);
-        if (els.wdTokEl)  els.wdTokEl.innerHTML  = _wdpIcons(stToken, wf, tok.cex, tok.ticker);
-        if (els.wdPairEl) els.wdPairEl.innerHTML = _wdpIcons(stPair,  wf, tok.cex, pairSym);
+        if (els.wdTokEl) els.wdTokEl.innerHTML = _wdpIcons(stToken, wf, tok.cex, tok.ticker);
+        if (els.wdPairEl) els.wdPairEl.innerHTML = _wdpIcons(stPair, wf, tok.cex, pairSym);
     });
 }
 
@@ -142,7 +142,7 @@ async function scanToken(tok) {
     let pairSc = tok.scPair || '';
     let pairDec = tok.decPair || 18;
     if (tok.tickerPair && tok.tickerPair.toUpperCase() === 'USDT') {
-        pairSc  = CONFIG_CHAINS[tok.chain]?.USDT_SC  || pairSc;
+        pairSc = CONFIG_CHAINS[tok.chain]?.USDT_SC || pairSc;
         pairDec = CONFIG_CHAINS[tok.chain]?.USDT_DEC ?? pairDec;
     }
     if (!pairSc || !tok.scToken) { setCardStatus(card, 'SC kosong'); return; }
@@ -161,7 +161,7 @@ async function scanToken(tok) {
     // Status WD/DP: tampilkan badge di card
     const stToken = (typeof getCexTokenStatus === 'function')
         ? getCexTokenStatus(tok.cex, tok.ticker, tok.chain, obToken.askPrice) : null;
-    const stPair  = (typeof getCexTokenStatus === 'function')
+    const stPair = (typeof getCexTokenStatus === 'function')
         ? getCexTokenStatus(tok.cex, pairSymbol, tok.chain, bidPair || 1) : null;
     // Indodax: API tidak punya status WD/DP asli → walletFetched = false agar tidak diblock dan tampil ??
     const walletFetched = tok.cex !== 'indodax' && typeof isCexWalletFetched === 'function' && isCexWalletFetched(tok.cex);
@@ -172,7 +172,7 @@ async function scanToken(tok) {
     // - Jika stToken null & wallet sudah di-fetch: token tidak disuport di chain ini → block keduanya
     // - Jika stToken null & wallet belum di-fetch: data belum ada → tidak diblock
     const blockCtD = stToken !== null ? stToken.withdrawEnable === false : walletFetched;
-    const blockDtC = stToken !== null ? stToken.depositEnable  === false : walletFetched;
+    const blockDtC = stToken !== null ? stToken.depositEnable === false : walletFetched;
 
     // Tampilkan notice DITUTUP di header tabel jika blocked
     if (blockCtD) {
@@ -193,8 +193,8 @@ async function scanToken(tok) {
         ? calculateAutoVolume(obToken, _refModalCtD, CFG.levelCount, 'asks') : null;
     const alDtC_ref = CFG.autoLevel && obToken.bids?.length
         ? calculateAutoVolume(obToken, _refModalDtC, CFG.levelCount, 'bids') : null;
-    const askCtD     = alCtD_ref ? alCtD_ref.avgPrice      : obToken.askPrice;
-    const bidDtC     = alDtC_ref ? alDtC_ref.avgPrice      : obToken.bidPrice;
+    const askCtD = alCtD_ref ? alCtD_ref.avgPrice : obToken.askPrice;
+    const bidDtC = alDtC_ref ? alDtC_ref.avgPrice : obToken.bidPrice;
     const dispAskCtD = alCtD_ref ? alCtD_ref.lastLevelPrice : obToken.askPrice;
     const dispBidDtC = alDtC_ref ? alDtC_ref.lastLevelPrice : obToken.bidPrice;
 
@@ -203,8 +203,10 @@ async function scanToken(tok) {
         const modal = tok.dexModals?.[dexKey]?.ctd || tok.modalCtD || CFG.dex?.[dexKey]?.modalCtD || _refModalCtD;
         if (CFG.autoLevel && obToken.asks?.length) {
             const al = calculateAutoVolume(obToken, modal, CFG.levelCount, 'asks');
-            return { modal: al ? al.actualModal : modal, price: al ? al.avgPrice : obToken.askPrice,
-                     full: !al || al.actualModal >= modal * 0.99 };
+            return {
+                modal: al ? al.actualModal : modal, price: al ? al.avgPrice : obToken.askPrice,
+                full: !al || al.actualModal >= modal * 0.99
+            };
         }
         return { modal, price: obToken.askPrice, full: true };
     }
@@ -212,8 +214,10 @@ async function scanToken(tok) {
         const modal = tok.dexModals?.[dexKey]?.dtc || tok.modalDtC || CFG.dex?.[dexKey]?.modalDtC || _refModalDtC;
         if (CFG.autoLevel && obToken.bids?.length) {
             const al = calculateAutoVolume(obToken, modal, CFG.levelCount, 'bids');
-            return { modal: al ? al.actualModal : modal, price: al ? al.avgPrice : obToken.bidPrice,
-                     full: !al || al.actualModal >= modal * 0.99 };
+            return {
+                modal: al ? al.actualModal : modal, price: al ? al.avgPrice : obToken.bidPrice,
+                full: !al || al.actualModal >= modal * 0.99
+            };
         }
         return { modal, price: obToken.bidPrice, full: true };
     }
@@ -222,11 +226,11 @@ async function scanToken(tok) {
     const dxDtC = { metax: _dexEffDtC('metax'), onekey: _dexEffDtC('onekey'), kyber: _dexEffDtC('kyber'), okx: _dexEffDtC('okx'), lifidex: _dexEffDtC('lifidex'), matcha: _dexEffDtC('matcha') };
 
     // Simpan dispAsk/dispBid + fee WD ke cache agar tooltip bisa mengaksesnya
-    _obCache[tok.id].dispAsk  = dispAskCtD;
-    _obCache[tok.id].dispBid  = dispBidDtC;
+    _obCache[tok.id].dispAsk = dispAskCtD;
+    _obCache[tok.id].dispBid = dispBidDtC;
     _obCache[tok.id].feeWdCtD = feeWdCtD;
     _obCache[tok.id].feeWdDtC = feeWdDtC;
-    _obCache[tok.id].pairSym  = pairSymbol;
+    _obCache[tok.id].pairSym = pairSymbol;
     _obCache[tok.id].isPairStable = isPairStable;
 
     // 4. Fetch DEX quotes — per-DEX wei sesuai modal masing-masing
@@ -257,13 +261,13 @@ async function scanToken(tok) {
         if (u.startsWith('SUSHI')) return 'SUSHI';
         return u;
     };
-    const _offList = (APP_DEV_CONFIG.offDexResultScan || []).map(s => s.toUpperCase());
-    const _isOff   = nm => { const u = (nm || '').toUpperCase(); return _offList.some(o => u.includes(o)); };
+    const _offList = (CONFIG_MONITORING.offDexResultScan || []).map(s => s.toUpperCase());
+    const _isOff = nm => { const u = (nm || '').toUpperCase(); return _offList.some(o => u.includes(o)); };
     const _parseMx = q => { const p = parseDexQuoteMetax(q); if (!p) return null; p.name = _normDexName(p.name); return _isOff(p.name) ? null : p; };
-    const _normQ   = q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; };
+    const _normQ = q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; };
 
     // ── Shared URL helpers ────────────────────────────────────
-    const _tradeUrl    = typeof _getCexTradeUrl === 'function' ? _getCexTradeUrl(tok.cex, tok.ticker, pairSymbol) : '';
+    const _tradeUrl = typeof _getCexTradeUrl === 'function' ? _getCexTradeUrl(tok.cex, tok.ticker, pairSymbol) : '';
     const _cexPriceHtml = (txt, url) => url ? `<a href="${url}" target="_blank" rel="noopener" class="cex-price-link">${txt}</a>` : txt;
     const _dexPriceHtml = (txt, dexName, dir) => {
         const url = typeof _getDexUrl === 'function' ? _getDexUrl(dexName, tok, dir) : '';
@@ -274,8 +278,8 @@ async function scanToken(tok) {
     const allCtD = [];
     const allDtC = [];
     // Track raw arrays per DEX for buildMissingLabels (filled when each fetch completes)
-    const _rawC = { mx:null, ky:null, kb:null, ok:null, lf:null, ma:null };
-    const _rawD = { mx:null, ky:null, kb:null, ok:null, lf:null, ma:null };
+    const _rawC = { mx: null, ky: null, kb: null, ok: null, lf: null, ma: null };
+    const _rawD = { mx: null, ky: null, kb: null, ok: null, lf: null, ma: null };
 
     // ── Column fill helpers (reusable for incremental + final render) ─
     function _fillCtdCols(data, missing) {
@@ -313,16 +317,16 @@ async function scanToken(tok) {
             const hdrEl = els?.ctdHdr[i] || card.querySelector(`.mon-dex-hdr[data-dir="ctd"][data-ctd-hdr="${i}"]`);
             const cexEl = els?.ctdCex[i]; const dexEl = els?.ctdDex[i]; const feeEl = els?.ctdFee[i]; const pnlEl = els?.ctdPnl[i];
             const isSignal = r.pnl >= (r.dexMinPnl ?? tokMinPnl);
-            const sigCls   = isSignal ? ' col-signal' : '';
+            const sigCls = isSignal ? ' col-signal' : '';
             const nm = (r.name || '').slice(0, 6).toUpperCase();
             const srcTag = r.src === 'MX' ? '<span class="src-tag mx">MT</span>' : r.src === 'KY' ? '<span class="src-tag ky">KY</span>' : '';
             const ms = r.dexModalCtD; const insuf = r.modalFull === false && r.modalActual && ms && r.modalActual < ms;
             const modalLbl = insuf ? `<span class="hdr-modal-set">$${ms}</span> | <span class="hdr-modal-act">$${r.modalActual}✅</span>` : (ms ? `<span class="hdr-modal-ok">$${ms}✅</span>` : '');
-            if (hdrEl) { hdrEl.innerHTML = nm + (srcTag ? ' '+srcTag : '') + (modalLbl ? `<span class="hdr-dex-modal">${modalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap||0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor||0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = ms||''; hdrEl.dataset.modalActual = r.modalActual!=null?r.modalActual:''; hdrEl.dataset.minPnl = (r.dexMinPnl??tokMinPnl).toFixed(2); const b = r.src==='MX'?'MT':r.src==='KY'?'KY':''; hdrEl.dataset.dexName = nm+(b?' '+b:''); hdrEl.dataset.src = r.src; }
+            if (hdrEl) { hdrEl.innerHTML = nm + (srcTag ? ' ' + srcTag : '') + (modalLbl ? `<span class="hdr-dex-modal">${modalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = ms || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); const b = r.src === 'MX' ? 'MT' : r.src === 'KY' ? 'KY' : ''; hdrEl.dataset.dexName = nm + (b ? ' ' + b : ''); hdrEl.dataset.src = r.src; }
             if (cexEl) { cexEl.innerHTML = _cexPriceHtml(`↑ ${fmtCompact(dispAskCtD)}$`, _tradeUrl); cexEl.className = 'mon-dex-cell mc-ask' + sigCls; }
             if (dexEl) { dexEl.innerHTML = _dexPriceHtml(`↓ ${fmtCompact(r.effPrice)}$`, r.name, 'ctd'); dexEl.className = 'mon-dex-cell mc-bid' + sigCls; }
-            if (feeEl) { feeEl.textContent = _fmtFeeCell(r.wdFee, r.cexFee1+r.cexFee2, r.feeSwap||0); feeEl.className = 'mon-dex-cell mc-recv' + sigCls; }
-            if (pnlEl) { const cls = r.pnl>=0?'pnl-pos':'pnl-neg'; pnlEl.textContent = `${fmtPnl(r.pnl)}$`; pnlEl.className = `mon-dex-cell mc-pnl ${cls}` + sigCls; pnlEl.title = `${r.name||'DEX'}\nMin PNL: $${(r.dexMinPnl??tokMinPnl).toFixed(2)}\nPNL: ${fmtPnl(r.pnl)}$`; }
+            if (feeEl) { feeEl.textContent = _fmtFeeCell(r.wdFee, r.cexFee1 + r.cexFee2, r.feeSwap || 0); feeEl.className = 'mon-dex-cell mc-recv' + sigCls; }
+            if (pnlEl) { const cls = r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg'; pnlEl.textContent = `${fmtPnl(r.pnl)}$`; pnlEl.className = `mon-dex-cell mc-pnl ${cls}` + sigCls; pnlEl.title = `${r.name || 'DEX'}\nMin PNL: $${(r.dexMinPnl ?? tokMinPnl).toFixed(2)}\nPNL: ${fmtPnl(r.pnl)}$`; }
         });
         for (let i = data.length; i < n; i++) {
             const lbl = missing ? missing[i - data.length] : null;
@@ -369,16 +373,16 @@ async function scanToken(tok) {
             const hdrEl = els?.dtcHdr[i] || card.querySelector(`.mon-dex-hdr[data-dir="dtc"][data-dtc-hdr="${i}"]`);
             const cexEl = els?.dtcCex[i]; const dexEl = els?.dtcDex[i]; const feeEl = els?.dtcFee[i]; const pnlEl = els?.dtcPnl[i];
             const isSignal = r.pnl >= (r.dexMinPnl ?? tokMinPnl);
-            const sigCls   = isSignal ? ' col-signal' : '';
+            const sigCls = isSignal ? ' col-signal' : '';
             const nm = (r.name || '').slice(0, 6).toUpperCase();
             const srcTag = r.src === 'MX' ? '<span class="src-tag mx">MT</span>' : r.src === 'KY' ? '<span class="src-tag ky">KY</span>' : '';
             const ms = r.dexModalDtC; const insuf = r.modalFull === false && r.modalActual && ms && r.modalActual < ms;
             const modalLbl = insuf ? `<span class="hdr-modal-set">$${ms}</span> | <span class="hdr-modal-act">$${r.modalActual}✅</span>` : (ms ? `<span class="hdr-modal-ok">$${ms}✅</span>` : '');
-            if (hdrEl) { hdrEl.innerHTML = nm + (srcTag ? ' '+srcTag : '') + (modalLbl ? `<span class="hdr-dex-modal">${modalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap||0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor||0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = ms||''; hdrEl.dataset.modalActual = r.modalActual!=null?r.modalActual:''; hdrEl.dataset.minPnl = (r.dexMinPnl??tokMinPnl).toFixed(2); const b = r.src==='MX'?'MT':r.src==='KY'?'KY':''; hdrEl.dataset.dexName = nm+(b?' '+b:''); hdrEl.dataset.src = r.src; }
+            if (hdrEl) { hdrEl.innerHTML = nm + (srcTag ? ' ' + srcTag : '') + (modalLbl ? `<span class="hdr-dex-modal">${modalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = ms || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); const b = r.src === 'MX' ? 'MT' : r.src === 'KY' ? 'KY' : ''; hdrEl.dataset.dexName = nm + (b ? ' ' + b : ''); hdrEl.dataset.src = r.src; }
             if (cexEl) { cexEl.innerHTML = _cexPriceHtml(`↓ ${fmtCompact(dispBidDtC)}$`, _tradeUrl); cexEl.className = 'mon-dex-cell mc-bid' + sigCls; }
             if (dexEl) { dexEl.innerHTML = _dexPriceHtml(`↑ ${fmtCompact(r.effPrice)}$`, r.name, 'dtc'); dexEl.className = 'mon-dex-cell mc-ask' + sigCls; }
-            if (feeEl) { feeEl.textContent = _fmtFeeCell(r.wdFee, r.cexFee1+r.cexFee2, r.feeSwap||0); feeEl.className = 'mon-dex-cell mc-recv' + sigCls; }
-            if (pnlEl) { const cls = r.pnl>=0?'pnl-pos':'pnl-neg'; pnlEl.textContent = `${fmtPnl(r.pnl)}$`; pnlEl.className = `mon-dex-cell mc-pnl ${cls}` + sigCls; pnlEl.title = `${r.name||'DEX'}\nMin PNL: $${(r.dexMinPnl??tokMinPnl).toFixed(2)}\nPNL: ${fmtPnl(r.pnl)}$`; }
+            if (feeEl) { feeEl.textContent = _fmtFeeCell(r.wdFee, r.cexFee1 + r.cexFee2, r.feeSwap || 0); feeEl.className = 'mon-dex-cell mc-recv' + sigCls; }
+            if (pnlEl) { const cls = r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg'; pnlEl.textContent = `${fmtPnl(r.pnl)}$`; pnlEl.className = `mon-dex-cell mc-pnl ${cls}` + sigCls; pnlEl.title = `${r.name || 'DEX'}\nMin PNL: $${(r.dexMinPnl ?? tokMinPnl).toFixed(2)}\nPNL: ${fmtPnl(r.pnl)}$`; }
         });
         for (let i = data.length; i < n; i++) {
             const lbl = missing ? missing[i - data.length] : null;
@@ -422,39 +426,41 @@ async function scanToken(tok) {
         const okIn = allData.some(r => r.src === 'OX');
         const lfIn = allData.some(r => r.src === 'LF');
         const maIn = allData.some(r => r.src === 'MA');
-        for (let i = mtIn; i < CFG.quoteCountMetax;  i++) labels.push({ name:'METAX',  error: (raw.mx||[]).length===0?'TIMEOUT':'NO ROUTE' });
-        for (let i = kyIn; i < CFG.quoteCountOnekey; i++) labels.push({ name:'ONEKEY', error: (raw.ky||[]).length===0?'TIMEOUT':'NO ROUTE' });
-        if (isKyberEnabled()      && !kbIn) labels.push({ name:'KYBER',  error: (raw.kb||[]).length===0?'NO QUOTE':'NO ROUTE' });
-        if (isOkxEnabled()        && !okIn) labels.push({ name:'OKX',    error: (raw.ok||[]).length===0?'NO QUOTE':'NO ROUTE' });
-        if (isOnekeyLifiEnabled() && !lfIn) labels.push({ name:'LIFIDEX',error: (raw.lf||[]).length===0?'TIMEOUT':'NO ROUTE' });
-        if (isMatchaEnabled()     && !maIn) labels.push({ name:'MATCHA', error: (raw.ma||[]).length===0?'NO QUOTE':'NO ROUTE' });
+        for (let i = mtIn; i < CFG.quoteCountMetax; i++) labels.push({ name: 'METAX', error: (raw.mx || []).length === 0 ? 'TIMEOUT' : 'NO ROUTE' });
+        for (let i = kyIn; i < CFG.quoteCountOnekey; i++) labels.push({ name: 'ONEKEY', error: (raw.ky || []).length === 0 ? 'TIMEOUT' : 'NO ROUTE' });
+        if (isKyberEnabled() && !kbIn) labels.push({ name: 'KYBER', error: (raw.kb || []).length === 0 ? 'NO QUOTE' : 'NO ROUTE' });
+        if (isOkxEnabled() && !okIn) labels.push({ name: 'OKX', error: (raw.ok || []).length === 0 ? 'NO QUOTE' : 'NO ROUTE' });
+        if (isOnekeyLifiEnabled() && !lfIn) labels.push({ name: 'LIFIDEX', error: (raw.lf || []).length === 0 ? 'TIMEOUT' : 'NO ROUTE' });
+        if (isMatchaEnabled() && !maIn) labels.push({ name: 'MATCHA', error: (raw.ma || []).length === 0 ? 'NO QUOTE' : 'NO ROUTE' });
         return labels;
     }
 
-    // ── 4. Launch all DEX fetches independently — update DOM per resolve ─
+    // ── 4. DEX fetches: SSE (MetaX/OneKey) background, REST (Kyber/OKX/LiFi/Matcha) awaited ─
+    // SSE tidak di-await → tidak blokir batch berikutnya, tetap update DOM saat resolve
+    // REST di-await → hasil tersedia sebelum final render & signal detection
     const _fetches = [];
 
     // CTD fetches
     if (!blockCtD) {
-        if (isMetaxEnabled())      _fetches.push(fetchDexQuotesMetax(chainId, tok.scToken, pairSc, _wCtD(dxCtD.metax)).then(qs => { _rawC.mx=qs; qs.forEach(q => { const p=_parseMx(q); if(p) _pCtD(computeQuotePnl(p,pairDec,bidPair,dxCtD.metax.modal,tok.cex,dxCtD.metax.price,'ctd',feeWdCtD,isPairStable,chainGasFee),'metax'); }); }));
-        if (isOnekeyEnabled())     _fetches.push(fetchDexQuotesOnekey(chainId, tok.scToken, pairSc, _wCtD(dxCtD.onekey), tok.decToken).then(qs => { _rawC.ky=qs; qs.forEach(q => { const p=_normQ(q); if(p) _pCtD(computeQuotePnl(p,pairDec,bidPair,dxCtD.onekey.modal,tok.cex,dxCtD.onekey.price,'ctd',feeWdCtD,isPairStable,chainGasFee),'onekey'); }); }));
-        if (isKyberEnabled())      _fetches.push(fetchDexQuotesKyber(tok.chain, tok.scToken, pairSc, _wCtD(dxCtD.kyber), pairDec).then(qs => { _rawC.kb=qs; qs.forEach(q => { const p=_normQ(q); if(p) _pCtD(computeQuotePnl(p,pairDec,bidPair,dxCtD.kyber.modal,tok.cex,dxCtD.kyber.price,'ctd',feeWdCtD,isPairStable,chainGasFee),'kyber'); }); }));
-        if (isOkxEnabled())        _fetches.push(fetchDexQuotesOkx(chainId, tok.scToken, pairSc, _wCtD(dxCtD.okx), pairDec, tok.decToken, tok.ticker, pairSymbol).then(qs => { _rawC.ok=qs; qs.forEach(q => { const p=_normQ(q); if(p) _pCtD(computeQuotePnl(p,pairDec,bidPair,dxCtD.okx.modal,tok.cex,dxCtD.okx.price,'ctd',feeWdCtD,isPairStable,chainGasFee),'okx'); }); }));
-        if (isOnekeyLifiEnabled()) _fetches.push(fetchDexQuotesOnekeyLifi(chainId, tok.scToken, pairSc, _wCtD(dxCtD.lifidex), pairDec, tok.decToken).then(qs => { _rawC.lf=qs; qs.forEach(q => { const p=_normQ(q); if(p) _pCtD(computeQuotePnl(p,pairDec,bidPair,dxCtD.lifidex.modal,tok.cex,dxCtD.lifidex.price,'ctd',feeWdCtD,isPairStable,chainGasFee),'lifidex'); }); }));
-        if (isMatchaEnabled())     _fetches.push(fetchDexQuotesMatcha(chainId, tok.scToken, pairSc, _wCtD(dxCtD.matcha), pairDec).then(qs => { _rawC.ma=qs; qs.forEach(q => { const p=_normQ(q); if(p) _pCtD(computeQuotePnl(p,pairDec,bidPair,dxCtD.matcha.modal,tok.cex,dxCtD.matcha.price,'ctd',feeWdCtD,isPairStable,chainGasFee),'matcha'); }); }));
+        if (isMetaxEnabled()) fetchDexQuotesMetax(chainId, tok.scToken, pairSc, _wCtD(dxCtD.metax)).then(qs => { _rawC.mx = qs; qs.forEach(q => { const p = _parseMx(q); if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD.metax.modal, tok.cex, dxCtD.metax.price, 'ctd', feeWdCtD, isPairStable, chainGasFee), 'metax'); }); });
+        if (isOnekeyEnabled()) fetchDexQuotesOnekey(chainId, tok.scToken, pairSc, _wCtD(dxCtD.onekey), tok.decToken).then(qs => { _rawC.ky = qs; qs.forEach(q => { const p = _normQ(q); if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD.onekey.modal, tok.cex, dxCtD.onekey.price, 'ctd', feeWdCtD, isPairStable, chainGasFee), 'onekey'); }); });
+        if (isKyberEnabled()) _fetches.push(fetchDexQuotesKyber(tok.chain, tok.scToken, pairSc, _wCtD(dxCtD.kyber), pairDec).then(qs => { _rawC.kb = qs; qs.forEach(q => { const p = _normQ(q); if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD.kyber.modal, tok.cex, dxCtD.kyber.price, 'ctd', feeWdCtD, isPairStable, chainGasFee), 'kyber'); }); }));
+        if (isOkxEnabled()) _fetches.push(fetchDexQuotesOkx(chainId, tok.scToken, pairSc, _wCtD(dxCtD.okx), pairDec, tok.decToken, tok.ticker, pairSymbol).then(qs => { _rawC.ok = qs; qs.forEach(q => { const p = _normQ(q); if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD.okx.modal, tok.cex, dxCtD.okx.price, 'ctd', feeWdCtD, isPairStable, chainGasFee), 'okx'); }); }));
+        if (isOnekeyLifiEnabled()) _fetches.push(fetchDexQuotesOnekeyLifi(chainId, tok.scToken, pairSc, _wCtD(dxCtD.lifidex), pairDec, tok.decToken).then(qs => { _rawC.lf = qs; qs.forEach(q => { const p = _normQ(q); if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD.lifidex.modal, tok.cex, dxCtD.lifidex.price, 'ctd', feeWdCtD, isPairStable, chainGasFee), 'lifidex'); }); }));
+        if (isMatchaEnabled()) _fetches.push(fetchDexQuotesMatcha(chainId, tok.scToken, pairSc, _wCtD(dxCtD.matcha), pairDec).then(qs => { _rawC.ma = qs; qs.forEach(q => { const p = _normQ(q); if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD.matcha.modal, tok.cex, dxCtD.matcha.price, 'ctd', feeWdCtD, isPairStable, chainGasFee), 'matcha'); }); }));
     }
 
     // DTC fetches
     if (!blockDtC) {
-        if (isMetaxEnabled())      _fetches.push(fetchDexQuotesMetax(chainId, pairSc, tok.scToken, _wDtC(dxDtC.metax)).then(qs => { _rawD.mx=qs; qs.forEach(q => { const p=_parseMx(q); if(p) _pDtC(computeQuotePnl(p,tok.decToken,dxDtC.metax.price,dxDtC.metax.modal,tok.cex,dxCtD.metax.price,'dtc',0,isPairStable,chainGasFee),'metax'); }); }));
-        if (isOnekeyEnabled())     _fetches.push(fetchDexQuotesOnekey(chainId, pairSc, tok.scToken, _wDtC(dxDtC.onekey), pairDec).then(qs => { _rawD.ky=qs; qs.forEach(q => { const p=_normQ(q); if(p) _pDtC(computeQuotePnl(p,tok.decToken,dxDtC.onekey.price,dxDtC.onekey.modal,tok.cex,dxCtD.onekey.price,'dtc',0,isPairStable,chainGasFee),'onekey'); }); }));
-        if (isKyberEnabled())      _fetches.push(fetchDexQuotesKyber(tok.chain, pairSc, tok.scToken, _wDtC(dxDtC.kyber), tok.decToken, pairDec, 'dtc').then(qs => { _rawD.kb=qs; qs.forEach(q => { const p=_normQ(q); if(p) _pDtC(computeQuotePnl(p,tok.decToken,dxDtC.kyber.price,dxDtC.kyber.modal,tok.cex,dxCtD.kyber.price,'dtc',0,isPairStable,chainGasFee),'kyber'); }); }));
-        if (isOkxEnabled())        _fetches.push(fetchDexQuotesOkx(chainId, pairSc, tok.scToken, _wDtC(dxDtC.okx), tok.decToken, pairDec, pairSymbol, tok.ticker).then(qs => { _rawD.ok=qs; qs.forEach(q => { const p=_normQ(q); if(p) _pDtC(computeQuotePnl(p,tok.decToken,dxDtC.okx.price,dxDtC.okx.modal,tok.cex,dxCtD.okx.price,'dtc',0,isPairStable,chainGasFee),'okx'); }); }));
-        if (isOnekeyLifiEnabled()) _fetches.push(fetchDexQuotesOnekeyLifi(chainId, pairSc, tok.scToken, _wDtC(dxDtC.lifidex), tok.decToken, pairDec).then(qs => { _rawD.lf=qs; qs.forEach(q => { const p=_normQ(q); if(p) _pDtC(computeQuotePnl(p,tok.decToken,dxDtC.lifidex.price,dxDtC.lifidex.modal,tok.cex,dxCtD.lifidex.price,'dtc',0,isPairStable,chainGasFee),'lifidex'); }); }));
-        if (isMatchaEnabled())     _fetches.push(fetchDexQuotesMatcha(chainId, pairSc, tok.scToken, _wDtC(dxDtC.matcha), tok.decToken).then(qs => { _rawD.ma=qs; qs.forEach(q => { const p=_normQ(q); if(p) _pDtC(computeQuotePnl(p,tok.decToken,dxDtC.matcha.price,dxDtC.matcha.modal,tok.cex,dxCtD.matcha.price,'dtc',0,isPairStable,chainGasFee),'matcha'); }); }));
+        if (isMetaxEnabled()) fetchDexQuotesMetax(chainId, pairSc, tok.scToken, _wDtC(dxDtC.metax)).then(qs => { _rawD.mx = qs; qs.forEach(q => { const p = _parseMx(q); if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC.metax.price, dxDtC.metax.modal, tok.cex, dxCtD.metax.price, 'dtc', 0, isPairStable, chainGasFee), 'metax'); }); });
+        if (isOnekeyEnabled()) fetchDexQuotesOnekey(chainId, pairSc, tok.scToken, _wDtC(dxDtC.onekey), pairDec).then(qs => { _rawD.ky = qs; qs.forEach(q => { const p = _normQ(q); if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC.onekey.price, dxDtC.onekey.modal, tok.cex, dxCtD.onekey.price, 'dtc', 0, isPairStable, chainGasFee), 'onekey'); }); });
+        if (isKyberEnabled()) _fetches.push(fetchDexQuotesKyber(tok.chain, pairSc, tok.scToken, _wDtC(dxDtC.kyber), tok.decToken, pairDec, 'dtc').then(qs => { _rawD.kb = qs; qs.forEach(q => { const p = _normQ(q); if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC.kyber.price, dxDtC.kyber.modal, tok.cex, dxCtD.kyber.price, 'dtc', 0, isPairStable, chainGasFee), 'kyber'); }); }));
+        if (isOkxEnabled()) _fetches.push(fetchDexQuotesOkx(chainId, pairSc, tok.scToken, _wDtC(dxDtC.okx), tok.decToken, pairDec, pairSymbol, tok.ticker).then(qs => { _rawD.ok = qs; qs.forEach(q => { const p = _normQ(q); if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC.okx.price, dxDtC.okx.modal, tok.cex, dxCtD.okx.price, 'dtc', 0, isPairStable, chainGasFee), 'okx'); }); }));
+        if (isOnekeyLifiEnabled()) _fetches.push(fetchDexQuotesOnekeyLifi(chainId, pairSc, tok.scToken, _wDtC(dxDtC.lifidex), tok.decToken, pairDec).then(qs => { _rawD.lf = qs; qs.forEach(q => { const p = _normQ(q); if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC.lifidex.price, dxDtC.lifidex.modal, tok.cex, dxCtD.lifidex.price, 'dtc', 0, isPairStable, chainGasFee), 'lifidex'); }); }));
+        if (isMatchaEnabled()) _fetches.push(fetchDexQuotesMatcha(chainId, pairSc, tok.scToken, _wDtC(dxDtC.matcha), tok.decToken).then(qs => { _rawD.ma = qs; qs.forEach(q => { const p = _normQ(q); if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC.matcha.price, dxDtC.matcha.modal, tok.cex, dxCtD.matcha.price, 'dtc', 0, isPairStable, chainGasFee), 'matcha'); }); }));
     }
 
-    // Tunggu semua selesai → final render dengan missing labels
+    // Tunggu REST selesai → final render (SSE MetaX/OneKey masih berjalan di background)
     await Promise.all(_fetches);
     const missingCtdLabels = blockCtD ? [] : buildMissingLabels(allCtD, _rawC);
     const missingDtcLabels = buildMissingLabels(allDtC, _rawD);
@@ -482,9 +488,9 @@ async function scanToken(tok) {
         const tgInfo = {
             ctdSignals,
             dtcSignals,
-            modalCtD:     _refModalCtD,
-            modalDtC:     _refModalDtC,
-            buyPriceCtD:  dispAskCtD,                       // harga beli CEX (CTD)
+            modalCtD: _refModalCtD,
+            modalDtC: _refModalDtC,
+            buyPriceCtD: dispAskCtD,                       // harga beli CEX (CTD)
             sellPriceDtC: dispBidDtC,                       // harga jual CEX (DTC)
         };
         sendTelegram(tok, best, tgInfo);
@@ -500,7 +506,7 @@ function setCardStatus(card, msg) {
     const id = card.id.replace('card-', '');
     const els = _cardEls.get(id);
     const statEls = els ? [els.ctdStatus, els.dtcStatus].filter(Boolean)
-                        : Array.from(card.querySelectorAll('.tbl-status'));
+        : Array.from(card.querySelectorAll('.tbl-status'));
     statEls.forEach(el => {
         el.textContent = msg ? ` ⚠ ${msg}` : '';
         el.className = msg ? 'tbl-status tbl-status-err' : 'tbl-status';
@@ -515,54 +521,56 @@ async function sendTelegram(tok, pnl, info) {
     tgCooldown.set(tok.id, now);
     playSignalSound();
 
-    const appName  = APP_DEV_CONFIG.appName || 'MONITORING PRICE';
-    const appVer   = APP_DEV_CONFIG.appVersion ? ' v' + APP_DEV_CONFIG.appVersion : '';
-    const chain    = CONFIG_CHAINS[tok.chain]?.label || tok.chain.toUpperCase();
-    const cexLbl   = CONFIG_CEX[tok.cex]?.label || tok.cex;
-    const pairLbl  = tok.tickerPair && tok.tickerPair !== tok.ticker ? tok.tickerPair : tok.ticker;
-    const wallet   = CFG.wallet ? CFG.wallet.slice(0, 10) + '.....' + CFG.wallet.slice(-10) : '-';
-    const pnlSign  = pnl >= 0 ? '+' : '';
-    const esc      = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const fmtP     = (p) => p > 0 ? (p < 0.0001 ? p.toExponential(3) : p < 1 ? p.toFixed(6) : p < 1000 ? p.toFixed(4) : p.toFixed(2)) + '$' : '-';
-    const fmtPnl2  = (v) => (v >= 0 ? '+' : '') + v.toFixed(2) + '$';
+    const appName = APP_DEV_CONFIG.appName || 'MONITORING PRICE';
+    const appVer = APP_DEV_CONFIG.appVersion ? ' v' + APP_DEV_CONFIG.appVersion : '';
+    const chain = CONFIG_CHAINS[tok.chain]?.label || tok.chain.toUpperCase();
+    const cexLbl = CONFIG_CEX[tok.cex]?.label || tok.cex;
+    const pairLbl = tok.tickerPair && tok.tickerPair !== tok.ticker ? tok.tickerPair : tok.ticker;
+    const wallet = CFG.wallet ? CFG.wallet.slice(0, 10) + '.....' + CFG.wallet.slice(-10) : '-';
+    const pnlSign = pnl >= 0 ? '+' : '';
+    const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const fmtP = (p) => p > 0 ? (p < 0.0001 ? p.toExponential(3) : p < 1 ? p.toFixed(6) : p < 1000 ? p.toFixed(4) : p.toFixed(2)) + '$' : '-';
+    const fmtPnl2 = (v) => (v >= 0 ? '+' : '') + v.toFixed(2) + '$';
 
-    const ctdSignals  = info?.ctdSignals  || [];
-    const dtcSignals  = info?.dtcSignals  || [];
-    const modalCtD    = info?.modalCtD    ?? tok.modalCtD;
-    const modalDtC    = info?.modalDtC    ?? tok.modalDtC;
+    const ctdSignals = info?.ctdSignals || [];
+    const dtcSignals = info?.dtcSignals || [];
+    const modalCtD = info?.modalCtD ?? tok.modalCtD;
+    const modalDtC = info?.modalDtC ?? tok.modalDtC;
     const buyPriceCtD = info?.buyPriceCtD || 0;   // harga ask CEX untuk CTD
     const sellPriceDtC = info?.sellPriceDtC || 0; // harga bid CEX untuk DTC
 
     // ── Android notification ──────────────────────────────────────────────
     if (window.AndroidBridge) {
         const title = `🟢 ${appName} — SIGNAL: ${tok.ticker}↔${pairLbl}`;
-        const body  = `${cexLbl} [${chain}]  PnL: ${pnlSign}${pnl.toFixed(2)}$`;
+        const body = `${cexLbl} [${chain}]  PnL: ${pnlSign}${pnl.toFixed(2)}$`;
         window.AndroidBridge.showNotification(title, body);
     }
 
     if (!APP_DEV_CONFIG.telegramBotToken || APP_DEV_CONFIG.telegramBotToken.length < 20) return;
 
     // ── Helper links ──────────────────────────────────────────────────────
-    const chainCfg2   = CONFIG_CHAINS[tok.chain];
-    const chainId2    = chainCfg2?.Kode_Chain || '';
-    const _pairSc     = tok.scPair || chainCfg2?.USDT_SC || '';
-    const _kyberChain = { 56:'bnb', 1:'ethereum', 137:'polygon', 42161:'arbitrum', 8453:'base' }[chainId2] || 'bnb';
-    const _tradeSym   = tok.symbolToken || (tok.ticker + 'USDT');
+    const chainCfg2 = CONFIG_CHAINS[tok.chain];
+    const chainId2 = chainCfg2?.Kode_Chain || '';
+    const _pairSc = tok.scPair || chainCfg2?.USDT_SC || '';
+    const _kyberChain = { 56: 'bnb', 1: 'ethereum', 137: 'polygon', 42161: 'arbitrum', 8453: 'base' }[chainId2] || 'bnb';
+    const _tradeSym = tok.symbolToken || (tok.ticker + 'USDT');
 
-    const _tradeLink = ({ binance:`https://www.binance.com/en/trade/${_tradeSym}`,
-        gate:`https://www.gate.io/trade/${_tradeSym}`, mexc:`https://www.mexc.com/exchange/${_tradeSym}`,
-        indodax:`https://indodax.com/market/${tok.symbolToken||tok.ticker.toLowerCase()+'idr'}` })[tok.cex] || '';
+    const _tradeLink = ({
+        binance: `https://www.binance.com/en/trade/${_tradeSym}`,
+        gate: `https://www.gate.io/trade/${_tradeSym}`, mexc: `https://www.mexc.com/exchange/${_tradeSym}`,
+        indodax: `https://indodax.com/market/${tok.symbolToken || tok.ticker.toLowerCase() + 'idr'}`
+    })[tok.cex] || '';
 
     function _swapLink(_src, fromSc, toSc, dexName) {
-        const n           = (dexName || '').toLowerCase();
-        const _sushiChain = { 56:'bsc', 1:'ethereum', 137:'polygon', 42161:'arbitrum', 8453:'base' }[chainId2] || 'bsc';
-        const _ooChain    = { 56:'bsc', 1:'eth',      137:'polygon', 42161:'arbitrum', 8453:'base' }[chainId2] || 'bsc';
-        const _uniChain   = { 56:'bnb', 1:'ethereum', 137:'polygon', 42161:'arbitrum', 8453:'base' }[chainId2] || 'bnb';
+        const n = (dexName || '').toLowerCase();
+        const _sushiChain = { 56: 'bsc', 1: 'ethereum', 137: 'polygon', 42161: 'arbitrum', 8453: 'base' }[chainId2] || 'bsc';
+        const _ooChain = { 56: 'bsc', 1: 'eth', 137: 'polygon', 42161: 'arbitrum', 8453: 'base' }[chainId2] || 'bsc';
+        const _uniChain = { 56: 'bnb', 1: 'ethereum', 137: 'polygon', 42161: 'arbitrum', 8453: 'base' }[chainId2] || 'bnb';
         const from = fromSc.toLowerCase();
-        const to   = toSc.toLowerCase();
+        const to = toSc.toLowerCase();
         // ── Deteksi dari nama DEX (lebih akurat dari src) ─────────────────────
         if (/^0x\b|0x protocol/i.test(n)) {
-            const _matchaChain = { 56:'bsc', 1:'ethereum', 137:'polygon', 42161:'arbitrum', 8453:'base' }[chainId2] || 'ethereum';
+            const _matchaChain = { 56: 'bsc', 1: 'ethereum', 137: 'polygon', 42161: 'arbitrum', 8453: 'base' }[chainId2] || 'ethereum';
             return `https://matcha.xyz/tokens/${_matchaChain}/${from}?buyAddress=${to}&buyChain=${chainId2}`;
         }
         if (/1inch/i.test(n))
@@ -591,34 +599,38 @@ async function sendTelegram(tok, pnl, info) {
         return `https://jumper.exchange/?fromChain=${chainId2}&toChain=${chainId2}&fromToken=${fromSc}&toToken=${toSc}`;
     }
     function _wdLink(ticker) {
-        return ({ binance:`https://www.binance.com/en/my/wallet/account/main/withdrawal/crypto/${ticker}`,
-            gate:`https://www.gate.io/myaccount/withdraw/${ticker}`,
-            mexc:`https://www.mexc.com/assets/withdraw?currency=${ticker}`,
-            indodax:`https://indodax.com/account/withdraw/idr` })[tok.cex] || '';
+        return ({
+            binance: `https://www.binance.com/en/my/wallet/account/main/withdrawal/crypto/${ticker}`,
+            gate: `https://www.gate.io/myaccount/withdraw/${ticker}`,
+            mexc: `https://www.mexc.com/assets/withdraw?currency=${ticker}`,
+            indodax: `https://indodax.com/account/withdraw/idr`
+        })[tok.cex] || '';
     }
     function _dpLink(ticker) {
-        return ({ binance:`https://www.binance.com/en/my/wallet/account/main/deposit/crypto/${ticker}`,
-            gate:`https://www.gate.io/myaccount/deposit/${ticker}`,
-            mexc:`https://www.mexc.com/assets/deposit?currency=${ticker}`,
-            indodax:`https://indodax.com/account/deposit/idr` })[tok.cex] || '';
+        return ({
+            binance: `https://www.binance.com/en/my/wallet/account/main/deposit/crypto/${ticker}`,
+            gate: `https://www.gate.io/myaccount/deposit/${ticker}`,
+            mexc: `https://www.mexc.com/assets/deposit?currency=${ticker}`,
+            indodax: `https://indodax.com/account/deposit/idr`
+        })[tok.cex] || '';
     }
     function _lnk(url, txt) { return url ? `<a href="${url}">${txt}</a>` : txt; }
-    function _badge(src) { return src==='MX'?'[MT]':src==='JX'?'[LF]':src==='KR'?'[KC]':src==='KB'?'[KB]':''; }
+    function _badge(src) { return src === 'MX' ? '[MT]' : src === 'JX' ? '[LF]' : src === 'KR' ? '[KC]' : src === 'KB' ? '[KB]' : ''; }
 
     // ── Build one section per arah yang ada signalnya ─────────────────────
     function _section(signals, dir, modal, cexPrice) {
         if (!signals.length) return '';
-        const arrow    = dir === 'CTD' ? '⬆️' : '⬇️';
+        const arrow = dir === 'CTD' ? '⬆️' : '⬇️';
         const dirLabel = dir === 'CTD' ? 'CEX→DEX' : 'DEX→CEX';
-        const fromSc   = dir === 'CTD' ? tok.scToken : _pairSc;
-        const toSc     = dir === 'CTD' ? _pairSc     : tok.scToken;
+        const fromSc = dir === 'CTD' ? tok.scToken : _pairSc;
+        const toSc = dir === 'CTD' ? _pairSc : tok.scToken;
         // CTD: TOKEN ⇄ PAIR  |  DTC: PAIR ⇄ TOKEN
         const coinPair = dir === 'CTD'
             ? `${esc(tok.ticker)} ⇄ ${esc(pairLbl)}`
             : `${esc(pairLbl)} ⇄ ${esc(tok.ticker)}`;
         // WD/DP
         const wdTk = dir === 'CTD' ? tok.ticker : pairLbl;
-        const dpTk = dir === 'CTD' ? pairLbl    : tok.ticker;
+        const dpTk = dir === 'CTD' ? pairLbl : tok.ticker;
         const wdPart = _lnk(_wdLink(wdTk), `WD ${esc(wdTk)}`);
         const dpPart = _lnk(_dpLink(dpTk), `DP ${esc(dpTk)}`);
         const wdLine = dir === 'CTD' ? `💳 ${wdPart} | ${dpPart}` : `💳 ${dpPart} | ${wdPart}`;
@@ -627,14 +639,14 @@ async function sendTelegram(tok, pnl, info) {
 
         // Tiap DEX signal = satu blok ringkas
         const dexBlocks = signals.map(r => {
-            const badge   = _badge(r.src);
+            const badge = _badge(r.src);
             const dexLink = _swapLink(r.src, fromSc, toSc, r.name);
-            const dexTxt  = _lnk(dexLink, `${badge ? badge + ' ' : ''}${esc(r.name)}`);
+            const dexTxt = _lnk(dexLink, `${badge ? badge + ' ' : ''}${esc(r.name)}`);
             // CTD: beli di CEX (cexPrice), jual di DEX (effPrice)
             // DTC: beli di DEX (effPrice), jual di CEX (cexPrice)
-            const buyPr  = dir === 'CTD' ? cexPrice    : r.effPrice;
-            const sellPr = dir === 'CTD' ? r.effPrice  : cexPrice;
-            const bruto  = r.pnlKotor != null ? fmtPnl2(r.pnlKotor) : '-';
+            const buyPr = dir === 'CTD' ? cexPrice : r.effPrice;
+            const sellPr = dir === 'CTD' ? r.effPrice : cexPrice;
+            const bruto = r.pnlKotor != null ? fmtPnl2(r.pnlKotor) : '-';
             const tradeFlow = dir === 'CTD' ? `${cexTxt} -> ${dexTxt}` : `${dexTxt} -> ${cexTxt}`;
             return `🏦 ${tradeFlow}
 💲 Buy:${fmtP(buyPr)} ➜ Sell:${fmtP(sellPr)}
@@ -649,10 +661,10 @@ ${wdLine}`;
 
     const _ctdSec = _section(ctdSignals, 'CTD', modalCtD, buyPriceCtD);
     const _dtcSec = _section(dtcSignals, 'DTC', modalDtC, sellPriceDtC);
-    const _body   = [_ctdSec, _dtcSec].filter(Boolean).join('\n━━━\n');
+    const _body = [_ctdSec, _dtcSec].filter(Boolean).join('\n━━━\n');
 
     const msg =
-`🟢 <b>${esc(appName)}${appVer}</b>
+        `🟢 <b>${esc(appName)}${appVer}</b>
 👤 @${esc(CFG.username || 'user')}  •  🔗 <b>${esc(chain)}</b>
 ━━━━━━━━━━━━━━━
 ${_body}
@@ -700,13 +712,40 @@ let _lastScanTokenKey = null; // cache key: cegah rebuild monitor cards jika uru
 // Gas estimate per chainId dalam USD — diisi sekali saat start scan
 let _chainGasEstimateUsdt = {};
 
+let _scanStartTime = 0;
+let _scanTimerInterval = null;
+
+function _startScanTimer() {
+    _scanStartTime = Date.now();
+    $('#scanBadge').show().text('▶ RUN SCAN 00:00');
+    _scanTimerInterval = setInterval(() => {
+        const str = _fmtElapsed(Date.now() - _scanStartTime);
+        $('#scanBadge').text('▶ RUN SCAN ' + str);
+    }, 1000);
+}
+
+function _stopScanTimer() {
+    if (_scanTimerInterval) { clearInterval(_scanTimerInterval); _scanTimerInterval = null; }
+    $('#scanBadge').hide();
+}
+
+function _fmtElapsed(ms) {
+    const elapsed = Math.floor(ms / 1000);
+    const h = Math.floor(elapsed / 3600);
+    const m = Math.floor((elapsed % 3600) / 60);
+    const s = elapsed % 60;
+    return h > 0
+        ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+        : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
 async function runScan() {
     if (scanning) return;
     scanning = true; scanAbort = false;
     document.body.classList.add('is-scanning');
     $('#btnScanIcon').text('■'); $('#btnScanLbl').text('STOP'); $('#btnScan').addClass('stop');
     $('#btnScanCount').text('');
-    $('#scanBadge').addClass('active');
+    _startScanTimer();
     // Clear previous signal chips and force full card rebuild (empty cells)
     _clearAllSignalChips();
     _lastBuildN = 0;
@@ -777,12 +816,14 @@ async function runScan() {
     stopScan(scanAbort ? 'manual' : 'done');
 }
 function stopScan(reason = 'manual') {
+    const durasi = _scanStartTime ? _fmtElapsed(Date.now() - _scanStartTime) : null;
     scanning = false; scanAbort = true;
+    _stopScanTimer();
     document.body.classList.remove('is-scanning');
     _lastScanTokenKey = null; // reset agar scan berikutnya rebuild cards bersih
     $('#btnScanIcon').text('▶'); $('#btnScanLbl').text('START'); $('#btnScan').removeClass('stop');
     updateScanCount();
-    $('#scanBadge').removeClass('active');
+    $('#scanBadge').removeClass('active').hide();
     $('#scanBar').css('width', '0%');
     // Tampilkan notice sesuai kondisi
     $('#notStartedNotice').hide();
@@ -794,11 +835,11 @@ function stopScan(reason = 'manual') {
         $('#notStartedNotice').show();
     } else if (reason === 'done') {
         // Scan selesai natural (semua koin sudah discan)
-        $('#scanDoneNotice').show();
+        $('#scanDoneNotice').text(durasi ? `✅ SELESAI SCAN | ${durasi}` : '✅ SELESAI SCAN').show();
         showToast('✅ Scanning selesai');
     } else {
         // Dihentikan manual oleh user
-        $('#scanStopNotice').show();
+        $('#scanStopNotice').text(durasi ? `■ STOP SCAN | ${durasi}` : '■ STOP SCAN').show();
         showToast('■ Scanning dihentikan');
     }
     unlockTabs();

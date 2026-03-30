@@ -48,9 +48,7 @@ function _buildDefaultDexCfg() {
     const out = {};
     Object.entries(CONFIG_DEX).forEach(([key, d]) => {
         out[key] = {
-            active:   d.enabled,
-            modalCtD: d.modalCtD,
-            modalDtC: d.modalDtC,
+            active: d.enabled,
             ...(d.hasCount ? { count: d.count } : {}),
         };
     });
@@ -60,14 +58,14 @@ function _buildDefaultDexCfg() {
 let CFG = {
     username:    '',
     wallet:      '',
-    interval:    APP_DEV_CONFIG.defaultInterval,
-    sseTimeout:  APP_DEV_CONFIG.defaultSseTimeout,
+    interval:    CONFIG_MONITORING.loopJeda,
+    sseTimeout:  CONFIG_DEX.metax.timing.timeout,
     soundMuted:  false,
     activeCex:   [],    // [] = semua aktif
     activeChains: [],   // [] = semua aktif
     pairType:    'all', // 'all' | 'stable' | 'non'
-    autoLevel:   APP_DEV_CONFIG.defaultAutoLevel,
-    levelCount:  APP_DEV_CONFIG.defaultLevelCount,
+    autoLevel:   CONFIG_MONITORING.autoLevel,
+    levelCount:  CONFIG_MONITORING.levelCount,
     dex:         _buildDefaultDexCfg(),
 };
 
@@ -84,7 +82,7 @@ function totalQuoteCount() {
         if (!dc?.active) return sum;
         return sum + (def.hasCount ? (dc.count || def.defaultCount) : 1);
     }, 0);
-    return Math.min(total, APP_DEV_CONFIG.maxDexDisplay || 5);
+    return Math.min(total, CONFIG_MONITORING.maxDexDisplay);
 }
 
 // ─── Enable helpers (dipakai collectors) ───────────────────
@@ -99,7 +97,7 @@ function isKyberEnabled()      { return isDexEnabled('kyber'); }
 function isOkxEnabled()        { return isDexEnabled('okx'); }
 function isOnekeyLifiEnabled() { return isDexEnabled('lifidex'); }
 function isMatchaEnabled()     { return isDexEnabled('matcha'); }
-function isAutoLevelEnabled()  { return APP_DEV_CONFIG.defaultAutoLevel !== false; }
+function isAutoLevelEnabled()  { return CONFIG_MONITORING.autoLevel !== false; }
 
 // ─── Token helpers ─────────────────────────────────────────
 // getTokens/saveTokens sekarang ASYNC via IndexedDB
