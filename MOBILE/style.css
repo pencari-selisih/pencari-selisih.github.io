@@ -187,8 +187,9 @@ html, body {
 .top-icon-img:hover { opacity: 1; }
 
 .scan-progress-strip {
-  position: absolute; bottom: 0; left: 0; right: 0;
-  height: 9px; background: var(--border);
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 5px; background: var(--border);
   overflow: hidden;
 }
 .scan-progress-bar {
@@ -1052,6 +1053,14 @@ body.fab-hidden .main-content {
   /* main-content: tidak ada bottom-nav & tidak ada fab bar */
   .main-content { bottom: 0; }
 
+  /* Landscape tablet: progress bar fixed di bottom edge top-bar, full width */
+  .scan-progress-strip {
+    position: fixed;
+    top: calc(var(--top-bar-h) - 5px);
+    bottom: auto;
+    z-index: 101;
+  }
+
   /* Tab pane cukup padding kecil */
   .tab-pane { padding-bottom: 12px; }
 }
@@ -1067,6 +1076,14 @@ body.fab-hidden .main-content {
     --signal-bar-h: 42px;
     --bottom-nav-h: 44px;
     --fab-bar-h:    0px;   /* tidak ada fab bar — scanCtrl inline di top-bar */
+  }
+
+  /* Landscape kecil: progress bar fixed di bottom edge top-bar, full width */
+  .scan-progress-strip {
+    position: fixed;
+    top: calc(var(--top-bar-h) - 5px);
+    bottom: auto;
+    z-index: 101;
   }
 
   /* Top bar lebih kecil */

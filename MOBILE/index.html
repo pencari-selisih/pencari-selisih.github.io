@@ -55,8 +55,7 @@
         <div class="top-right">
             <!-- Scan Controls (tampil saat di tab Scanner) -->
             <div class="scan-ctrl" id="scanCtrl" style="display:none">
-                                <button class="sort-btn" id="btnAutoReload" title="Mode: Sekali Scan">🔄</button>
-
+                <button class="sort-btn" id="btnAutoReload" title="Mode: Sekali Scan">🔄</button>
                 <div class="scan-sort-group" id="monSortBar">
                     <button class="sort-btn active" data-sort="az">A→Z</button>
                     <button class="sort-btn" data-sort="za">Z→A</button>
@@ -67,6 +66,10 @@
                     <span id="btnScanLbl">START</span>
                     <span id="btnScanCount">[0]</span>
                 </button>
+                <!-- Progress bar — absolute di bottom FAB (portrait) / bottom top-bar (landscape) -->
+                <div class="scan-progress-strip">
+                    <div class="scan-progress-bar" id="scanBar"></div>
+                </div>
             </div>
               <button class="btn-icon-top" id="topNavCalc" uk-toggle="target: #modalCalc"><img src="icons/kalkulator.png" class="top-icon-img" alt="calculator"></button>
              <!-- Top Tabs — tampil di landscape ≥768px menggantikan bottom nav -->
@@ -84,10 +87,6 @@
             </button> -->
             
           
-        </div>
-        <!-- Progress bar -->
-        <div class="scan-progress-strip">
-            <div class="scan-progress-bar" id="scanBar"></div>
         </div>
     </div>
 

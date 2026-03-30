@@ -9,7 +9,7 @@
 // ============================================================
 const APP_DEV_CONFIG = {
   appName: "MOBILE SCANNER",
-  appVersion: "01.00",
+  appVersion: "03.30",
 
   telegramBotToken: "8053447166:AAH7YYbyZ4eBoPX31D8h3bCYdzEeIaiG4JU",
   telegramGroupId: "-5271018516",
