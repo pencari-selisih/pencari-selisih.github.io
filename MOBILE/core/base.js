@@ -1,151 +1,145 @@
-/* ═══════════════════════════════════════════════
-   SCANNER PRICE CRYPTO — app.js
-   Dual DEX Aggregator: METAX + JUMPX
-   Full application logic (jQuery 3.7 + Native JS)
-═══════════════════════════════════════════════ */
+// ============================================================
+// MOBILE SCANNER — core/base.js
+// State global, DEX_LIST dari CONFIG_DEX, utility functions
+// Storage: IndexedDB via core/db.js (bukan localStorage)
+// ============================================================
 
-// ─── LocalStorage Keys ───────────────────────
-const LS_TOKENS = 'cexdex_tokens';
-const LS_SETTINGS = 'cexdex_settings';
+// ─── CSS Variables: inject warna DEX & chain dari config ───
+// Dipanggil satu kali di app init (setelah DOM ready)
+function injectCssVariables() {
+    const root = document.documentElement;
+    // DEX colors dari CONFIG_DEX
+    Object.entries(CONFIG_DEX).forEach(([key, d]) => {
+        root.style.setProperty(`--dex-${key}-color`, d.color);
+    });
+    // Chain colors dari CONFIG_CHAINS
+    Object.entries(CONFIG_CHAINS).forEach(([key, c]) => {
+        root.style.setProperty(`--chain-${key}-color`, c.WARNA);
+    });
+    // CEX colors dari CONFIG_CEX
+    Object.entries(CONFIG_CEX).forEach(([key, c]) => {
+        root.style.setProperty(`--cex-${key}-color`, c.WARNA);
+    });
+}
 
-// ─── Runtime State ───────────────────────────
-const STABLE_COINS = new Set(['USDT','USDC','BUSD','DAI','TUSD','FDUSD','USDD','USDP','FRAX','LUSD','CRVUSD','PYUSD','GUSD','SUSD','MUSD','USDE','EUSD','USDS','USD0','USDX']);
+// ─── DEX_LIST — di-derive dari CONFIG_DEX ──────────────────
+// Tidak ada duplikasi data — semua dari config.js
+const DEX_LIST = Object.entries(CONFIG_DEX).map(([key, d]) => ({
+    key,
+    label:        d.label,
+    badge:        d.badge,
+    color:        d.color,
+    icon:         d.icon,
+    hasCount:     d.hasCount,
+    defaultCount: d.count,
+    enabled:      d.enabled,
+}));
+
+// ─── Stable Coins ──────────────────────────────────────────
+const STABLE_COINS = new Set([
+    'USDT','USDC','BUSD','DAI','TUSD','FDUSD','USDD','USDP','FRAX',
+    'LUSD','CRVUSD','PYUSD','GUSD','SUSD','MUSD','USDE','EUSD',
+    'USDS','USD0','USDX',
+]);
+
+// ─── Runtime State (CFG) ───────────────────────────────────
+// Dibuild dari CONFIG_DEX agar tidak hardcode per-DEX
+function _buildDefaultDexCfg() {
+    const out = {};
+    Object.entries(CONFIG_DEX).forEach(([key, d]) => {
+        out[key] = {
+            active:   d.enabled,
+            modalCtD: d.modalCtD,
+            modalDtC: d.modalDtC,
+            ...(d.hasCount ? { count: d.count } : {}),
+        };
+    });
+    return out;
+}
 
 let CFG = {
-    username: '',
-    wallet: '',
-    interval: APP_DEV_CONFIG.defaultInterval,
-    sseTimeout: APP_DEV_CONFIG.defaultSseTimeout,
-    quoteCountMetax:  APP_DEV_CONFIG.defaultQuoteCountMetax,
-    quoteCountJumpx:  APP_DEV_CONFIG.defaultQuoteCountJumpx,
-    quoteCountBungee: APP_DEV_CONFIG.defaultQuoteCountBungee,
-    soundMuted: false,
-    activeCex: [],    // [] = semua aktif
-    activeChains: [], // [] = semua aktif
-    pairType: 'all',  // 'all' | 'stable' | 'non'
-    autoLevel: APP_DEV_CONFIG.defaultAutoLevel,  // Auto Level CEX default dari config.js
-    levelCount: APP_DEV_CONFIG.defaultLevelCount, // Level orderbook default dari config.js
+    username:    '',
+    wallet:      '',
+    interval:    APP_DEV_CONFIG.defaultInterval,
+    sseTimeout:  APP_DEV_CONFIG.defaultSseTimeout,
+    soundMuted:  false,
+    activeCex:   [],    // [] = semua aktif
+    activeChains: [],   // [] = semua aktif
+    pairType:    'all', // 'all' | 'stable' | 'non'
+    autoLevel:   APP_DEV_CONFIG.defaultAutoLevel,
+    levelCount:  APP_DEV_CONFIG.defaultLevelCount,
+    dex:         _buildDefaultDexCfg(),
 };
+
+// ─── Legacy quoteCount sync (dipakai collectors) ────────────
+function _syncLegacyDexCounts() {
+    const d = CFG.dex || {};
+    CFG.quoteCountMetax  = d.metax?.active  ? (d.metax?.count  || CONFIG_DEX.metax.count)  : 0;
+    CFG.quoteCountOnekey = d.onekey?.active ? (d.onekey?.count || CONFIG_DEX.onekey.count) : 0;
+}
+
 function totalQuoteCount() {
-    const raw = CFG.quoteCountMetax + CFG.quoteCountJumpx
-        + (isKyberEnabled() ? 1 : 0)
-        + (isOkxEnabled() ? 1 : 0)
-        + (isBungeeEnabled() ? CFG.quoteCountBungee : 0);
-    return Math.min(raw, APP_DEV_CONFIG.maxDexDisplay || 4);
-}
-function isJumpxEnabled() { return APP_DEV_CONFIG.defaultQuoteCountJumpx > 0; }
-function isAutoLevelEnabled() { return APP_DEV_CONFIG.defaultAutoLevel !== false; }
-function isKyberEnabled() { return APP_DEV_CONFIG.defaultEnableKyber === true; }
-function isOkxEnabled() { return APP_DEV_CONFIG.defaultEnableOkx === true; }
-function isBungeeEnabled() { return (CFG.quoteCountBungee || 0) > 0; }
-
-// Kembalikan token yang lolos filter CEX+chain, diurutkan sesuai monitorSort
-let monitorSort = 'az'; // 'az' | 'za' | 'rand'
-let monitorFavOnly = false; // jika true, hanya tampilkan koin favorit di scanner
-let _shuffledTokens = null; // cache untuk random sort
-
-function shuffleArray(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
+    const total = DEX_LIST.filter(def => def.enabled).reduce((sum, def) => {
+        const dc = CFG.dex?.[def.key];
+        if (!dc?.active) return sum;
+        return sum + (def.hasCount ? (dc.count || def.defaultCount) : 1);
+    }, 0);
+    return Math.min(total, APP_DEV_CONFIG.maxDexDisplay || 5);
 }
 
-function getFilteredTokens() {
-    const filtered = getTokens()
-        .filter(t => {
-            const cexOk = CFG.activeCex.length === 0 || CFG.activeCex.includes(t.cex);
-            const chainOk = CFG.activeChains.length === 0 || CFG.activeChains.includes(t.chain);
-            const favOk = !monitorFavOnly || t.favorite;
-            const pairTk = (t.tickerPair || 'USDT').toUpperCase();
-            const isStable = STABLE_COINS.has(pairTk);
-            const pairOk = CFG.pairType === 'all' || (CFG.pairType === 'stable' ? isStable : !isStable);
-            return cexOk && chainOk && favOk && pairOk;
-        });
-    if (monitorSort === 'za') return filtered.sort((a, b) => (b.ticker || '').localeCompare(a.ticker || ''));
-    if (monitorSort === 'rand') {
-        if (!_shuffledTokens) _shuffledTokens = shuffleArray([...filtered]);
-        // Filter cached list to only include tokens that still exist
-        const ids = new Set(filtered.map(t => t.id));
-        return _shuffledTokens.filter(t => ids.has(t.id));
-    }
-    return filtered.sort((a, b) => (a.ticker || '').localeCompare(b.ticker || ''));
-}
+// ─── Enable helpers (dipakai collectors) ───────────────────
+const getEnabledDexList = () => DEX_LIST.filter(d => d.enabled);
 
-// ─── Signal Sound ─────────────────────────────
-const _signalAudio = new Audio('audio.mp3');
-_signalAudio.preload = 'auto';
-function playSignalSound() {
-    // Android WebView: selalu bunyi (bypass setting mute di web)
-    // Browser biasa: ikuti setting CFG.soundMuted
-    if (!window.AndroidBridge && CFG.soundMuted) return;
-    try {
-        _signalAudio.currentTime = 0;
-        _signalAudio.play().catch(() => { });
-    } catch { }
+function isDexEnabled(key) {
+    return !!(CONFIG_DEX[key]?.enabled && CFG.dex?.[key]?.active);
 }
+function isMetaxEnabled()      { return isDexEnabled('metax'); }
+function isOnekeyEnabled()     { return isDexEnabled('onekey'); }
+function isKyberEnabled()      { return isDexEnabled('kyber'); }
+function isOkxEnabled()        { return isDexEnabled('okx'); }
+function isOnekeyLifiEnabled() { return isDexEnabled('lifidex'); }
+function isMatchaEnabled()     { return isDexEnabled('matcha'); }
+function isAutoLevelEnabled()  { return APP_DEV_CONFIG.defaultAutoLevel !== false; }
 
-// ─── Complete Sound (ronde selesai) ───────────
-function playCompleteSound() {
-    if (!window.AndroidBridge && CFG.soundMuted) return;
-    try {
-        const audio = document.getElementById('audioComplete');
-        if (audio) { audio.currentTime = 0; audio.play().catch(() => { }); }
-    } catch { }
-}
-let scanning = false;
-let scanAbort = false;
-let autoReload = false; // default: sekali scan
-let signalCache = [];
-const tgCooldown = new Map(); // tokenId → timestamp
-const wmCache = {};           // chain → data array
-const _obCache = {};          // tokenId → { bids, asks, bidPrice, askPrice }
-const _cardEls = new Map();  // tokenId → cached DOM element references
-let _buildBatchToken = null; // token untuk membatalkan batch build yang sedang berjalan
+// ─── Token helpers ─────────────────────────────────────────
+// getTokens/saveTokens sekarang ASYNC via IndexedDB
+// Gunakan: const tokens = await getTokens();
+const getTokens   = () => dbGetTokens();
+const saveTokens  = (a) => dbSaveTokens(a);
+const clearTokenCache = () => dbClearTokenCache();
 
-// ─── Utility ─────────────────────────────────
-let _tokenCache = null;
-const getTokens = () => {
-    if (_tokenCache) return _tokenCache;
-    try { _tokenCache = JSON.parse(localStorage.getItem(LS_TOKENS)) || []; } catch { _tokenCache = []; }
-    return _tokenCache;
-};
-const saveTokens = (a) => { _tokenCache = a; localStorage.setItem(LS_TOKENS, JSON.stringify(a)); };
-const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-const toWei = (amt, dec) => {
+const genId   = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const toWei   = (amt, dec) => {
     const n = Math.round(amt * 10 ** dec);
     if (!isFinite(n) || isNaN(n) || n <= 0) return '0';
     return BigInt(n).toString();
 };
 const fromWei = (w, dec) => parseFloat(w) / 10 ** dec;
 
-// Diagnose problematic wei amounts before sending to DEX API
-// Returns a short reason string, or null if amount looks OK
-const MAX_SAFE_WEI = BigInt('1' + '0'.repeat(27)); // 1e27 upper limit
+const MAX_SAFE_WEI = BigInt('1' + '0'.repeat(27));
 function diagnoseWei(amtWei) {
     if (amtWei === '0') return 'AMOUNT NOL';
     try { if (BigInt(amtWei) > MAX_SAFE_WEI) return 'MODAL BESAR'; } catch { }
     return null;
 }
-const fmt = (v, d = 5) => (+v).toFixed(d);
-const fmtPnl = (v) => (v >= 0 ? '+' : '') + (+v).toFixed(2);
 
-// Compact format: 0.0007950 → "0.{3}7950", 0.085 → "0.0850", 1.23 → "1.23"
+const fmt      = (v, d = 5) => (+v).toFixed(d);
+const fmtPnl   = (v) => (v >= 0 ? '+' : '') + (+v).toFixed(2);
+
 function fmtCompact(v, sigfigs = 4) {
     if (!isFinite(v) || isNaN(v) || v === 0) return '0';
-    const abs = Math.abs(v);
+    const abs  = Math.abs(v);
     const sign = v < 0 ? '-' : '';
-    if (abs >= 1) return sign + abs.toFixed(2);
+    if (abs >= 1)    return sign + abs.toFixed(2);
     if (abs >= 0.01) return sign + abs.toFixed(4);
-    const str = abs.toFixed(20);
-    const dec = str.split('.')[1] || '';
+    const str  = abs.toFixed(20);
+    const dec  = str.split('.')[1] || '';
     const zeros = dec.match(/^0*/)[0].length;
-    const sig = dec.slice(zeros, zeros + sigfigs);
+    const sig   = dec.slice(zeros, zeros + sigfigs);
     return `${sign}0.{${zeros}}${sig}`;
 }
 
-// ─── Simple In-Memory Cache (TTL) ────────────
+// ─── In-Memory Cache (TTL) ─────────────────────────────────
 const _memCache = new Map();
 function cacheGet(key) {
     const item = _memCache.get(key);
@@ -166,4 +160,74 @@ function cacheWrap(key, ttlMs, fn) {
         val.catch(() => { _memCache.delete(key); });
     }
     return val;
+}
+
+// ─── Filtered Token List ───────────────────────────────────
+let monitorSort    = 'az';   // 'az' | 'za' | 'rand'
+let monitorFavOnly = false;
+let _shuffledTokens = null;
+
+function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+// Sync version untuk dipakai komponen yang sudah punya tokens (hasil await)
+function filterAndSortTokens(tokens) {
+    const filtered = tokens.filter(t => {
+        const cexOk   = CFG.activeCex.length === 0   || CFG.activeCex.includes(t.cex);
+        const chainOk = CFG.activeChains.length === 0 || CFG.activeChains.includes(t.chain);
+        const favOk   = !monitorFavOnly || t.favorite;
+        const pairTk  = (t.tickerPair || 'USDT').toUpperCase();
+        const isStable = STABLE_COINS.has(pairTk);
+        const pairOk  = CFG.pairType === 'all' || (CFG.pairType === 'stable' ? isStable : !isStable);
+        return cexOk && chainOk && favOk && pairOk;
+    });
+    if (monitorSort === 'za') return filtered.sort((a, b) => (b.ticker || '').localeCompare(a.ticker || ''));
+    if (monitorSort === 'rand') {
+        if (!_shuffledTokens) _shuffledTokens = shuffleArray([...filtered]);
+        const ids = new Set(filtered.map(t => t.id));
+        return _shuffledTokens.filter(t => ids.has(t.id));
+    }
+    return filtered.sort((a, b) => (a.ticker || '').localeCompare(b.ticker || ''));
+}
+
+// Async version untuk pemanggilan langsung
+async function getFilteredTokens() {
+    const tokens = await getTokens();
+    return filterAndSortTokens(tokens);
+}
+
+// ─── Signal Sound ──────────────────────────────────────────
+const _signalAudio = new Audio('audio.mp3');
+_signalAudio.preload = 'auto';
+function playSignalSound() {
+    if (!window.AndroidBridge && CFG.soundMuted) return;
+    try { _signalAudio.currentTime = 0; _signalAudio.play().catch(() => {}); } catch {}
+}
+
+function playCompleteSound() {
+    if (!window.AndroidBridge && CFG.soundMuted) return;
+    try {
+        const audio = document.getElementById('audioComplete');
+        if (audio) { audio.currentTime = 0; audio.play().catch(() => {}); }
+    } catch {}
+}
+
+// ─── Runtime flags ─────────────────────────────────────────
+let scanning    = false;
+let scanAbort   = false;
+let autoReload  = false;
+let signalCache = [];
+const tgCooldown = new Map();
+const wmCache    = {};
+const _obCache   = {};
+const _cardEls   = new Map();
+
+// ─── Persist settings ──────────────────────────────────────
+async function _persistCFG() {
+    await dbSaveSettings(CFG);
 }

@@ -379,37 +379,40 @@ function getCexWalletUpdatedAt() {
 
 // ─── UI: Update Button Handler ─────────────────────────────
 async function runUpdateCexWallet() {
-  const btn = document.getElementById('btnUpdateCexWallet');
-  const statusEl = document.getElementById('cexWalletStatus');
-  const overlay = document.getElementById('walletUpdateOverlay');
+  const btn        = document.getElementById('btnUpdateCexWallet');
+  const statusEl   = document.getElementById('cexWalletStatus');     // di settings panel
+  const overlayStatusEl = document.getElementById('walletOverlayStatus'); // di overlay
+  const overlay    = document.getElementById('walletUpdateOverlay');
   const progressEl = document.getElementById('walletUpdateProgress');
 
-  // Tampilkan overlay
+  // Tampilkan overlay — blokir interaksi user
   if (overlay) overlay.classList.add('open');
   if (btn) btn.disabled = true;
 
   const lines = {};
   const allCex = ['BINANCE', 'MEXC', 'GATE', 'INDODAX'];
-  allCex.forEach(c => { lines[c] = `${c}: ⏳`; });
+  allCex.forEach(c => { lines[c] = `<span style="color:var(--text-muted)">${c}: ⏳</span>`; });
 
   function renderStatus() {
-    if (statusEl) statusEl.innerHTML = Object.values(lines).join('<br>');
+    const html = Object.values(lines).join('<br>');
+    if (overlayStatusEl) overlayStatusEl.innerHTML = html;
+    if (statusEl) statusEl.innerHTML = html;
   }
   renderStatus();
 
   const result = await updateCexWalletFees((label, status, extra) => {
     if (status === 'loading') {
-      lines[label] = `${label}: ⏳ fetching...`;
+      lines[label] = `<span style="color:var(--text-muted)">${label}: ⏳ mengambil...</span>`;
       if (progressEl) progressEl.textContent = `Mengambil data ${label}...`;
     } else if (status === 'ok') {
-      lines[label] = `${label}: ✅ ${extra} token`;
+      lines[label] = `<span style="color:var(--success)">${label}: ✅ ${extra} token</span>`;
     } else {
-      lines[label] = `${label}: ❌ ${extra}`;
+      lines[label] = `<span style="color:var(--danger)">${label}: ❌ ${extra}</span>`;
     }
     renderStatus();
   });
 
-  // Sembunyikan overlay
+  // Sembunyikan overlay setelah selesai
   if (overlay) overlay.classList.remove('open');
   if (btn) { btn.disabled = false; btn.textContent = '🔄 Check Wallet Exchanger'; }
 

@@ -85,11 +85,11 @@ function calculateAutoVolume(orderbook, maxModal, levels, side) {
 // ─── WD/DP Icons di Header Card ───────────────
 // Update icon ✅⛔ di sebelah nama token & pair di header card
 function _updateWdBadge(card, tok, stToken, stPair, cardEls, walletFetched) {
-    const tokEl   = cardEls?.wdTokEl  || document.getElementById('wdic-tok-'  + tok.id);
-    const pairEl  = cardEls?.wdPairEl || document.getElementById('wdic-pair-' + tok.id);
+    const tokEl = cardEls?.wdTokEl || document.getElementById('wdic-tok-' + tok.id);
+    const pairEl = cardEls?.wdPairEl || document.getElementById('wdic-pair-' + tok.id);
     const pairSym = (tok.tickerPair || 'USDT').toUpperCase();
-    if (tokEl)  tokEl.innerHTML  = _wdpIcons(stToken, walletFetched, tok.cex, tok.ticker);
-    if (pairEl) pairEl.innerHTML = _wdpIcons(stPair,  walletFetched, tok.cex, pairSym);
+    if (tokEl) tokEl.innerHTML = _wdpIcons(stToken, walletFetched, tok.cex, tok.ticker);
+    if (pairEl) pairEl.innerHTML = _wdpIcons(stPair, walletFetched, tok.cex, pairSym);
 }
 
 // Refresh semua WD/DP icon di card yang sudah dirender (dipanggil setelah wallet data diupdate)
@@ -101,10 +101,10 @@ function refreshAllWdIcons() {
         if (!tok) return;
         const pairSym = (tok.tickerPair || 'USDT').toUpperCase();
         const stToken = getCexTokenStatus(tok.cex, tok.ticker, tok.chain, 1);
-        const stPair  = getCexTokenStatus(tok.cex, pairSym, tok.chain, 1);
+        const stPair = getCexTokenStatus(tok.cex, pairSym, tok.chain, 1);
         const wf = tok.cex !== 'indodax' && isCexWalletFetched(tok.cex);
-        if (els.wdTokEl)  els.wdTokEl.innerHTML  = _wdpIcons(stToken, wf, tok.cex, tok.ticker);
-        if (els.wdPairEl) els.wdPairEl.innerHTML = _wdpIcons(stPair,  wf, tok.cex, pairSym);
+        if (els.wdTokEl) els.wdTokEl.innerHTML = _wdpIcons(stToken, wf, tok.cex, tok.ticker);
+        if (els.wdPairEl) els.wdPairEl.innerHTML = _wdpIcons(stPair, wf, tok.cex, pairSym);
     });
 }
 
@@ -140,7 +140,7 @@ async function scanToken(tok) {
     let pairSc = tok.scPair || '';
     let pairDec = tok.decPair || 18;
     if (tok.tickerPair && tok.tickerPair.toUpperCase() === 'USDT') {
-        pairSc  = CONFIG_CHAINS[tok.chain]?.USDT_SC  || pairSc;
+        pairSc = CONFIG_CHAINS[tok.chain]?.USDT_SC || pairSc;
         pairDec = CONFIG_CHAINS[tok.chain]?.USDT_DEC ?? pairDec;
     }
     if (!pairSc || !tok.scToken) { setCardStatus(card, 'SC kosong'); return; }
@@ -159,7 +159,7 @@ async function scanToken(tok) {
     // Status WD/DP: tampilkan badge di card
     const stToken = (typeof getCexTokenStatus === 'function')
         ? getCexTokenStatus(tok.cex, tok.ticker, tok.chain, obToken.askPrice) : null;
-    const stPair  = (typeof getCexTokenStatus === 'function')
+    const stPair = (typeof getCexTokenStatus === 'function')
         ? getCexTokenStatus(tok.cex, pairSymbol, tok.chain, bidPair || 1) : null;
     // Indodax: API tidak punya status WD/DP asli → walletFetched = false agar tidak diblock dan tampil ??
     const walletFetched = tok.cex !== 'indodax' && typeof isCexWalletFetched === 'function' && isCexWalletFetched(tok.cex);
@@ -170,7 +170,7 @@ async function scanToken(tok) {
     // - Jika stToken null & wallet sudah di-fetch: token tidak disuport di chain ini → block keduanya
     // - Jika stToken null & wallet belum di-fetch: data belum ada → tidak diblock
     const blockCtD = stToken !== null ? stToken.withdrawEnable === false : walletFetched;
-    const blockDtC = stToken !== null ? stToken.depositEnable  === false : walletFetched;
+    const blockDtC = stToken !== null ? stToken.depositEnable === false : walletFetched;
 
     // Tampilkan notice DITUTUP di header tabel jika blocked
     if (blockCtD) {
@@ -191,8 +191,8 @@ async function scanToken(tok) {
         ? calculateAutoVolume(obToken, _refModalCtD, CFG.levelCount, 'asks') : null;
     const alDtC_ref = CFG.autoLevel && obToken.bids?.length
         ? calculateAutoVolume(obToken, _refModalDtC, CFG.levelCount, 'bids') : null;
-    const askCtD     = alCtD_ref ? alCtD_ref.avgPrice      : obToken.askPrice;
-    const bidDtC     = alDtC_ref ? alDtC_ref.avgPrice      : obToken.bidPrice;
+    const askCtD = alCtD_ref ? alCtD_ref.avgPrice : obToken.askPrice;
+    const bidDtC = alDtC_ref ? alDtC_ref.avgPrice : obToken.bidPrice;
     const dispAskCtD = alCtD_ref ? alCtD_ref.lastLevelPrice : obToken.askPrice;
     const dispBidDtC = alDtC_ref ? alDtC_ref.lastLevelPrice : obToken.bidPrice;
 
@@ -201,8 +201,10 @@ async function scanToken(tok) {
         const modal = tok.dexModals?.[dexKey]?.ctd || tok.modalCtD || CFG.dex?.[dexKey]?.modalCtD || _refModalCtD;
         if (CFG.autoLevel && obToken.asks?.length) {
             const al = calculateAutoVolume(obToken, modal, CFG.levelCount, 'asks');
-            return { modal: al ? al.actualModal : modal, price: al ? al.avgPrice : obToken.askPrice,
-                     full: !al || al.actualModal >= modal * 0.99 };
+            return {
+                modal: al ? al.actualModal : modal, price: al ? al.avgPrice : obToken.askPrice,
+                full: !al || al.actualModal >= modal * 0.99
+            };
         }
         return { modal, price: obToken.askPrice, full: true };
     }
@@ -210,21 +212,23 @@ async function scanToken(tok) {
         const modal = tok.dexModals?.[dexKey]?.dtc || tok.modalDtC || CFG.dex?.[dexKey]?.modalDtC || _refModalDtC;
         if (CFG.autoLevel && obToken.bids?.length) {
             const al = calculateAutoVolume(obToken, modal, CFG.levelCount, 'bids');
-            return { modal: al ? al.actualModal : modal, price: al ? al.avgPrice : obToken.bidPrice,
-                     full: !al || al.actualModal >= modal * 0.99 };
+            return {
+                modal: al ? al.actualModal : modal, price: al ? al.avgPrice : obToken.bidPrice,
+                full: !al || al.actualModal >= modal * 0.99
+            };
         }
         return { modal, price: obToken.bidPrice, full: true };
     }
 
-    const dxCtD = { metax: _dexEffCtD('metax'), jumpx: _dexEffCtD('jumpx'), kyber: _dexEffCtD('kyber'), okx: _dexEffCtD('okx'), krystal: _dexEffCtD('krystal') };
-    const dxDtC = { metax: _dexEffDtC('metax'), jumpx: _dexEffDtC('jumpx'), kyber: _dexEffDtC('kyber'), okx: _dexEffDtC('okx'), krystal: _dexEffDtC('krystal') };
+    const dxCtD = {}; const dxDtC = {};
+    Object.keys(CONFIG_DEX).forEach(k => { dxCtD[k] = _dexEffCtD(k); dxDtC[k] = _dexEffDtC(k); });
 
     // Simpan dispAsk/dispBid + fee WD ke cache agar tooltip bisa mengaksesnya
-    _obCache[tok.id].dispAsk  = dispAskCtD;
-    _obCache[tok.id].dispBid  = dispBidDtC;
+    _obCache[tok.id].dispAsk = dispAskCtD;
+    _obCache[tok.id].dispBid = dispBidDtC;
     _obCache[tok.id].feeWdCtD = feeWdCtD;
     _obCache[tok.id].feeWdDtC = feeWdDtC;
-    _obCache[tok.id].pairSym  = pairSymbol;
+    _obCache[tok.id].pairSym = pairSymbol;
     _obCache[tok.id].isPairStable = isPairStable;
 
     // 4. Fetch DEX quotes — per-DEX wei sesuai modal masing-masing
@@ -243,39 +247,71 @@ async function scanToken(tok) {
     const diagCtD = diagnoseWei(_refWeiCtD);
     const diagDtC = diagnoseWei(_refWeiDtC);
     const chainId = chainCfg.Kode_Chain;
-    const [mxCtD, mxDtC, jxCtD, jxDtC, kbCtD, kbDtC, okCtD, okDtC, krCtD, krDtC] = await Promise.all([
-        isMetaxEnabled()   ? fetchDexQuotesMetax(chainId, tok.scToken, pairSc, _wCtD(dxCtD.metax))  : Promise.resolve([]),
-        isMetaxEnabled()   ? fetchDexQuotesMetax(chainId, pairSc, tok.scToken, _wDtC(dxDtC.metax))  : Promise.resolve([]),
-        isJumpxEnabled()   ? fetchDexQuotesJumpx(chainId, tok.scToken, pairSc, _wCtD(dxCtD.jumpx))  : Promise.resolve([]),
-        isJumpxEnabled()   ? fetchDexQuotesJumpx(chainId, pairSc, tok.scToken, _wDtC(dxDtC.jumpx))  : Promise.resolve([]),
-        isKyberEnabled()   ? fetchDexQuotesKyber(tok.chain, tok.scToken, pairSc, _wCtD(dxCtD.kyber), pairDec) : Promise.resolve([]),
-        isKyberEnabled()   ? fetchDexQuotesKyber(tok.chain, pairSc, tok.scToken, _wDtC(dxDtC.kyber), tok.decToken, pairDec, 'dtc') : Promise.resolve([]),
-        isOkxEnabled()     ? fetchDexQuotesOkx(chainId, tok.scToken, pairSc, _wCtD(dxCtD.okx), pairDec, tok.decToken, tok.ticker, pairSymbol)    : Promise.resolve([]),
-        isOkxEnabled()     ? fetchDexQuotesOkx(chainId, pairSc, tok.scToken, _wDtC(dxDtC.okx), tok.decToken, pairDec, pairSymbol, tok.ticker) : Promise.resolve([]),
-        isKrystalEnabled() ? fetchDexQuotesKrystal(chainId, tok.scToken, pairSc, _wCtD(dxCtD.krystal)) : Promise.resolve([]),
-        isKrystalEnabled() ? fetchDexQuotesKrystal(chainId, pairSc, tok.scToken, _wDtC(dxDtC.krystal)) : Promise.resolve([]),
-    ]);
+    // ── Dynamic DEX fetch registry ──
+    // Maps CONFIG_DEX key → { ctd: Promise, dtc: Promise } fetch functions
+    const _dexFetchMap = {
+        metax: {
+            ctd: () => fetchDexQuotesMetax(chainId, tok.scToken, pairSc, _wCtD(dxCtD.metax)),
+            dtc: () => fetchDexQuotesMetax(chainId, pairSc, tok.scToken, _wDtC(dxDtC.metax))
+        },
+        jumpx: {
+            ctd: () => fetchDexQuotesJumpx(chainId, tok.scToken, pairSc, _wCtD(dxCtD.jumpx)),
+            dtc: () => fetchDexQuotesJumpx(chainId, pairSc, tok.scToken, _wDtC(dxDtC.jumpx))
+        },
+        kyber: {
+            ctd: () => fetchDexQuotesKyber(tok.chain, tok.scToken, pairSc, _wCtD(dxCtD.kyber), pairDec, tok.decToken, 'ctd'),
+            dtc: () => fetchDexQuotesKyber(tok.chain, pairSc, tok.scToken, _wDtC(dxDtC.kyber), tok.decToken, pairDec, 'dtc')
+        },
+        okx: {
+            ctd: () => fetchDexQuotesOkx(chainId, tok.scToken, pairSc, _wCtD(dxCtD.okx), pairDec, tok.decToken, tok.ticker, pairSymbol, 'ctd'),
+            dtc: () => fetchDexQuotesOkx(chainId, pairSc, tok.scToken, _wDtC(dxDtC.okx), tok.decToken, pairDec, pairSymbol, tok.ticker, 'dtc')
+        },
+        lifidex: {
+            ctd: () => fetchDexQuoteslifidex(chainId, tok.scToken, pairSc, _wCtD(dxCtD.lifidex), pairDec, tok.decToken, 'ctd'),
+            dtc: () => fetchDexQuoteslifidex(chainId, pairSc, tok.scToken, _wDtC(dxDtC.lifidex), tok.decToken, pairDec, 'dtc')
+        },
+        matcha: {
+            ctd: () => fetchDexQuotesMatcha(tok.chain, tok.scToken, pairSc, _wCtD(dxCtD.matcha), pairDec, tok.decToken, 'ctd'),
+            dtc: () => fetchDexQuotesMatcha(tok.chain, pairSc, tok.scToken, _wDtC(dxDtC.matcha), tok.decToken, pairDec, 'dtc')
+        },
+        onekey: {
+            ctd: () => fetchDexQuotesOnekey(chainId, tok.scToken, pairSc, _wCtD(dxCtD.onekey), pairDec, tok.decToken),
+            dtc: () => fetchDexQuotesOnekey(chainId, pairSc, tok.scToken, _wDtC(dxDtC.onekey), tok.decToken, pairDec)
+        },
+    };
 
-    // helper: build list of {name, error} for empty columns
-    function buildMissingLabels(allData, mxRaw, jxRaw, kbRaw, okRaw, krRaw) {
+    // Build dynamic Promise.all from enabled DEX keys
+    const _enabledKeys = Object.keys(CONFIG_DEX).filter(k => isDexEnabled(k));
+    const _fetchPromises = [];
+    const _fetchMeta = []; // [{key, dir}] aligned with _fetchPromises
+    _enabledKeys.forEach(k => {
+        const fm = _dexFetchMap[k];
+        if (!fm) return;
+        _fetchPromises.push(fm.ctd()); _fetchMeta.push({ key: k, dir: 'ctd' });
+        _fetchPromises.push(fm.dtc()); _fetchMeta.push({ key: k, dir: 'dtc' });
+    });
+    const _fetchResults = await Promise.all(_fetchPromises);
+    // Organize results: dexRaw[key] = { ctd: [], dtc: [] }
+    const dexRaw = {};
+    _enabledKeys.forEach(k => { dexRaw[k] = { ctd: [], dtc: [] }; });
+    _fetchResults.forEach((result, i) => {
+        const { key, dir } = _fetchMeta[i];
+        dexRaw[key][dir] = result || [];
+    });
+
+    // helper: build list of {name, error} for empty columns — generic from CONFIG_DEX
+    function buildMissingLabels(allData, rawData) {
         const labels = [];
-        const mtIn = allData.filter(r => r.src === 'MX').length;
-        const jxIn = allData.filter(r => r.src === 'JX').length;
-        const krIn = allData.filter(r => r.src === 'KR').length;
-        const kbIn = allData.some(r => r.src === 'KB');
-        const okIn = allData.some(r => r.src === 'OX');
-        for (let i = mtIn; i < CFG.quoteCountMetax; i++)
-            labels.push({ name: 'METAX', error: mxRaw.length === 0 ? 'TIMEOUT' : 'NO ROUTE' });
-        for (let i = jxIn; i < CFG.quoteCountJumpx; i++)
-            labels.push({ name: 'JUMPER', error: jxRaw.length === 0 ? 'TIMEOUT' : 'NO ROUTE' });
-        if (isKyberEnabled() && !kbIn)
-            labels.push({ name: 'KYBER', error: kbRaw.length === 0 ? 'NO QUOTE' : 'NO ROUTE' });
-        if (isOkxEnabled() && !okIn)
-            labels.push({ name: 'OKX', error: okRaw.length === 0 ? 'NO QUOTE' : 'NO ROUTE' });
-        if (isKrystalEnabled()) {
-            for (let i = krIn; i < CFG.quoteCountKrystal; i++)
-                labels.push({ name: 'KRYSTAL', error: krRaw.length === 0 ? 'NO QUOTE' : 'NO ROUTE' });
-        }
+        _enabledKeys.forEach(k => {
+            const cfg = CONFIG_DEX[k];
+            const src = cfg.src;
+            const existing = allData.filter(r => r.src === src).length;
+            const expectedCount = cfg.hasCount ? (CFG.dex?.[k]?.count || cfg.count) : 1;
+            const raw = rawData[k] || [];
+            for (let i = existing; i < expectedCount; i++) {
+                labels.push({ name: cfg.label, error: raw.length === 0 ? 'NO QUOTE' : 'NO ROUTE' });
+            }
+        });
         return labels;
     }
 
@@ -297,37 +333,51 @@ async function scanToken(tok) {
     const _offList = (APP_DEV_CONFIG.offDexResultScan || []).map(s => s.toUpperCase());
     const _isOff = name => { const u = (name || '').toUpperCase(); return _offList.some(o => u.includes(o)); };
     // Wrap parse + normalize + filter; returns null if filtered out
-    const _parseMx  = q => { const p = parseDexQuoteMetax(q);  if (!p) return null; p.name = _normDexName(p.name); return _isOff(p.name) ? null : p; };
-    const _parseJx  = q => { const p = parseDexQuoteJumpx(q);  if (!p) return null; p.name = _normDexName(p.name); return _isOff(p.name) ? null : p; };
-    const _parseKr  = q => { const p = parseDexQuoteKrystal(q); if (!p) return null; p.name = _normDexName(p.name); return _isOff(p.name) ? null : p; };
-    const _normQ    = q => { if (!q) return null; q.name = _normDexName(q.name); return q; }; // for Kyber/OKX pre-built objects
+    // Parse registry: dexKey → parser function
+    const _dexParsers = {
+        metax: q => { const p = typeof parseDexQuoteMetax === 'function' ? parseDexQuoteMetax(q) : null; if (!p) return null; p.name = _normDexName(p.name); return _isOff(p.name) ? null : p; },
+        jumpx: q => { const p = typeof parseDexQuoteJumpx === 'function' ? parseDexQuoteJumpx(q) : null; if (!p) return null; p.name = _normDexName(p.name); return _isOff(p.name) ? null : p; },
+        kyber: q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
+        okx: q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
+        lifidex: q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
+        matcha: q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
+        onekey: q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
+    };
 
     const allCtD = [];
     if (!blockCtD) {
         const _pCtD = (r, dk) => { r.dexModalCtD = tok.dexModals?.[dk]?.ctd || tok.modalCtD || CFG.dex?.[dk]?.modalCtD; r.modalFull = dxCtD[dk].full; r.modalActual = Math.round(dxCtD[dk].modal); r.dexMinPnl = tok.dexModals?.[dk]?.pnl ?? tokMinPnl ?? CFG.dex?.[dk]?.minPnl ?? 1; allCtD.push(r); };
-        mxCtD.forEach(q => { const p = _parseMx(q); if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD.metax.modal, tok.cex, dxCtD.metax.price, 'ctd', feeWdCtD, isPairStable, chainGasFee), 'metax'); });
-        jxCtD.forEach(q => { const p = _parseJx(q); if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD.jumpx.modal, tok.cex, dxCtD.jumpx.price, 'ctd', feeWdCtD, isPairStable, chainGasFee), 'jumpx'); });
-        kbCtD.forEach(q => { const p = _normQ(q); if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD.kyber.modal, tok.cex, dxCtD.kyber.price, 'ctd', feeWdCtD, isPairStable, chainGasFee), 'kyber'); });
-        okCtD.forEach(q => { const p = _normQ(q); if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD.okx.modal,   tok.cex, dxCtD.okx.price,   'ctd', feeWdCtD, isPairStable, chainGasFee), 'okx'); });
-        krCtD.forEach(q => { const p = _parseKr(q); if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD.krystal.modal, tok.cex, dxCtD.krystal.price, 'ctd', feeWdCtD, isPairStable, chainGasFee), 'krystal'); });
+        _enabledKeys.forEach(dk => {
+            const parser = _dexParsers[dk];
+            if (!parser || !dexRaw[dk]?.ctd) return;
+            dexRaw[dk].ctd.forEach(q => {
+                const p = parser(q);
+                if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD[dk].modal, tok.cex, dxCtD[dk].price, 'ctd', feeWdCtD, isPairStable, chainGasFee), dk);
+            });
+        });
     }
     allCtD.sort((a, b) => b.pnl - a.pnl);
     const ctdData = allCtD.slice(0, n);
-    const missingCtdLabels = blockCtD ? [] : buildMissingLabels(allCtD, mxCtD, jxCtD, kbCtD, okCtD, krCtD);
+    const ctdRawData = {}; _enabledKeys.forEach(k => { ctdRawData[k] = dexRaw[k]?.ctd || []; });
+    const missingCtdLabels = blockCtD ? [] : buildMissingLabels(allCtD, ctdRawData);
 
     // 6. Combine & sort DTC quotes — skip jika DP token ditutup (blockDtC)
     const allDtC = [];
     if (!blockDtC) {
         const _pDtC = (r, dk) => { r.dexModalDtC = tok.dexModals?.[dk]?.dtc || tok.modalDtC || CFG.dex?.[dk]?.modalDtC; r.modalFull = dxDtC[dk].full; r.modalActual = Math.round(dxDtC[dk].modal); r.dexMinPnl = tok.dexModals?.[dk]?.pnl ?? tokMinPnl ?? CFG.dex?.[dk]?.minPnl ?? 1; allDtC.push(r); };
-        mxDtC.forEach(q => { const p = _parseMx(q); if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC.metax.price, dxDtC.metax.modal, tok.cex, dxCtD.metax.price, 'dtc', 0, isPairStable, chainGasFee), 'metax'); });
-        jxDtC.forEach(q => { const p = _parseJx(q); if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC.jumpx.price, dxDtC.jumpx.modal, tok.cex, dxCtD.jumpx.price, 'dtc', 0, isPairStable, chainGasFee), 'jumpx'); });
-        kbDtC.forEach(q => { const p = _normQ(q); if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC.kyber.price, dxDtC.kyber.modal, tok.cex, dxCtD.kyber.price, 'dtc', 0, isPairStable, chainGasFee), 'kyber'); });
-        okDtC.forEach(q => { const p = _normQ(q); if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC.okx.price,   dxDtC.okx.modal,   tok.cex, dxCtD.okx.price,   'dtc', 0, isPairStable, chainGasFee), 'okx'); });
-        krDtC.forEach(q => { const p = _parseKr(q); if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC.krystal.price, dxDtC.krystal.modal, tok.cex, dxCtD.krystal.price, 'dtc', 0, isPairStable, chainGasFee), 'krystal'); });
+        _enabledKeys.forEach(dk => {
+            const parser = _dexParsers[dk];
+            if (!parser || !dexRaw[dk]?.dtc) return;
+            dexRaw[dk].dtc.forEach(q => {
+                const p = parser(q);
+                if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC[dk].price, dxDtC[dk].modal, tok.cex, dxCtD[dk].price, 'dtc', 0, isPairStable, chainGasFee), dk);
+            });
+        });
     }
-    allDtC.sort((a, b) => b.pnl - a.pnl); // best first
+    allDtC.sort((a, b) => b.pnl - a.pnl);
     const dtcData = allDtC.slice(0, n);
-    const missingDtcLabels = buildMissingLabels(allDtC, mxDtC, jxDtC, kbDtC, okDtC, krDtC);
+    const dtcRawData = {}; _enabledKeys.forEach(k => { dtcRawData[k] = dexRaw[k]?.dtc || []; });
+    const missingDtcLabels = buildMissingLabels(allDtC, dtcRawData);
 
     // 6. Fill CTD table
     const _tradeUrl = typeof _getCexTradeUrl === 'function' ? _getCexTradeUrl(tok.cex, tok.ticker, pairSymbol) : '';
@@ -378,14 +428,15 @@ async function scanToken(tok) {
             const pnlEl = els?.ctdPnl[i];
             const isSignal = r.pnl >= (r.dexMinPnl ?? tokMinPnl);
             const sigCls = isSignal ? ' col-signal' : '';
-            const ctdName = (r.name || '').slice(0, 6).toUpperCase();
-            const ctdSrcTag = r.src === 'MX' ? '<span class="src-tag mx">MT</span>' : r.src === 'JX' ? '<span class="src-tag jx">LF</span>' : r.src === 'KR' ? '<span class="src-tag kc">KC</span>' : '';
+            const _srcCfg = Object.values(CONFIG_DEX).find(c => c.src === r.src);
+            const ctdName = _srcCfg && !_srcCfg.hasCount ? _srcCfg.label : (r.name || '').slice(0, 6).toUpperCase();
+            const ctdSrcTag = _srcCfg && _srcCfg.hasCount ? `<span class="src-tag" style="background:${_srcCfg.color};color:#fff;font-size:6px">${_srcCfg.badge}</span>` : '';
             const ctdModalSet = r.dexModalCtD;
-            const ctdInsuf    = r.modalFull === false && r.modalActual && ctdModalSet && r.modalActual < ctdModalSet;
+            const ctdInsuf = r.modalFull === false && r.modalActual && ctdModalSet && r.modalActual < ctdModalSet;
             const ctdModalLbl = ctdInsuf
                 ? `<span class="hdr-modal-set">$${ctdModalSet}</span> | <span class="hdr-modal-act">$${r.modalActual}✅</span>`
                 : (ctdModalSet ? `<span class="hdr-modal-ok">$${ctdModalSet}✅</span>` : '');
-            if (hdrEl) { hdrEl.innerHTML = ctdName + (ctdSrcTag ? ' ' + ctdSrcTag : '') + (ctdModalLbl ? `<span class="hdr-dex-modal">${ctdModalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = ctdModalSet || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); const _ctdBadge = r.src === 'MX' ? 'MT' : r.src === 'JX' ? 'LF' : r.src === 'KR' ? 'KC' : r.src === 'KB' ? 'KB' : ''; hdrEl.dataset.dexName = ctdName + (_ctdBadge ? ' ' + _ctdBadge : ''); hdrEl.dataset.src = r.src; }
+            if (hdrEl) { hdrEl.innerHTML = ctdName + (ctdSrcTag ? ' ' + ctdSrcTag : '') + (ctdModalLbl ? `<span class="hdr-dex-modal">${ctdModalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = ctdModalSet || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); hdrEl.dataset.dexName = ctdName + (_srcCfg && _srcCfg.hasCount ? ' ' + _srcCfg.badge : ''); hdrEl.dataset.src = r.src; }
             if (cexEl) { cexEl.innerHTML = _cexPriceHtml(`↑ ${fmtCompact(dispAskCtD)}$`, _tradeUrl); cexEl.className = 'mon-dex-cell mc-ask' + sigCls; }
             if (dexEl) { dexEl.innerHTML = _dexPriceHtml(`↓ ${fmtCompact(r.effPrice)}$`, r.name, 'ctd'); dexEl.className = 'mon-dex-cell mc-bid' + sigCls; }
             if (feeEl) { feeEl.textContent = _fmtFeeCell(r.wdFee, r.cexFee1 + r.cexFee2, r.feeSwap || 0); feeEl.className = 'mon-dex-cell mc-recv' + sigCls; }
@@ -448,14 +499,15 @@ async function scanToken(tok) {
             const pnlEl = els?.dtcPnl[i];
             const isSignal = r.pnl >= (r.dexMinPnl ?? tokMinPnl);
             const sigCls = isSignal ? ' col-signal' : '';
-            const dtcName = (r.name || '').slice(0, 6).toUpperCase();
-            const dtcSrcTag = r.src === 'MX' ? '<span class="src-tag mx">MT</span>' : r.src === 'JX' ? '<span class="src-tag jx">LF</span>' : r.src === 'KR' ? '<span class="src-tag kc">KC</span>' : '';
+            const _srcCfgD = Object.values(CONFIG_DEX).find(c => c.src === r.src);
+            const dtcName = _srcCfgD && !_srcCfgD.hasCount ? _srcCfgD.label : (r.name || '').slice(0, 6).toUpperCase();
+            const dtcSrcTag = _srcCfgD && _srcCfgD.hasCount ? `<span class="src-tag" style="background:${_srcCfgD.color};color:#fff;font-size:6px">${_srcCfgD.badge}</span>` : '';
             const dtcModalSet = r.dexModalDtC;
-            const dtcInsuf    = r.modalFull === false && r.modalActual && dtcModalSet && r.modalActual < dtcModalSet;
+            const dtcInsuf = r.modalFull === false && r.modalActual && dtcModalSet && r.modalActual < dtcModalSet;
             const dtcModalLbl = dtcInsuf
                 ? `<span class="hdr-modal-set">$${dtcModalSet}</span> | <span class="hdr-modal-act">$${r.modalActual}✅</span>`
                 : (dtcModalSet ? `<span class="hdr-modal-ok">$${dtcModalSet}✅</span>` : '');
-            if (hdrEl) { hdrEl.innerHTML = dtcName + (dtcSrcTag ? ' ' + dtcSrcTag : '') + (dtcModalLbl ? `<span class="hdr-dex-modal">${dtcModalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = dtcModalSet || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); const _dtcBadge = r.src === 'MX' ? 'MT' : r.src === 'JX' ? 'LF' : r.src === 'KR' ? 'KC' : r.src === 'KB' ? 'KB' : ''; hdrEl.dataset.dexName = dtcName + (_dtcBadge ? ' ' + _dtcBadge : ''); hdrEl.dataset.src = r.src; }
+            if (hdrEl) { hdrEl.innerHTML = dtcName + (dtcSrcTag ? ' ' + dtcSrcTag : '') + (dtcModalLbl ? `<span class="hdr-dex-modal">${dtcModalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = dtcModalSet || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); hdrEl.dataset.dexName = dtcName + (_srcCfgD && _srcCfgD.hasCount ? ' ' + _srcCfgD.badge : ''); hdrEl.dataset.src = r.src; }
             if (cexEl) { cexEl.innerHTML = _cexPriceHtml(`↓ ${fmtCompact(dispBidDtC)}$`, _tradeUrl); cexEl.className = 'mon-dex-cell mc-bid' + sigCls; }
             if (dexEl) { dexEl.innerHTML = _dexPriceHtml(`↑ ${fmtCompact(r.effPrice)}$`, r.name, 'dtc'); dexEl.className = 'mon-dex-cell mc-ask' + sigCls; }
             if (feeEl) { feeEl.textContent = _fmtFeeCell(r.wdFee, r.cexFee1 + r.cexFee2, r.feeSwap || 0); feeEl.className = 'mon-dex-cell mc-recv' + sigCls; }
@@ -497,9 +549,9 @@ async function scanToken(tok) {
         const tgInfo = {
             ctdSignals,
             dtcSignals,
-            modalCtD:     _refModalCtD,
-            modalDtC:     _refModalDtC,
-            buyPriceCtD:  dispAskCtD,                       // harga beli CEX (CTD)
+            modalCtD: _refModalCtD,
+            modalDtC: _refModalDtC,
+            buyPriceCtD: dispAskCtD,                       // harga beli CEX (CTD)
             sellPriceDtC: dispBidDtC,                       // harga jual CEX (DTC)
         };
         sendTelegram(tok, best, tgInfo);
@@ -515,7 +567,7 @@ function setCardStatus(card, msg) {
     const id = card.id.replace('card-', '');
     const els = _cardEls.get(id);
     const statEls = els ? [els.ctdStatus, els.dtcStatus].filter(Boolean)
-                        : Array.from(card.querySelectorAll('.tbl-status'));
+        : Array.from(card.querySelectorAll('.tbl-status'));
     statEls.forEach(el => {
         el.textContent = msg ? ` ⚠ ${msg}` : '';
         el.className = msg ? 'tbl-status tbl-status-err' : 'tbl-status';
@@ -530,54 +582,56 @@ async function sendTelegram(tok, pnl, info) {
     tgCooldown.set(tok.id, now);
     playSignalSound();
 
-    const appName  = APP_DEV_CONFIG.appName || 'MONITORING PRICE';
-    const appVer   = APP_DEV_CONFIG.appVersion ? ' v' + APP_DEV_CONFIG.appVersion : '';
-    const chain    = CONFIG_CHAINS[tok.chain]?.label || tok.chain.toUpperCase();
-    const cexLbl   = CONFIG_CEX[tok.cex]?.label || tok.cex;
-    const pairLbl  = tok.tickerPair && tok.tickerPair !== tok.ticker ? tok.tickerPair : tok.ticker;
-    const wallet   = CFG.wallet ? CFG.wallet.slice(0, 10) + '.....' + CFG.wallet.slice(-10) : '-';
-    const pnlSign  = pnl >= 0 ? '+' : '';
-    const esc      = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const fmtP     = (p) => p > 0 ? (p < 0.0001 ? p.toExponential(3) : p < 1 ? p.toFixed(6) : p < 1000 ? p.toFixed(4) : p.toFixed(2)) + '$' : '-';
-    const fmtPnl2  = (v) => (v >= 0 ? '+' : '') + v.toFixed(2) + '$';
+    const appName = APP_DEV_CONFIG.appName || 'MONITORING PRICE';
+    const appVer = APP_DEV_CONFIG.appVersion ? ' v' + APP_DEV_CONFIG.appVersion : '';
+    const chain = CONFIG_CHAINS[tok.chain]?.label || tok.chain.toUpperCase();
+    const cexLbl = CONFIG_CEX[tok.cex]?.label || tok.cex;
+    const pairLbl = tok.tickerPair && tok.tickerPair !== tok.ticker ? tok.tickerPair : tok.ticker;
+    const wallet = CFG.wallet ? CFG.wallet.slice(0, 10) + '.....' + CFG.wallet.slice(-10) : '-';
+    const pnlSign = pnl >= 0 ? '+' : '';
+    const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const fmtP = (p) => p > 0 ? (p < 0.0001 ? p.toExponential(3) : p < 1 ? p.toFixed(6) : p < 1000 ? p.toFixed(4) : p.toFixed(2)) + '$' : '-';
+    const fmtPnl2 = (v) => (v >= 0 ? '+' : '') + v.toFixed(2) + '$';
 
-    const ctdSignals  = info?.ctdSignals  || [];
-    const dtcSignals  = info?.dtcSignals  || [];
-    const modalCtD    = info?.modalCtD    ?? tok.modalCtD;
-    const modalDtC    = info?.modalDtC    ?? tok.modalDtC;
+    const ctdSignals = info?.ctdSignals || [];
+    const dtcSignals = info?.dtcSignals || [];
+    const modalCtD = info?.modalCtD ?? tok.modalCtD;
+    const modalDtC = info?.modalDtC ?? tok.modalDtC;
     const buyPriceCtD = info?.buyPriceCtD || 0;   // harga ask CEX untuk CTD
     const sellPriceDtC = info?.sellPriceDtC || 0; // harga bid CEX untuk DTC
 
     // ── Android notification ──────────────────────────────────────────────
     if (window.AndroidBridge) {
         const title = `🟢 ${appName} — SIGNAL: ${tok.ticker}↔${pairLbl}`;
-        const body  = `${cexLbl} [${chain}]  PnL: ${pnlSign}${pnl.toFixed(2)}$`;
+        const body = `${cexLbl} [${chain}]  PnL: ${pnlSign}${pnl.toFixed(2)}$`;
         window.AndroidBridge.showNotification(title, body);
     }
 
     if (!APP_DEV_CONFIG.telegramBotToken || APP_DEV_CONFIG.telegramBotToken.length < 20) return;
 
     // ── Helper links ──────────────────────────────────────────────────────
-    const chainCfg2   = CONFIG_CHAINS[tok.chain];
-    const chainId2    = chainCfg2?.Kode_Chain || '';
-    const _pairSc     = tok.scPair || chainCfg2?.USDT_SC || '';
-    const _kyberChain = { 56:'bnb', 1:'ethereum', 137:'polygon', 42161:'arbitrum', 8453:'base' }[chainId2] || 'bnb';
-    const _tradeSym   = tok.symbolToken || (tok.ticker + 'USDT');
+    const chainCfg2 = CONFIG_CHAINS[tok.chain];
+    const chainId2 = chainCfg2?.Kode_Chain || '';
+    const _pairSc = tok.scPair || chainCfg2?.USDT_SC || '';
+    const _kyberChain = { 56: 'bnb', 1: 'ethereum', 137: 'polygon', 42161: 'arbitrum', 8453: 'base' }[chainId2] || 'bnb';
+    const _tradeSym = tok.symbolToken || (tok.ticker + 'USDT');
 
-    const _tradeLink = ({ binance:`https://www.binance.com/en/trade/${_tradeSym}`,
-        gate:`https://www.gate.io/trade/${_tradeSym}`, mexc:`https://www.mexc.com/exchange/${_tradeSym}`,
-        indodax:`https://indodax.com/market/${tok.symbolToken||tok.ticker.toLowerCase()+'idr'}` })[tok.cex] || '';
+    const _tradeLink = ({
+        binance: `https://www.binance.com/en/trade/${_tradeSym}`,
+        gate: `https://www.gate.io/trade/${_tradeSym}`, mexc: `https://www.mexc.com/exchange/${_tradeSym}`,
+        indodax: `https://indodax.com/market/${tok.symbolToken || tok.ticker.toLowerCase() + 'idr'}`
+    })[tok.cex] || '';
 
     function _swapLink(_src, fromSc, toSc, dexName) {
-        const n           = (dexName || '').toLowerCase();
-        const _sushiChain = { 56:'bsc', 1:'ethereum', 137:'polygon', 42161:'arbitrum', 8453:'base' }[chainId2] || 'bsc';
-        const _ooChain    = { 56:'bsc', 1:'eth',      137:'polygon', 42161:'arbitrum', 8453:'base' }[chainId2] || 'bsc';
-        const _uniChain   = { 56:'bnb', 1:'ethereum', 137:'polygon', 42161:'arbitrum', 8453:'base' }[chainId2] || 'bnb';
+        const n = (dexName || '').toLowerCase();
+        const _sushiChain = { 56: 'bsc', 1: 'ethereum', 137: 'polygon', 42161: 'arbitrum', 8453: 'base' }[chainId2] || 'bsc';
+        const _ooChain = { 56: 'bsc', 1: 'eth', 137: 'polygon', 42161: 'arbitrum', 8453: 'base' }[chainId2] || 'bsc';
+        const _uniChain = { 56: 'bnb', 1: 'ethereum', 137: 'polygon', 42161: 'arbitrum', 8453: 'base' }[chainId2] || 'bnb';
         const from = fromSc.toLowerCase();
-        const to   = toSc.toLowerCase();
+        const to = toSc.toLowerCase();
         // ── Deteksi dari nama DEX (lebih akurat dari src) ─────────────────────
         if (/^0x\b|0x protocol/i.test(n)) {
-            const _matchaChain = { 56:'bsc', 1:'ethereum', 137:'polygon', 42161:'arbitrum', 8453:'base' }[chainId2] || 'ethereum';
+            const _matchaChain = { 56: 'bsc', 1: 'ethereum', 137: 'polygon', 42161: 'arbitrum', 8453: 'base' }[chainId2] || 'ethereum';
             return `https://matcha.xyz/tokens/${_matchaChain}/${from}?buyAddress=${to}&buyChain=${chainId2}`;
         }
         if (/1inch/i.test(n))
@@ -606,34 +660,38 @@ async function sendTelegram(tok, pnl, info) {
         return `https://jumper.exchange/?fromChain=${chainId2}&toChain=${chainId2}&fromToken=${fromSc}&toToken=${toSc}`;
     }
     function _wdLink(ticker) {
-        return ({ binance:`https://www.binance.com/en/my/wallet/account/main/withdrawal/crypto/${ticker}`,
-            gate:`https://www.gate.io/myaccount/withdraw/${ticker}`,
-            mexc:`https://www.mexc.com/assets/withdraw?currency=${ticker}`,
-            indodax:`https://indodax.com/account/withdraw/idr` })[tok.cex] || '';
+        return ({
+            binance: `https://www.binance.com/en/my/wallet/account/main/withdrawal/crypto/${ticker}`,
+            gate: `https://www.gate.io/myaccount/withdraw/${ticker}`,
+            mexc: `https://www.mexc.com/assets/withdraw?currency=${ticker}`,
+            indodax: `https://indodax.com/account/withdraw/idr`
+        })[tok.cex] || '';
     }
     function _dpLink(ticker) {
-        return ({ binance:`https://www.binance.com/en/my/wallet/account/main/deposit/crypto/${ticker}`,
-            gate:`https://www.gate.io/myaccount/deposit/${ticker}`,
-            mexc:`https://www.mexc.com/assets/deposit?currency=${ticker}`,
-            indodax:`https://indodax.com/account/deposit/idr` })[tok.cex] || '';
+        return ({
+            binance: `https://www.binance.com/en/my/wallet/account/main/deposit/crypto/${ticker}`,
+            gate: `https://www.gate.io/myaccount/deposit/${ticker}`,
+            mexc: `https://www.mexc.com/assets/deposit?currency=${ticker}`,
+            indodax: `https://indodax.com/account/deposit/idr`
+        })[tok.cex] || '';
     }
     function _lnk(url, txt) { return url ? `<a href="${url}">${txt}</a>` : txt; }
-    function _badge(src) { return src==='MX'?'[MT]':src==='JX'?'[LF]':src==='KR'?'[KC]':src==='KB'?'[KB]':''; }
+    function _badge(src) { return src === 'MX' ? '[MX]' : src === 'JX' ? '[JM]' : src === 'OK' ? '[KY]' : ''; }
 
     // ── Build one section per arah yang ada signalnya ─────────────────────
     function _section(signals, dir, modal, cexPrice) {
         if (!signals.length) return '';
-        const arrow    = dir === 'CTD' ? '⬆️' : '⬇️';
+        const arrow = dir === 'CTD' ? '⬆️' : '⬇️';
         const dirLabel = dir === 'CTD' ? 'CEX→DEX' : 'DEX→CEX';
-        const fromSc   = dir === 'CTD' ? tok.scToken : _pairSc;
-        const toSc     = dir === 'CTD' ? _pairSc     : tok.scToken;
+        const fromSc = dir === 'CTD' ? tok.scToken : _pairSc;
+        const toSc = dir === 'CTD' ? _pairSc : tok.scToken;
         // CTD: TOKEN ⇄ PAIR  |  DTC: PAIR ⇄ TOKEN
         const coinPair = dir === 'CTD'
             ? `${esc(tok.ticker)} ⇄ ${esc(pairLbl)}`
             : `${esc(pairLbl)} ⇄ ${esc(tok.ticker)}`;
         // WD/DP
         const wdTk = dir === 'CTD' ? tok.ticker : pairLbl;
-        const dpTk = dir === 'CTD' ? pairLbl    : tok.ticker;
+        const dpTk = dir === 'CTD' ? pairLbl : tok.ticker;
         const wdPart = _lnk(_wdLink(wdTk), `WD ${esc(wdTk)}`);
         const dpPart = _lnk(_dpLink(dpTk), `DP ${esc(dpTk)}`);
         const wdLine = dir === 'CTD' ? `💳 ${wdPart} | ${dpPart}` : `💳 ${dpPart} | ${wdPart}`;
@@ -642,14 +700,14 @@ async function sendTelegram(tok, pnl, info) {
 
         // Tiap DEX signal = satu blok ringkas
         const dexBlocks = signals.map(r => {
-            const badge   = _badge(r.src);
+            const badge = _badge(r.src);
             const dexLink = _swapLink(r.src, fromSc, toSc, r.name);
-            const dexTxt  = _lnk(dexLink, `${badge ? badge + ' ' : ''}${esc(r.name)}`);
+            const dexTxt = _lnk(dexLink, `${badge ? badge + ' ' : ''}${esc(r.name)}`);
             // CTD: beli di CEX (cexPrice), jual di DEX (effPrice)
             // DTC: beli di DEX (effPrice), jual di CEX (cexPrice)
-            const buyPr  = dir === 'CTD' ? cexPrice    : r.effPrice;
-            const sellPr = dir === 'CTD' ? r.effPrice  : cexPrice;
-            const bruto  = r.pnlKotor != null ? fmtPnl2(r.pnlKotor) : '-';
+            const buyPr = dir === 'CTD' ? cexPrice : r.effPrice;
+            const sellPr = dir === 'CTD' ? r.effPrice : cexPrice;
+            const bruto = r.pnlKotor != null ? fmtPnl2(r.pnlKotor) : '-';
             const tradeFlow = dir === 'CTD' ? `${cexTxt} -> ${dexTxt}` : `${dexTxt} -> ${cexTxt}`;
             return `🏦 ${tradeFlow}
 💲 Buy:${fmtP(buyPr)} ➜ Sell:${fmtP(sellPr)}
@@ -664,10 +722,10 @@ ${wdLine}`;
 
     const _ctdSec = _section(ctdSignals, 'CTD', modalCtD, buyPriceCtD);
     const _dtcSec = _section(dtcSignals, 'DTC', modalDtC, sellPriceDtC);
-    const _body   = [_ctdSec, _dtcSec].filter(Boolean).join('\n━━━\n');
+    const _body = [_ctdSec, _dtcSec].filter(Boolean).join('\n━━━\n');
 
     const msg =
-`🟢 <b>${esc(appName)}${appVer}</b>
+        `🟢 <b>${esc(appName)}${appVer}</b>
 👤 @${esc(CFG.username || 'user')}  •  🔗 <b>${esc(chain)}</b>
 ━━━━━━━━━━━━━━━
 ${_body}

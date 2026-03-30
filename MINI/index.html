@@ -54,32 +54,10 @@
 
 
         <div class="top-right">
-            <!-- Tab pills — visible in landscape only -->
-            <div class="top-tabs" id="topTabs">
 
-
-                <button class="nav-item active" data-tab="tabMonitor">
-                     <span class="nav-icon"><img src="icons/monitoring.png" class="nav-icon-img" alt="SCANNER HARGA CRYPTO"></span>
-                </button>
-                <button class="nav-item" data-tab="tabToken">
-                    <span class="nav-icon"><img src="icons/token.png" class="nav-icon-img" alt="DAFTAR KOIN CRYPTO"></span>
-                </button>
-
-                <button class="nav-item" data-tab="tabSettings">
-                    <span class="nav-icon"><img src="icons/setting.png" class="nav-icon-img" alt="SETTING APLIKASI"></span>
-                    <!-- <img src="icons/setting.png" class="top-tab-icon" alt="PENGATURAN APLIKASI"> -->
-                </button>
-                <!-- <button class="top-tab-btn" onclick="openCalcModal()">
-                <img src="icons/kalkulator.png" class="top-tab-icon" alt="KALKULATOR CRYPTO">
-            </button> -->
-             <!-- <button class="nav-item" id="navReload" onclick="reloadWithToast()">
-                <span class="nav-icon"><img src="icons/reload.png" class="nav-icon-img" alt="reload"></span>
-        </button> -->
-            </div>
 
             <!-- Scan Controls -->
             <div class="scan-footer" id="scanFooter" style="display:none">
-                | 
                 <div class="scan-sort-group" id="monSortBar">
                     <button class="sort-btn active" data-sort="az" title="Sorting A→Z">A→Z</button>
                     <button class="sort-btn" data-sort="za" title="Sorting Z→A">Z→A</button>
@@ -90,8 +68,34 @@
                     <span id="btnScanLbl">START</span>
                     <span id="btnScanCount">[0]</span>
                 </button>
-                                <button class="sort-btn" id="btnAutoReload" title="Mode: Sekali Scan">🔄</button>
+                <button class="sort-btn" id="btnAutoReload" title="Mode: Sekali Scan">🔄</button>
 
+            </div>
+            <!-- Tab pills — visible in landscape only -->
+            <div class="top-tabs" id="topTabs">
+
+                |
+
+                <button class="nav-item active" data-tab="tabMonitor">
+                    <span class="nav-icon"><img src="icons/monitoring.png" class="nav-icon-img"
+                            alt="SCANNER HARGA CRYPTO"></span>
+                </button>
+                <button class="nav-item" data-tab="tabToken">
+                    <span class="nav-icon"><img src="icons/token.png" class="nav-icon-img"
+                            alt="DAFTAR KOIN CRYPTO"></span>
+                </button>
+
+                <button class="nav-item" data-tab="tabSettings">
+                    <span class="nav-icon"><img src="icons/setting.png" class="nav-icon-img"
+                            alt="SETTING APLIKASI"></span>
+                    <!-- <img src="icons/setting.png" class="top-tab-icon" alt="PENGATURAN APLIKASI"> -->
+                </button>
+                <!-- <button class="top-tab-btn" onclick="openCalcModal()">
+                <img src="icons/kalkulator.png" class="top-tab-icon" alt="KALKULATOR CRYPTO">
+            </button> -->
+                <!-- <button class="nav-item" id="navReload" onclick="reloadWithToast()">
+                <span class="nav-icon"><img src="icons/reload.png" class="nav-icon-img" alt="reload"></span>
+        </button> -->
             </div>
             <!-- <span class="username-chip" id="topUsername">@-</span> -->
         </div>
@@ -105,7 +109,8 @@
     <div class="signal-bar" id="signalBar">
         <span class="sig-arr sig-arr-l" id="sigArrL" onclick="_onSigArr(-1)">❮</span>
         <div class="signal-scroll" id="signalScroll" onscroll="_onSigScroll(this)">
-            <span id="noSignalNotice" class="no-signal-notice" style="display:none">● Belum Ada Info Selisih Harga</span>
+            <span id="noSignalNotice" class="no-signal-notice" style="display:none">● Belum Ada Info Selisih
+                Harga</span>
         </div>
         <span class="sig-arr sig-arr-r" id="sigArrR" onclick="_onSigArr(1)">❯</span>
     </div>
@@ -134,7 +139,8 @@
         <div class="csv-bar">
             <button class="btn-outline" id="btnExport"><i class="bi bi-download"></i> Export</button>
             <button class="btn-outline" id="btnImportTrigger"><i class="bi bi-upload"></i> Import</button>
-            <button class="btn-open-bulk" onclick="openBulkModal()"><i class="bi bi-currency-dollar"></i> Modal DEX</button>
+            <button class="btn-open-bulk" onclick="openBulkModal()"><i class="bi bi-currency-dollar"></i> Modal
+                DEX</button>
             <button class="btn-outline btn-add-koin" id="fabAdd"><i class="bi bi-plus-lg"></i> Tambah</button>
             <input type="file" id="importFile"
                 accept=".csv,text/csv,text/plain,text/comma-separated-values,application/octet-stream"
@@ -194,18 +200,8 @@
                 <!-- DEX & Auto Level -->
                 <div class="set-section">📊 DEX & AUTO LEVEL</div>
                 <div class="settings-grid-4">
-                    <div class="settings-field" id="fieldQuoteMetax">
-                        <label class="settings-label">DEX <span class="src-tag mx">MT</span></label>
-                        <input class="settings-input" id="setQuoteMetax" type="number" min="1" max="5" value="2">
-                    </div>
-                    <div class="settings-field" id="fieldQuoteJumpx">
-                        <label class="settings-label">DEX <span class="src-tag jx">LF</span></label>
-                        <input class="settings-input" id="setQuoteJumpx" type="number" min="1" max="5" value="2">
-                    </div>
-                    <div class="settings-field" id="fieldQuoteKrystal">
-                        <label class="settings-label">DEX <span class="src-tag kc">KC</span></label>
-                        <input class="settings-input" id="setQuoteKrystal" type="number" min="1" max="5" value="2">
-                    </div>
+                    <!-- DEX route counts — rendered dynamically from CONFIG_DEX by ui.js -->
+                    <div id="dexSettingsContainer"></div>
                     <div class="settings-field" id="autoLevelField">
                         <label class="settings-label">Auto Level</label>
                         <input class="settings-input" id="setLevelCount" type="number" min="1" max="4" value="2">
@@ -498,7 +494,9 @@
     <script src="collectors/dex-jumpx.js"></script>
     <script src="collectors/dex-kyber.js"></script>
     <script src="collectors/dex-okx.js"></script>
-    <script src="collectors/dex-krystal.js"></script>
+    <script src="collectors/dex-lifidex.js"></script>
+    <script src="collectors/dex-matcha.js"></script>
+    <script src="collectors/dex-onekey.js"></script>
     <script src="services/cex-wallet.js"></script>
     <script src="services/scan.js"></script>
     <script src="ui/ui.js"></script>

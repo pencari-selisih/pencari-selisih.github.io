@@ -1054,8 +1054,14 @@ body {
   color: #fff;
 }
 
-.src-tag.kc {
+.src-tag.kr {
   background: var(--krystal-color);
+  color: #fff;
+  font-size: 6px;
+}
+
+.src-tag.lf {
+  background: #06b6d4;
   color: #fff;
   font-size: 6px;
 }
@@ -2197,9 +2203,15 @@ body.is-scanning .scan-sort-group {
 
 .settings-grid-4 {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
   gap: 10px;
   margin-bottom: 4px;
+  align-items: end;
+}
+
+/* Container DEX dinamis — display:contents agar children ikut grid parent */
+#dexSettingsContainer {
+  display: contents;
 }
 
 .settings-field {

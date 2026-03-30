@@ -1,48 +1,67 @@
-// ─── OKX DEX: OKX Aggregator REST API ────────
-// Docs: https://web3.okx.com/priapi/v6/dex/aggregator/quote
-function _okxApiKey() { return apiKeysOKXDEX[Math.floor(Math.random() * apiKeysOKXDEX.length)]; }
+// ─── OKX DEX: C98 Superlink + Krystal[filter OKX] paralel ───
+// Dua sumber dipakai agar beban tidak terpusat di satu endpoint.
+// Sumber terbaik (output terbesar) yang digunakan.
+//
+// C98    : POST https://superlink-server.coin98.tech/quote  (via CORS proxy)
+// Krystal: GET  https://api.krystal.app/{chain}/v2/swap/allRates (direct)
 
-async function _signOkxHmac(secret, message) {
-    const enc = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-        'raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-    );
-    const sig = await crypto.subtle.sign('HMAC', key, enc.encode(message));
-    return btoa(String.fromCharCode(...new Uint8Array(sig)));
+const _C98_NATIVE = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
+const _C98_WALLET  = '0xB7B10292EE6c5828b20eB0942C8c1275E8344800';
+
+// Fetch OKX quote via C98 Superlink
+async function _fetchOkxC98(chainId, srcToken, destToken, amountWei, decOut, decIn, symIn, symOut) {
+    try {
+        const amount = parseFloat(amountWei) / Math.pow(10, decIn);
+        if (!isFinite(amount) || amount <= 0) return null;
+
+        const isNativeSrc = srcToken.toLowerCase() === _C98_NATIVE;
+        const isNativeDst = destToken.toLowerCase() === _C98_NATIVE;
+        const token0 = { chainId, symbol: symIn, decimals: decIn };
+        if (!isNativeSrc) token0.address = srcToken;
+        const token1 = { chainId, symbol: symOut, decimals: decOut };
+        if (!isNativeDst) token1.address = destToken;
+
+        const body = JSON.stringify({ isAuto: true, amount, token0, token1, backer: ['OKX'], wallet: _C98_WALLET });
+        const targetUrl = 'https://superlink-server.coin98.tech/quote';
+        const proxyUrl  = APP_DEV_CONFIG.corsProxy + encodeURIComponent(targetUrl);
+        const resp = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body,
+        });
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        const toAmt = data?.data?.[0]?.amount;
+        if (toAmt == null) return null;
+        return { amount: parseFloat(toAmt), dec: decOut, name: 'OKXDEX', src: 'OX', feeSwapUsdt: 0 };
+    } catch { return null; }
 }
 
+// Pilih sumber dengan output terbesar
+function _bestOkx(a, b) {
+    if (!a && !b) return null;
+    if (!a) return b;
+    if (!b) return a;
+    const aH = a.amount / Math.pow(10, a.dec || 0);
+    const bH = b.amount / Math.pow(10, b.dec || 0);
+    return bH >= aH ? b : a;
+}
 
-async function fetchDexQuotesOkx(chainId, srcToken, destToken, amountWei, decOut) {
+async function fetchDexQuotesOkx(chainId, srcToken, destToken, amountWei, decOut, decIn = 18, symIn = '', symOut = '') {
     if (!isOkxEnabled()) return [];
+    if (!amountWei || String(amountWei) === '0') return [];
     const cacheKey = `dex:ox:${chainId}:${srcToken}:${destToken}:${amountWei}`;
+    const cached = cacheGet(cacheKey);
+    if (cached !== undefined) return cached;
+
     return cacheWrap(cacheKey, 900, async () => {
         try {
-            if (!amountWei || String(amountWei) === '0') return [];
-            const key = _okxApiKey();
-            const timestamp = new Date().toISOString();
-            const path = '/api/v6/dex/aggregator/quote';
-            const query = `amount=${amountWei}&chainIndex=${chainId}&fromTokenAddress=${srcToken}&toTokenAddress=${destToken}`;
-            const toSign = timestamp + 'GET' + path + '?' + query;
-            const signature = await _signOkxHmac(key.secretKeyOKX, toSign);
-            const targetUrl = `https://web3.okx.com${path}?${query}`;
-            const proxyUrl = APP_DEV_CONFIG.corsProxy + encodeURIComponent(targetUrl);
-            const resp = await fetch(proxyUrl, {
-                headers: {
-                    'OK-ACCESS-KEY': key.ApiKeyOKX,
-                    'OK-ACCESS-SIGN': signature,
-                    'OK-ACCESS-PASSPHRASE': key.PassphraseOKX,
-                    'OK-ACCESS-TIMESTAMP': timestamp,
-                    'Content-Type': 'application/json',
-                },
-            });
-            if (!resp.ok) return [];
-            const data = await resp.json();
-            const d = data?.data?.[0];
-            const toAmt = d?.toTokenAmount;
-            if (!toAmt) return [];
-            // OKX DEX tidak mengembalikan biaya gas yang valid — feeSwapUsdt = 0
-            // Akan di-fallback ke chainGasFallback (eth_gasPrice via RPC proxy) di scan.js
-            return [{ amount: parseFloat(toAmt), dec: decOut, name: 'OKX', src: 'OX', feeSwapUsdt: 0 }];
+            const [c98, krystal] = await Promise.all([
+                _fetchOkxC98(chainId, srcToken, destToken, amountWei, decOut, decIn, symIn, symOut),
+                fetchKrystalForOkx(chainId, srcToken, destToken, amountWei),
+            ]);
+            const best = _bestOkx(c98, krystal);
+            return best ? [best] : [];
         } catch { return []; }
     });
 }

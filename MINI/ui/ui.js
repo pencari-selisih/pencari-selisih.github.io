@@ -218,32 +218,42 @@ function loadSettings() {
     DEX_LIST.forEach(def => {
         if (!CFG.dex[def.key]) CFG.dex[def.key] = { active: true, modalCtD: 100, modalDtC: 80 };
     });
-    if (!CFG.dex.metax.count)  CFG.dex.metax.count  = CFG.quoteCountMetax  || APP_DEV_CONFIG.defaultQuoteCountMetax;
-    if (!CFG.dex.jumpx.count)  CFG.dex.jumpx.count  = CFG.quoteCountJumpx  || APP_DEV_CONFIG.defaultQuoteCountJumpx;
-    if (!CFG.dex.krystal.count) CFG.dex.krystal.count = CFG.quoteCountKrystal || APP_DEV_CONFIG.defaultQuoteCountKrystal;
+    if (!CFG.dex.metax?.count)  CFG.dex.metax.count  = CFG.quoteCountMetax  || CONFIG_DEX.metax?.count || 2;
+    if (!CFG.dex.jumpx?.count)  CFG.dex.jumpx.count  = CFG.quoteCountJumpx  || CONFIG_DEX.jumpx?.count || 2;
+    // Migrate any remaining legacy counts
+    Object.entries(CONFIG_DEX).forEach(([k, cfg]) => {
+        if (cfg.hasCount && CFG.dex[k] && !CFG.dex[k].count) {
+            CFG.dex[k].count = cfg.count;
+        }
+    });
     _syncLegacyDexCounts();
     $('#setUsername').val(CFG.username);
     $('#setWallet').val(CFG.wallet);
     $('#setInterval').val(CFG.interval);
     $('#setSoundMuted').prop('checked', !CFG.soundMuted); // centang = suara ON
-    // Quote count per DEX — only show fields enabled in config.js
-    if (APP_DEV_CONFIG.defaultQuoteCountMetax > 0) {
-        $('#fieldQuoteMetax').show();
-        $('#setQuoteMetax').val(CFG.dex.metax.count || APP_DEV_CONFIG.defaultQuoteCountMetax);
-    } else {
-        $('#fieldQuoteMetax').hide();
-    }
-    if (APP_DEV_CONFIG.defaultQuoteCountJumpx > 0) {
-        $('#fieldQuoteJumpx').show();
-        $('#setQuoteJumpx').val(CFG.dex.jumpx.count || APP_DEV_CONFIG.defaultQuoteCountJumpx);
-    } else {
-        $('#fieldQuoteJumpx').hide();
-    }
-    if (APP_DEV_CONFIG.defaultQuoteCountKrystal > 0) {
-        $('#fieldQuoteKrystal').show();
-        $('#setQuoteKrystal').val(CFG.dex.krystal.count || APP_DEV_CONFIG.defaultQuoteCountKrystal);
-    } else {
-        $('#fieldQuoteKrystal').hide();
+    // Dynamic DEX settings — render from CONFIG_DEX
+    const _dexSettingsContainer = document.getElementById('dexSettingsContainer');
+    if (_dexSettingsContainer) {
+        _dexSettingsContainer.innerHTML = '';
+        Object.entries(CONFIG_DEX).forEach(([key, cfg]) => {
+            if (!cfg.hasCount || !cfg.enabled) return;
+            const div = document.createElement('div');
+            div.className = 'settings-field';
+            div.id = `fieldQuote_${key}`;
+            div.innerHTML = `<label class="settings-label">DEX <span class="src-tag" style="background:${cfg.color};color:#fff;font-size:7px">${cfg.badge}</span></label>
+                <input class="settings-input" id="setQuote_${key}" type="number" min="1" max="5" value="${CFG.dex[key]?.count || cfg.count}">`;
+            _dexSettingsContainer.appendChild(div);
+            // Bind change event
+            div.querySelector('input').addEventListener('change', function() {
+                const v = Math.min(5, Math.max(1, parseInt(this.value) || cfg.count));
+                this.value = v;
+                if (!CFG.dex[key]) CFG.dex[key] = {};
+                CFG.dex[key].count = v;
+                _syncLegacyDexCounts();
+                saveSettings();
+                showToast(`✓ ${cfg.label} Route: ${v}`);
+            });
+        });
     }
     // Auto Level CEX — selalu aktif, on/off via config.js defaultAutoLevel
     CFG.autoLevel = isAutoLevelEnabled();
@@ -1305,7 +1315,7 @@ function _buildSingleCard(t, n) {
         const icons = addrs.map((addr, i) => {
             const url = `${_explorerBase}/token/${sc}?a=${addr}`;
             const tip = `Stok ${label} ${cc.label||t.cex}${i>0?' #'+(i+1):''} — klik buka di explorer`;
-            return `<a href="${url}" target="_blank" rel="noopener" class="stok-link" title="${tip}" onclick="event.stopPropagation()">📦</a>`;
+            return `<a href="${url}" target="_blank" rel="noopener" class="stok-link" title="${tip}" onclick="event.stopPropagation()"> 📦</a>`;
         }).join('');
         return `<span class="stok-name">${label}</span>${icons}`;
     }
@@ -1579,9 +1589,10 @@ function updateSignalChips(tok, signals, dir) {
             _signalChipCount++;
         }
         const dexSrc   = r.src || '';
-        const dexName  = r.name ? r.name.toUpperCase() : 'DEX';
-        const dexBadge = dexSrc === 'MX' ? 'MT' : dexSrc === 'JX' ? 'LF' : dexSrc === 'KR' ? 'KC' : dexSrc === 'KB' ? 'KB' : '';
-        const dexSrcCls = dexSrc === 'KR' ? 'kc' : dexSrc.toLowerCase();
+        const _chipSrcCfg = Object.values(CONFIG_DEX).find(c => c.src === dexSrc);
+        const dexName  = _chipSrcCfg && !_chipSrcCfg.hasCount ? _chipSrcCfg.label : (r.name ? r.name.toUpperCase() : 'DEX');
+        const dexBadge = _chipSrcCfg && _chipSrcCfg.hasCount ? _chipSrcCfg.badge : '';
+        const dexSrcCls = dexSrc.toLowerCase();
         const badgeHtml = dexBadge ? `<span class="src-tag ${dexSrcCls}">${dexBadge}</span>` : '';
         const pairTicker = tok.tickerPair || 'USDT';
         // Simpan index kolom untuk navigasi langsung ke kolom DEX yang tepat
@@ -1590,8 +1601,8 @@ function updateSignalChips(tok, signals, dir) {
         const _cardNum = document.getElementById('card-' + tok.id)?.querySelector('.mon-num')?.textContent || '?';
         // Baris 1 (route exchange): CTD = CEX→DEX, DTC = DEX→CEX
         const routeLabel = dir === 'CTD'
-            ? `${cexLabel}→${badgeHtml} ${dexName}`
-            : `${badgeHtml} ${dexName}→${cexLabel}`;
+            ? `${cexLabel}→${badgeHtml}${badgeHtml ? ' ' : ''}${dexName}`
+            : `${badgeHtml}${badgeHtml ? ' ' : ''}${dexName}→${cexLabel}`;
         // Baris 2 (arah aset): CTD = TOKEN→PAIR, DTC = PAIR→TOKEN
         const assetLabel = dir === 'CTD'
             ? `${tok.ticker}→${pairTicker}`
@@ -1654,33 +1665,7 @@ $('#setLevelCount').on('change', function () {
     _autoSaveFields();
     showToast('✓ Level CEX: ' + clamped);
 });
-$('#setQuoteMetax').on('change', function () {
-    const v = Math.min(5, Math.max(1, parseInt($(this).val()) || APP_DEV_CONFIG.defaultQuoteCountMetax));
-    $(this).val(v);
-    if (!CFG.dex.metax) CFG.dex.metax = {};
-    CFG.dex.metax.count = v;
-    _syncLegacyDexCounts();
-    _persistCFG();
-    showToast('✓ METAX Route: ' + v);
-});
-$('#setQuoteJumpx').on('change', function () {
-    const v = Math.min(5, Math.max(1, parseInt($(this).val()) || APP_DEV_CONFIG.defaultQuoteCountJumpx));
-    $(this).val(v);
-    if (!CFG.dex.jumpx) CFG.dex.jumpx = {};
-    CFG.dex.jumpx.count = v;
-    _syncLegacyDexCounts();
-    _persistCFG();
-    showToast('✓ JUMPX Route: ' + v);
-});
-$('#setQuoteKrystal').on('change', function () {
-    const v = Math.min(5, Math.max(1, parseInt($(this).val()) || APP_DEV_CONFIG.defaultQuoteCountKrystal));
-    $(this).val(v);
-    if (!CFG.dex.krystal) CFG.dex.krystal = {};
-    CFG.dex.krystal.count = v;
-    _syncLegacyDexCounts();
-    _persistCFG();
-    showToast('✓ KRYSTAL Route: ' + v);
-});
+// NOTE: DEX route count handlers are now dynamically bound in loadSettings() from CONFIG_DEX
 
 // ─── Reload with Toast ───────────────────────
 function reloadWithToast() {
@@ -1968,9 +1953,22 @@ $('#signalBar').on('click', '.signal-chip', function () {
         const dexHdr = hdrIdx !== '' && hdrIdx != null
             ? card.querySelector(`.mon-dex-hdr[data-${dir}-hdr="${hdrIdx}"]`)
             : null;
-        (dexHdr || card).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const target = dexHdr || card;
+        // FIX: Gunakan scrollTo manual alih-alih scrollIntoView smooth.
+        // scrollIntoView smooth bisa meleset jika DOM berubah (scan result masuk)
+        // selama animasi scroll berlangsung.
+        const rect = target.getBoundingClientRect();
+        const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+        const viewH = window.innerHeight || document.documentElement.clientHeight;
+        const targetY = scrollY + rect.top - (viewH / 2) + (rect.height / 2);
+        window.scrollTo({ top: Math.max(0, targetY), behavior: 'auto' });
         card.classList.add('card-flash');
         setTimeout(() => card.classList.remove('card-flash'), 1600);
+    }
+
+    // Wrapper: tunggu 2 rAF agar pending DOM mutations (scan results) selesai
+    function _scrollAfterSettle() {
+        requestAnimationFrame(() => requestAnimationFrame(_doScroll));
     }
 
     const isMonitorActive = !!document.getElementById('tabMonitor')?.classList.contains('active');
@@ -1978,7 +1976,7 @@ $('#signalBar').on('click', '.signal-chip', function () {
         if (scanning) {
             // Scan aktif: kartu sudah ada di DOM, tab switch tanpa rebuild
             switchTab('tabMonitor');
-            requestAnimationFrame(_doScroll);
+            _scrollAfterSettle();
         } else {
             // Tidak scan: tab switch memicu buildMonitorRows (batched rAF)
             // Pasang callback — akan dipanggil setelah _finalizeBuildOrder selesai
@@ -1986,8 +1984,8 @@ $('#signalBar').on('click', '.signal-chip', function () {
             switchTab('tabMonitor');
         }
     } else {
-        // Sudah di tab monitor, scroll langsung (1 rAF agar paint sudah siap)
-        requestAnimationFrame(_doScroll);
+        // Sudah di tab monitor — tunggu DOM settle lalu scroll
+        _scrollAfterSettle();
     }
 });
 

@@ -1,59 +1,59 @@
 // ─── KYBER: KyberSwap Aggregator REST API ────
-// Docs: https://docs.kyberswap.com/kyberswap-solutions/kyberswap-aggregator/developer-guides/execute-a-swap-with-the-aggregator-api
+// CTD: Kyber Aggregator API langsung
+// DTC: Krystal allRates API (filter KyberSwap)
+// Docs: https://docs.kyberswap.com/kyberswap-solutions/kyberswap-aggregator
 const KYBER_CHAIN_MAP = {
     bsc: 'bsc', ethereum: 'ethereum', polygon: 'polygon',
     arbitrum: 'arbitrum', base: 'base',
 };
+const KRYSTAL_CHAIN_ID_MAP = {
+    56: 'bsc', 1: 'ethereum', 137: 'polygon', 42161: 'arbitrum', 8453: 'base',
+};
+const KRYSTAL_PLATFORM_WALLET_KB = '0x168E4c3AC8d89B00958B6bE6400B066f0347DDc9';
 
 async function fetchDexQuotesKyber(chainKey, srcToken, destToken, amountWei, decOut, decIn = 18, dir = 'ctd') {
-    if (!isKyberEnabled()) return [];
+    if (!isDexEnabled('kyber')) return [];
     if (!amountWei || String(amountWei) === '0') return [];
     const cacheKey = `dex:kb:${chainKey}:${srcToken}:${destToken}:${amountWei}:${dir}`;
     const cached = cacheGet(cacheKey);
     if (cached !== undefined) return cached;
     try {
         if (dir === 'dtc') {
-            // DTC: gunakan Bungee API — filter hanya route KyberSwap
+            // DTC: Krystal allRates API — filter platform "KyberSwap"
             const chainId = CONFIG_CHAINS[chainKey]?.Kode_Chain;
-            if (!chainId) return [];
-            const userAddr = CFG.wallet || '0x0000000000000000000000000000000000000000';
-            const params = new URLSearchParams({
-                userAddress:              userAddr,
-                originChainId:            chainId,
-                destinationChainId:       chainId,
-                inputAmount:              amountWei.toString(),
-                inputToken:               srcToken.toLowerCase(),
-                outputToken:              destToken.toLowerCase(),
-                enableManual:             'true',
-                receiverAddress:          userAddr,
-                refuel:                   'false',
-                excludeBridges:           'cctp',
-                useInbox:                 'false',
-                enableMultipleAutoRoutes: 'true',
-            });
-            const bgUrl = `https://dedicated-backend.bungee.exchange/api/v1/bungee/quote?${params}`;
-            const resp = await fetch(bgUrl, {
-                headers: {
-                    'Content-Type': 'application/json; charset=utf-8',
-                    'affiliate':    APP_DEV_CONFIG.bungeeAffiliate,
-                    'x-api-key':    APP_DEV_CONFIG.bungeeApiKey,
-                }
-            });
+            const chainName = KRYSTAL_CHAIN_ID_MAP[Number(chainId)];
+            if (!chainName) return [];
+            const url = `https://api.krystal.app/${chainName}/v2/swap/allRates` +
+                `?src=${srcToken}&srcAmount=${amountWei}&dest=${destToken}` +
+                `&platformWallet=${KRYSTAL_PLATFORM_WALLET_KB}`;
+            const resp = await fetch(url);
             if (!resp.ok) return [];
             const data = await resp.json();
-            if (!data?.success) return [];
-            const result = data.result || {};
-            const allRoutes = [...(result.manualRoutes || [])];
-            if (result.autoRoute?.output?.amount) allRoutes.push(result.autoRoute);
-            // Filter hanya route yang namanya mengandung "kyber"
-            const kyberRoute = allRoutes.find(r => /kyber/i.test(r.routeDetails?.name || r.name || ''));
-            if (!kyberRoute?.output?.amount) return [];
-            const feeSwapUsdt = parseFloat(kyberRoute.gasFee?.feeInUsd || 0) || 0;
-            const res = [{ amount: parseFloat(kyberRoute.output.amount), dec: decOut, name: 'KYBER', src: 'KB', feeSwapUsdt }];
+            const rates = data?.rates || [];
+            // Filter: hanya ambil rate yang platform mengandung "kyber"
+            const match = rates.find(r =>
+                /kyber/i.test(r.platform || r.exchange || r.name || '')
+            );
+            if (!match?.amount) return [];
+            // Gas fee: estimatedGas * gwei * tokenPrice / 1e9
+            let feeSwapUsdt = 0;
+            try {
+                const gasUnits = parseFloat(match.estimatedGas || match.estGasConsumed || 0);
+                if (gasUnits > 0) {
+                    const gasData = JSON.parse(localStorage.getItem('scp_gasFees') || '[]');
+                    const gasInfo = gasData.find(g => String(g.chain || '').toLowerCase() === chainKey);
+                    if (gasInfo?.gwei && gasInfo?.tokenPrice) {
+                        feeSwapUsdt = (gasUnits * gasInfo.gwei * gasInfo.tokenPrice) / 1e9;
+                    }
+                }
+            } catch (_) {}
+            const dec = match.decimals ?? match.destDecimals ?? decOut;
+            const name = (match.platform || 'KYBER').toUpperCase();
+            const res = [{ amount: parseFloat(match.amount), dec, name, src: 'KB', feeSwapUsdt }];
             cacheSet(cacheKey, res, 900);
             return res;
         } else {
-            // CTD: gunakan Kyber Aggregator API langsung
+            // CTD: Kyber Aggregator API langsung
             const chainName = KYBER_CHAIN_MAP[chainKey];
             if (!chainName) return [];
             const url = `https://aggregator-api.kyberswap.com/${chainName}/api/v1/routes` +
@@ -64,7 +64,6 @@ async function fetchDexQuotesKyber(chainKey, srcToken, destToken, amountWei, dec
             const rs = data?.data?.routeSummary;
             const amountOut = rs?.amountOut;
             if (!amountOut) return [];
-            // gasUsd: gas cost in USD dari Kyber response (gasInclude=true di URL)
             const feeSwapUsdt = parseFloat(rs?.gasUsd || rs?.gas || 0) || 0;
             const res = [{ amount: parseFloat(amountOut), dec: decOut, name: 'KYBER', src: 'KB', feeSwapUsdt }];
             cacheSet(cacheKey, res, 900);
