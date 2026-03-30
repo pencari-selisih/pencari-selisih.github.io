@@ -78,7 +78,7 @@ function fetchDexQuotesOnekey(chainId, srcToken, destToken, amountWei, decOut, d
                         try {
                             const gasLimit = parseFloat(item.gasLimit || 0);
                             if (gasLimit > 0) {
-                                const gasData = JSON.parse(localStorage.getItem('scp_gasFees') || '[]');
+                                const gasData = dbGet('scp_gasFees', []);
                                 const chainKey = Object.keys(CONFIG_CHAINS).find(k =>
                                     String(CONFIG_CHAINS[k].Kode_Chain) === String(chainId)
                                 );

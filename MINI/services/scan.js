@@ -280,50 +280,20 @@ async function scanToken(tok) {
         },
     };
 
-    // Build dynamic Promise.all from enabled DEX keys
-    const _enabledKeys = Object.keys(CONFIG_DEX).filter(k => isDexEnabled(k));
-    const _fetchPromises = [];
-    const _fetchMeta = []; // [{key, dir}] aligned with _fetchPromises
-    _enabledKeys.forEach(k => {
-        const fm = _dexFetchMap[k];
-        if (!fm) return;
-        _fetchPromises.push(fm.ctd()); _fetchMeta.push({ key: k, dir: 'ctd' });
-        _fetchPromises.push(fm.dtc()); _fetchMeta.push({ key: k, dir: 'dtc' });
-    });
-    const _fetchResults = await Promise.all(_fetchPromises);
-    // Organize results: dexRaw[key] = { ctd: [], dtc: [] }
-    const dexRaw = {};
-    _enabledKeys.forEach(k => { dexRaw[k] = { ctd: [], dtc: [] }; });
-    _fetchResults.forEach((result, i) => {
-        const { key, dir } = _fetchMeta[i];
-        dexRaw[key][dir] = result || [];
-    });
 
-    // helper: build list of {name, error} for empty columns — generic from CONFIG_DEX
-    function buildMissingLabels(allData, rawData) {
-        const labels = [];
-        _enabledKeys.forEach(k => {
-            const cfg = CONFIG_DEX[k];
-            const src = cfg.src;
-            const existing = allData.filter(r => r.src === src).length;
-            const expectedCount = cfg.hasCount ? (CFG.dex?.[k]?.count || cfg.count) : 1;
-            const raw = rawData[k] || [];
-            for (let i = existing; i < expectedCount; i++) {
-                labels.push({ name: cfg.label, error: raw.length === 0 ? 'NO QUOTE' : 'NO ROUTE' });
-            }
-        });
-        return labels;
-    }
+    // ── Streaming DEX render ─────────────────────────────────────────────────
+    // Setiap DEX dipanggil paralel. Begitu satu DEX resolve → kolom UI langsung
+    // diisi (re-sort + re-render) tanpa menunggu DEX lain selesai.
+    // SSE (metax, onekey)  : resolve ketika N quote terkumpul atau sseTimeout
+    // REST (kyber, okx, dll): resolve dalam < 2 detik → kolom terisi lebih cepat
+    const _SSE_KEYS        = new Set(['metax', 'onekey']);
+    const _enabledKeys     = Object.keys(CONFIG_DEX).filter(k => isDexEnabled(k));
+    const tokMinPnl        = (isFinite(tok.minPnl) && tok.minPnl !== null) ? tok.minPnl : 1;
+    const chainGasFee      = _chainGasEstimateUsdt[chainId] || 0;
 
-    // 5. Combine & sort CTD quotes — skip jika WD token ditutup (blockCtD)
-    const tokMinPnl = (isFinite(tok.minPnl) && tok.minPnl !== null) ? tok.minPnl : 1;
-    // Gas estimate dari eth_gasPrice yang sudah di-fetch saat start scan
-    // Dipakai jika DEX tidak return feeSwap sendiri (OKX, MetaX)
-    const chainGasFee = _chainGasEstimateUsdt[chainId] || 0;
-
-    // ── DEX name normalization & filter ──────────────────────
-    const _normDexName = n => {
-        const u = (n || '').toUpperCase().trim();
+    // Normalisasi nama DEX dan filter offlist
+    const _normDexName = nm => {
+        const u = (nm || '').toUpperCase().trim();
         if (/^0X(\s|$|-|_|PROTOCOL|EXCHANGE)/i.test(u) || u === '0X') return 'MATCHA';
         if (u === 'OKX' || u.startsWith('OKX ') || u === 'OKXDEX') return 'OKXDEX';
         if (u.includes('KYBERSWAP')) return 'KYBER';
@@ -332,234 +302,237 @@ async function scanToken(tok) {
     };
     const _offList = (APP_DEV_CONFIG.offDexResultScan || []).map(s => s.toUpperCase());
     const _isOff = name => { const u = (name || '').toUpperCase(); return _offList.some(o => u.includes(o)); };
-    // Wrap parse + normalize + filter; returns null if filtered out
-    // Parse registry: dexKey → parser function
     const _dexParsers = {
-        metax: q => { const p = typeof parseDexQuoteMetax === 'function' ? parseDexQuoteMetax(q) : null; if (!p) return null; p.name = _normDexName(p.name); return _isOff(p.name) ? null : p; },
-        jumpx: q => { const p = typeof parseDexQuoteJumpx === 'function' ? parseDexQuoteJumpx(q) : null; if (!p) return null; p.name = _normDexName(p.name); return _isOff(p.name) ? null : p; },
-        kyber: q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
-        okx: q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
-        lifidex: q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
+        metax:  q => { const p = typeof parseDexQuoteMetax === 'function' ? parseDexQuoteMetax(q) : null; if (!p) return null; p.name = _normDexName(p.name); return _isOff(p.name) ? null : p; },
+        jumpx:  q => { const p = typeof parseDexQuoteJumpx === 'function' ? parseDexQuoteJumpx(q) : null; if (!p) return null; p.name = _normDexName(p.name); return _isOff(p.name) ? null : p; },
+        kyber:  q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
+        okx:    q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
+        lifidex:q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
         matcha: q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
         onekey: q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
     };
 
-    const allCtD = [];
-    if (!blockCtD) {
-        const _pCtD = (r, dk) => { r.dexModalCtD = tok.dexModals?.[dk]?.ctd || tok.modalCtD || CFG.dex?.[dk]?.modalCtD; r.modalFull = dxCtD[dk].full; r.modalActual = Math.round(dxCtD[dk].modal); r.dexMinPnl = tok.dexModals?.[dk]?.pnl ?? tokMinPnl ?? CFG.dex?.[dk]?.minPnl ?? 1; allCtD.push(r); };
-        _enabledKeys.forEach(dk => {
-            const parser = _dexParsers[dk];
-            if (!parser || !dexRaw[dk]?.ctd) return;
-            dexRaw[dk].ctd.forEach(q => {
-                const p = parser(q);
-                if (p) _pCtD(computeQuotePnl(p, pairDec, bidPair, dxCtD[dk].modal, tok.cex, dxCtD[dk].price, 'ctd', feeWdCtD, isPairStable, chainGasFee), dk);
-            });
-        });
-    }
-    allCtD.sort((a, b) => b.pnl - a.pnl);
-    const ctdData = allCtD.slice(0, n);
-    const ctdRawData = {}; _enabledKeys.forEach(k => { ctdRawData[k] = dexRaw[k]?.ctd || []; });
-    const missingCtdLabels = blockCtD ? [] : buildMissingLabels(allCtD, ctdRawData);
+    // Running state — diupdate tiap DEX resolve
+    const _runCtD = []; const _runDtC = [];
+    const _dexRaw = {}; _enabledKeys.forEach(k => { _dexRaw[k] = { ctd: [], dtc: [] }; });
 
-    // 6. Combine & sort DTC quotes — skip jika DP token ditutup (blockDtC)
-    const allDtC = [];
-    if (!blockDtC) {
-        const _pDtC = (r, dk) => { r.dexModalDtC = tok.dexModals?.[dk]?.dtc || tok.modalDtC || CFG.dex?.[dk]?.modalDtC; r.modalFull = dxDtC[dk].full; r.modalActual = Math.round(dxDtC[dk].modal); r.dexMinPnl = tok.dexModals?.[dk]?.pnl ?? tokMinPnl ?? CFG.dex?.[dk]?.minPnl ?? 1; allDtC.push(r); };
-        _enabledKeys.forEach(dk => {
-            const parser = _dexParsers[dk];
-            if (!parser || !dexRaw[dk]?.dtc) return;
-            dexRaw[dk].dtc.forEach(q => {
-                const p = parser(q);
-                if (p) _pDtC(computeQuotePnl(p, tok.decToken, dxDtC[dk].price, dxDtC[dk].modal, tok.cex, dxCtD[dk].price, 'dtc', 0, isPairStable, chainGasFee), dk);
-            });
-        });
-    }
-    allDtC.sort((a, b) => b.pnl - a.pnl);
-    const dtcData = allDtC.slice(0, n);
-    const dtcRawData = {}; _enabledKeys.forEach(k => { dtcRawData[k] = dexRaw[k]?.dtc || []; });
-    const missingDtcLabels = buildMissingLabels(allDtC, dtcRawData);
+    // Helpers UI
+    const _tradeUrl   = typeof _getCexTradeUrl === 'function' ? _getCexTradeUrl(tok.cex, tok.ticker, pairSymbol) : '';
+    const _cexPHtml   = (txt, url) => url ? `<a href="${url}" target="_blank" rel="noopener" class="cex-price-link">${txt}</a>` : txt;
+    const _dexPHtml   = (txt, dexName, dir) => { const url = typeof _getDexUrl === 'function' ? _getDexUrl(dexName, tok, dir) : ''; return url ? `<a href="${url}" target="_blank" rel="noopener" class="dex-price-link">${txt}</a>` : txt; };
 
-    // 6. Fill CTD table
-    const _tradeUrl = typeof _getCexTradeUrl === 'function' ? _getCexTradeUrl(tok.cex, tok.ticker, pairSymbol) : '';
-    const _cexPriceHtml = (txt, url) => url ? `<a href="${url}" target="_blank" rel="noopener" class="cex-price-link">${txt}</a>` : txt;
-    const _dexPriceHtml = (txt, dexName, dir) => {
-        const url = typeof _getDexUrl === 'function' ? _getDexUrl(dexName, tok, dir) : '';
-        return url ? `<a href="${url}" target="_blank" rel="noopener" class="dex-price-link">${txt}</a>` : txt;
-    };
-    const ctdStatus = els?.ctdStatus;
-    if (!blockCtD && ctdStatus) ctdStatus.textContent = '';
-    for (let i = 0; i < n; i++) {
-        const cexEl = els?.ctdCex[i];
-        if (cexEl) {
-            if (blockCtD) { cexEl.textContent = '—'; cexEl.className = 'mon-dex-cell mc-ask'; }
-            else { cexEl.innerHTML = _cexPriceHtml(`↑ ${fmtCompact(dispAskCtD)}$`, _tradeUrl); cexEl.className = 'mon-dex-cell mc-ask'; }
-        }
+    // buildMissingLabels: isi slot kosong dengan nama DEX + status error
+    function _buildMissing(allData, rawData) {
+        const labels = [];
+        _enabledKeys.forEach(k => {
+            const cfg = CONFIG_DEX[k];
+            const existing = allData.filter(r => r.src === cfg.src).length;
+            const expected = cfg.hasCount ? (CFG.dex?.[k]?.count || cfg.count) : 1;
+            const raw = rawData[k] || [];
+            for (let i = existing; i < expected; i++) {
+                labels.push({ name: cfg.label, error: raw.length === 0 ? 'NO QUOTE' : 'NO ROUTE' });
+            }
+        });
+        return labels;
     }
-    if (blockCtD) {
-        // WD token ditutup → isi semua sel CTD dengan pesan SKIP
-        const hdrEl0 = els?.ctdHdr[0];
-        if (hdrEl0) { hdrEl0.textContent = `⛔ WD ${tok.ticker}`; hdrEl0.className = 'mon-dex-hdr mon-dex-hdr-err'; }
-        for (let i = 1; i < n; i++) { const h = els?.ctdHdr[i]; if (h) { h.textContent = '—'; h.className = 'mon-dex-hdr'; } }
-        const dexEl0 = els?.ctdDex[0];
-        if (dexEl0) { dexEl0.textContent = 'WITHDRAW DITUTUP'; dexEl0.className = 'mon-dex-cell mc-err'; }
-        for (let i = 1; i < n; i++) { const d = els?.ctdDex[i]; if (d) { d.textContent = '—'; d.className = 'mon-dex-cell mc-muted'; } }
+
+    // _renderCols: re-render seluruh kolom CTD+DTC berdasarkan state terkini
+    // Dipanggil setiap kali ada DEX baru yang resolve
+    function _renderCols() {
+        _runCtD.sort((a, b) => b.pnl - a.pnl);
+        _runDtC.sort((a, b) => b.pnl - a.pnl);
+        const ctdData = _runCtD.slice(0, n);
+        const dtcData = _runDtC.slice(0, n);
+        const missingCtD = blockCtD ? [] : _buildMissing(_runCtD, _dexRaw);
+        const missingDtC = _buildMissing(_runDtC, _dexRaw);
+
+        // ── Fill CEX harga di semua kolom (sekali, tidak berubah) ──
+        const ctdSt = els?.ctdStatus; if (!blockCtD && ctdSt) ctdSt.textContent = '';
+        const dtcSt = els?.dtcStatus; if (!blockDtC && dtcSt) dtcSt.textContent = '';
         for (let i = 0; i < n; i++) {
-            const f = els?.ctdFee[i]; if (f) { f.textContent = '—'; f.className = 'mon-dex-cell mc-muted'; }
-            const p = els?.ctdPnl[i]; if (p) { p.textContent = '—'; p.className = 'mon-dex-cell mc-muted'; }
+            const cc = els?.ctdCex[i]; if (cc) { if (blockCtD) { cc.textContent = '—'; cc.className = 'mon-dex-cell mc-ask'; } else { cc.innerHTML = _cexPHtml(`↑ ${fmtCompact(dispAskCtD)}$`, _tradeUrl); cc.className = 'mon-dex-cell mc-ask'; } }
+            const dc = els?.dtcCex[i]; if (dc) { if (blockDtC) { dc.textContent = '—'; dc.className = 'mon-dex-cell mc-bid'; } else { dc.innerHTML = _cexPHtml(`↓ ${fmtCompact(dispBidDtC)}$`, _tradeUrl); dc.className = 'mon-dex-cell mc-bid'; } }
         }
-    } else if (!ctdData.length) {
-        const reason = diagCtD || 'TIDAK ADA LP / DEX';
-        const hdrEl0 = els?.ctdHdr[0];
-        if (hdrEl0) { hdrEl0.textContent = reason; hdrEl0.className = 'mon-dex-hdr mon-dex-hdr-err'; }
-        for (let i = 1; i < n; i++) { const h = els?.ctdHdr[i]; if (h) { h.textContent = '—'; h.className = 'mon-dex-hdr'; } }
-        const hint = diagCtD === 'MODAL BESAR' ? '↓ Kecilkan Modal' : diagCtD === 'AMOUNT NOL' ? '↓ Cek Harga CEX' : '↓ KOIN TIDAK ADA DI DEX / LP';
-        const dexEl0 = els?.ctdDex[0];
-        if (dexEl0) { dexEl0.textContent = hint; dexEl0.className = 'mon-dex-cell mc-err'; }
-        for (let i = 1; i < n; i++) { const d = els?.ctdDex[i]; if (d) { d.textContent = '—'; d.className = 'mon-dex-cell mc-muted'; } }
-    } else {
-        ctdData.forEach((r, i) => {
-            r.hdrIdx = i; // simpan index kolom untuk navigasi signal chip
-            // els?.ctdHdr[i] bisa undefined jika card baru dibuat & belum di-cache _cardEls
-            // Fallback: langsung query dari DOM agar data-src selalu ter-set
-            const hdrEl = els?.ctdHdr[i] || card.querySelector(`.mon-dex-hdr[data-dir="ctd"][data-ctd-hdr="${i}"]`);
-            const cexEl = els?.ctdCex[i];
-            const dexEl = els?.ctdDex[i];
-            const feeEl = els?.ctdFee[i];
-            const pnlEl = els?.ctdPnl[i];
-            const isSignal = r.pnl >= (r.dexMinPnl ?? tokMinPnl);
-            const sigCls = isSignal ? ' col-signal' : '';
-            const _srcCfg = Object.values(CONFIG_DEX).find(c => c.src === r.src);
-            const ctdName = _srcCfg && !_srcCfg.hasCount ? _srcCfg.label : (r.name || '').slice(0, 6).toUpperCase();
-            const ctdSrcTag = _srcCfg && _srcCfg.hasCount ? `<span class="src-tag" style="background:${_srcCfg.color};color:#fff;font-size:6px">${_srcCfg.badge}</span>` : '';
-            const ctdModalSet = r.dexModalCtD;
-            const ctdInsuf = r.modalFull === false && r.modalActual && ctdModalSet && r.modalActual < ctdModalSet;
-            const ctdModalLbl = ctdInsuf
-                ? `<span class="hdr-modal-set">$${ctdModalSet}</span> | <span class="hdr-modal-act">$${r.modalActual}✅</span>`
-                : (ctdModalSet ? `<span class="hdr-modal-ok">$${ctdModalSet}✅</span>` : '');
-            if (hdrEl) { hdrEl.innerHTML = ctdName + (ctdSrcTag ? ' ' + ctdSrcTag : '') + (ctdModalLbl ? `<span class="hdr-dex-modal">${ctdModalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = ctdModalSet || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); hdrEl.dataset.dexName = ctdName + (_srcCfg && _srcCfg.hasCount ? ' ' + _srcCfg.badge : ''); hdrEl.dataset.src = r.src; }
-            if (cexEl) { cexEl.innerHTML = _cexPriceHtml(`↑ ${fmtCompact(dispAskCtD)}$`, _tradeUrl); cexEl.className = 'mon-dex-cell mc-ask' + sigCls; }
-            if (dexEl) { dexEl.innerHTML = _dexPriceHtml(`↓ ${fmtCompact(r.effPrice)}$`, r.name, 'ctd'); dexEl.className = 'mon-dex-cell mc-bid' + sigCls; }
-            if (feeEl) { feeEl.textContent = _fmtFeeCell(r.wdFee, r.cexFee1 + r.cexFee2, r.feeSwap || 0); feeEl.className = 'mon-dex-cell mc-recv' + sigCls; }
-            if (pnlEl) { const cls = r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg'; pnlEl.textContent = `${fmtPnl(r.pnl)}$`; pnlEl.className = `mon-dex-cell mc-pnl ${cls}` + sigCls; pnlEl.title = `${r.name || 'DEX'}\nMin PNL: $${(r.dexMinPnl ?? tokMinPnl).toFixed(2)}\nPNL: ${fmtPnl(r.pnl)}$`; }
-        });
-        // Fill remaining empty columns with DEX name + error info
-        for (let i = ctdData.length; i < n; i++) {
-            const lbl = missingCtdLabels[i - ctdData.length];
-            const h = els?.ctdHdr[i];
-            const c = els?.ctdCex[i];
-            const d = els?.ctdDex[i];
-            const f = els?.ctdFee[i];
-            const p = els?.ctdPnl[i];
-            if (h) { h.textContent = lbl ? lbl.name : '—'; h.className = lbl ? 'mon-dex-hdr mon-dex-hdr-muted' : 'mon-dex-hdr'; }
-            if (c) { c.textContent = '-'; c.className = 'mon-dex-cell mc-muted'; }
-            if (d) { d.textContent = lbl ? lbl.error : '-'; d.className = lbl ? 'mon-dex-cell mc-err-sm' : 'mon-dex-cell mc-muted'; }
-            if (f) { f.textContent = '-'; f.className = 'mon-dex-cell mc-muted'; }
-            if (p) { p.textContent = '-'; p.className = 'mon-dex-cell mc-muted'; }
+
+        // ── CTD table ──────────────────────────────────────────────
+        if (blockCtD) {
+            const h0 = els?.ctdHdr[0]; if (h0) { h0.textContent = `⛔ WD ${tok.ticker}`; h0.className = 'mon-dex-hdr mon-dex-hdr-err'; }
+            for (let i = 1; i < n; i++) { const h = els?.ctdHdr[i]; if (h) { h.textContent = '—'; h.className = 'mon-dex-hdr'; } }
+            const d0 = els?.ctdDex[0]; if (d0) { d0.textContent = 'WITHDRAW DITUTUP'; d0.className = 'mon-dex-cell mc-err'; }
+            for (let i = 1; i < n; i++) { const d = els?.ctdDex[i]; if (d) { d.textContent = '—'; d.className = 'mon-dex-cell mc-muted'; } }
+            for (let i = 0; i < n; i++) { const f = els?.ctdFee[i]; if (f) { f.textContent = '—'; f.className = 'mon-dex-cell mc-muted'; } const p = els?.ctdPnl[i]; if (p) { p.textContent = '—'; p.className = 'mon-dex-cell mc-muted'; } }
+        } else if (!ctdData.length) {
+            const reason = diagCtD || 'TIDAK ADA LP / DEX';
+            const h0 = els?.ctdHdr[0]; if (h0) { h0.textContent = reason; h0.className = 'mon-dex-hdr mon-dex-hdr-err'; }
+            for (let i = 1; i < n; i++) { const h = els?.ctdHdr[i]; if (h) { h.textContent = '—'; h.className = 'mon-dex-hdr'; } }
+            const hint = diagCtD === 'MODAL BESAR' ? '↓ Kecilkan Modal' : diagCtD === 'AMOUNT NOL' ? '↓ Cek Harga CEX' : '↓ KOIN TIDAK ADA DI DEX / LP';
+            const d0 = els?.ctdDex[0]; if (d0) { d0.textContent = hint; d0.className = 'mon-dex-cell mc-err'; }
+            for (let i = 1; i < n; i++) { const d = els?.ctdDex[i]; if (d) { d.textContent = '—'; d.className = 'mon-dex-cell mc-muted'; } }
+        } else {
+            ctdData.forEach((r, i) => {
+                r.hdrIdx = i;
+                const hdrEl = els?.ctdHdr[i] || card.querySelector(`.mon-dex-hdr[data-dir="ctd"][data-ctd-hdr="${i}"]`);
+                const cexEl = els?.ctdCex[i]; const dexEl = els?.ctdDex[i]; const feeEl = els?.ctdFee[i]; const pnlEl = els?.ctdPnl[i];
+                const isSignal = r.pnl >= (r.dexMinPnl ?? tokMinPnl); const sigCls = isSignal ? ' col-signal' : '';
+                const _sc = Object.values(CONFIG_DEX).find(c => c.src === r.src);
+                const nm = _sc && !_sc.hasCount ? _sc.label : (r.name || '').slice(0, 6).toUpperCase();
+                const tag = _sc && _sc.hasCount ? `<span class="src-tag" style="background:${_sc.color};color:#fff;font-size:6px">${_sc.badge}</span>` : '';
+                const ms = r.dexModalCtD; const insuf = r.modalFull === false && r.modalActual && ms && r.modalActual < ms;
+                const mlbl = insuf ? `<span class="hdr-modal-set">$${ms}</span> | <span class="hdr-modal-act">$${r.modalActual}✅</span>` : (ms ? `<span class="hdr-modal-ok">$${ms}✅</span>` : '');
+                if (hdrEl) { hdrEl.innerHTML = nm + (tag ? ' ' + tag : '') + (mlbl ? `<span class="hdr-dex-modal">${mlbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = ms || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); hdrEl.dataset.dexName = nm + (_sc && _sc.hasCount ? ' ' + _sc.badge : ''); hdrEl.dataset.src = r.src; }
+                if (cexEl) { cexEl.innerHTML = _cexPHtml(`↑ ${fmtCompact(dispAskCtD)}$`, _tradeUrl); cexEl.className = 'mon-dex-cell mc-ask' + sigCls; }
+                if (dexEl) { dexEl.innerHTML = _dexPHtml(`↓ ${fmtCompact(r.effPrice)}$`, r.name, 'ctd'); dexEl.className = 'mon-dex-cell mc-bid' + sigCls; }
+                if (feeEl) { feeEl.textContent = _fmtFeeCell(r.wdFee, r.cexFee1 + r.cexFee2, r.feeSwap || 0); feeEl.className = 'mon-dex-cell mc-recv' + sigCls; }
+                if (pnlEl) { const cls = r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg'; pnlEl.textContent = `${fmtPnl(r.pnl)}$`; pnlEl.className = `mon-dex-cell mc-pnl ${cls}` + sigCls; pnlEl.title = `${r.name || 'DEX'}\nMin PNL: $${(r.dexMinPnl ?? tokMinPnl).toFixed(2)}\nPNL: ${fmtPnl(r.pnl)}$`; }
+            });
+            for (let i = ctdData.length; i < n; i++) {
+                const lbl = missingCtD[i - ctdData.length];
+                const h = els?.ctdHdr[i]; const c = els?.ctdCex[i]; const d = els?.ctdDex[i]; const f = els?.ctdFee[i]; const p = els?.ctdPnl[i];
+                if (h) { h.textContent = lbl ? lbl.name : '—'; h.className = lbl ? 'mon-dex-hdr mon-dex-hdr-muted' : 'mon-dex-hdr'; }
+                if (c) { c.textContent = '-'; c.className = 'mon-dex-cell mc-muted'; }
+                if (d) { d.textContent = lbl ? lbl.error : '-'; d.className = lbl ? 'mon-dex-cell mc-err-sm' : 'mon-dex-cell mc-muted'; }
+                if (f) { f.textContent = '-'; f.className = 'mon-dex-cell mc-muted'; }
+                if (p) { p.textContent = '-'; p.className = 'mon-dex-cell mc-muted'; }
+            }
+        }
+
+        // ── DTC table ──────────────────────────────────────────────
+        if (blockDtC) {
+            const h0 = els?.dtcHdr[0]; if (h0) { h0.textContent = `⛔ DP ${tok.ticker}`; h0.className = 'mon-dex-hdr mon-dex-hdr-err'; }
+            for (let i = 1; i < n; i++) { const h = els?.dtcHdr[i]; if (h) { h.textContent = '—'; h.className = 'mon-dex-hdr'; } }
+            const d0 = els?.dtcDex[0]; if (d0) { d0.textContent = 'DEPOSIT DITUTUP'; d0.className = 'mon-dex-cell mc-err'; }
+            for (let i = 1; i < n; i++) { const d = els?.dtcDex[i]; if (d) { d.textContent = '—'; d.className = 'mon-dex-cell mc-muted'; } }
+            for (let i = 0; i < n; i++) { const f = els?.dtcFee[i]; if (f) { f.textContent = '—'; f.className = 'mon-dex-cell mc-muted'; } const p = els?.dtcPnl[i]; if (p) { p.textContent = '—'; p.className = 'mon-dex-cell mc-muted'; } }
+        } else if (!dtcData.length) {
+            const reason = diagDtC || '';
+            const h0 = els?.dtcHdr[0]; if (h0) { h0.textContent = reason; h0.className = 'mon-dex-hdr mon-dex-hdr-err'; }
+            for (let i = 1; i < n; i++) { const h = els?.dtcHdr[i]; if (h) { h.textContent = '—'; h.className = 'mon-dex-hdr'; } }
+            const hint = diagDtC === 'MODAL BESAR' ? '↓ Kecilkan Modal' : diagDtC === 'AMOUNT NOL' ? '↓ Cek Harga CEX' : '↓ KOIN TIDAK ADA DI DEX / LP';
+            const d0 = els?.dtcDex[0]; if (d0) { d0.textContent = hint; d0.className = 'mon-dex-cell mc-err'; }
+            for (let i = 1; i < n; i++) { const d = els?.dtcDex[i]; if (d) { d.textContent = '—'; d.className = 'mon-dex-cell mc-muted'; } }
+        } else {
+            dtcData.forEach((r, i) => {
+                r.hdrIdx = i;
+                const hdrEl = els?.dtcHdr[i] || card.querySelector(`.mon-dex-hdr[data-dir="dtc"][data-dtc-hdr="${i}"]`);
+                const cexEl = els?.dtcCex[i]; const dexEl = els?.dtcDex[i]; const feeEl = els?.dtcFee[i]; const pnlEl = els?.dtcPnl[i];
+                const isSignal = r.pnl >= (r.dexMinPnl ?? tokMinPnl); const sigCls = isSignal ? ' col-signal' : '';
+                const _sc = Object.values(CONFIG_DEX).find(c => c.src === r.src);
+                const nm = _sc && !_sc.hasCount ? _sc.label : (r.name || '').slice(0, 6).toUpperCase();
+                const tag = _sc && _sc.hasCount ? `<span class="src-tag" style="background:${_sc.color};color:#fff;font-size:6px">${_sc.badge}</span>` : '';
+                const ms = r.dexModalDtC; const insuf = r.modalFull === false && r.modalActual && ms && r.modalActual < ms;
+                const mlbl = insuf ? `<span class="hdr-modal-set">$${ms}</span> | <span class="hdr-modal-act">$${r.modalActual}✅</span>` : (ms ? `<span class="hdr-modal-ok">$${ms}✅</span>` : '');
+                if (hdrEl) { hdrEl.innerHTML = nm + (tag ? ' ' + tag : '') + (mlbl ? `<span class="hdr-dex-modal">${mlbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = ms || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); hdrEl.dataset.dexName = nm + (_sc && _sc.hasCount ? ' ' + _sc.badge : ''); hdrEl.dataset.src = r.src; }
+                if (cexEl) { cexEl.innerHTML = _cexPHtml(`↓ ${fmtCompact(dispBidDtC)}$`, _tradeUrl); cexEl.className = 'mon-dex-cell mc-bid' + sigCls; }
+                if (dexEl) { dexEl.innerHTML = _dexPHtml(`↑ ${fmtCompact(r.effPrice)}$`, r.name, 'dtc'); dexEl.className = 'mon-dex-cell mc-ask' + sigCls; }
+                if (feeEl) { feeEl.textContent = _fmtFeeCell(r.wdFee, r.cexFee1 + r.cexFee2, r.feeSwap || 0); feeEl.className = 'mon-dex-cell mc-recv' + sigCls; }
+                if (pnlEl) { const cls = r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg'; pnlEl.textContent = `${fmtPnl(r.pnl)}$`; pnlEl.className = `mon-dex-cell mc-pnl ${cls}` + sigCls; pnlEl.title = `${r.name || 'DEX'}\nMin PNL: $${(r.dexMinPnl ?? tokMinPnl).toFixed(2)}\nPNL: ${fmtPnl(r.pnl)}$`; }
+            });
+            for (let i = dtcData.length; i < n; i++) {
+                const lbl = missingDtC[i - dtcData.length];
+                const h = els?.dtcHdr[i]; const c = els?.dtcCex[i]; const d = els?.dtcDex[i]; const f = els?.dtcFee[i]; const p = els?.dtcPnl[i];
+                if (h) { h.textContent = lbl ? lbl.name : '—'; h.className = lbl ? 'mon-dex-hdr mon-dex-hdr-muted' : 'mon-dex-hdr'; }
+                if (c) { c.textContent = '-'; c.className = 'mon-dex-cell mc-muted'; }
+                if (d) { d.textContent = lbl ? lbl.error : '-'; d.className = lbl ? 'mon-dex-cell mc-err-sm' : 'mon-dex-cell mc-muted'; }
+                if (f) { f.textContent = '-'; f.className = 'mon-dex-cell mc-muted'; }
+                if (p) { p.textContent = '-'; p.className = 'mon-dex-cell mc-muted'; }
+            }
         }
     }
 
-    // 7. Fill DTC table
-    const dtcStatus = els?.dtcStatus;
-    if (!blockDtC && dtcStatus) dtcStatus.textContent = '';
-    for (let i = 0; i < n; i++) {
-        const cexEl = els?.dtcCex[i];
-        if (cexEl) {
-            if (blockDtC) { cexEl.textContent = '—'; cexEl.className = 'mon-dex-cell mc-bid'; }
-            else { cexEl.innerHTML = _cexPriceHtml(`↓ ${fmtCompact(dispBidDtC)}$`, _tradeUrl); cexEl.className = 'mon-dex-cell mc-bid'; }
+    // _onDexResult: dipanggil tiap DEX resolve — parse, push, render langsung
+    function _onDexResult(dk, dir, rawResults) {
+        const parser = _dexParsers[dk];
+        if (!parser || !rawResults?.length) { _renderCols(); return; }
+        _dexRaw[dk][dir] = rawResults;
+        if (dir === 'ctd' && !blockCtD) {
+            rawResults.forEach(q => {
+                const p = parser(q); if (!p) return;
+                const r = computeQuotePnl(p, pairDec, bidPair, dxCtD[dk].modal, tok.cex, dxCtD[dk].price, 'ctd', feeWdCtD, isPairStable, chainGasFee);
+                r.dexModalCtD = tok.dexModals?.[dk]?.ctd || tok.modalCtD || CFG.dex?.[dk]?.modalCtD;
+                r.modalFull   = dxCtD[dk].full; r.modalActual = Math.round(dxCtD[dk].modal);
+                r.dexMinPnl   = tok.dexModals?.[dk]?.pnl ?? tokMinPnl ?? CFG.dex?.[dk]?.minPnl ?? 1;
+                _runCtD.push(r);
+            });
+        } else if (dir === 'dtc' && !blockDtC) {
+            rawResults.forEach(q => {
+                const p = parser(q); if (!p) return;
+                const r = computeQuotePnl(p, tok.decToken, dxDtC[dk].price, dxDtC[dk].modal, tok.cex, dxCtD[dk].price, 'dtc', 0, isPairStable, chainGasFee);
+                r.dexModalDtC = tok.dexModals?.[dk]?.dtc || tok.modalDtC || CFG.dex?.[dk]?.modalDtC;
+                r.modalFull   = dxDtC[dk].full; r.modalActual = Math.round(dxDtC[dk].modal);
+                r.dexMinPnl   = tok.dexModals?.[dk]?.pnl ?? tokMinPnl ?? CFG.dex?.[dk]?.minPnl ?? 1;
+                _runDtC.push(r);
+            });
         }
+        _renderCols();
     }
-    if (blockDtC) {
-        // DP token ditutup → isi semua sel DTC dengan pesan SKIP
-        const hdrEl0 = els?.dtcHdr[0];
-        if (hdrEl0) { hdrEl0.textContent = `⛔ DP ${tok.ticker}`; hdrEl0.className = 'mon-dex-hdr mon-dex-hdr-err'; }
-        for (let i = 1; i < n; i++) { const h = els?.dtcHdr[i]; if (h) { h.textContent = '—'; h.className = 'mon-dex-hdr'; } }
-        const dexEl0 = els?.dtcDex[0];
-        if (dexEl0) { dexEl0.textContent = 'DEPOSIT DITUTUP'; dexEl0.className = 'mon-dex-cell mc-err'; }
-        for (let i = 1; i < n; i++) { const d = els?.dtcDex[i]; if (d) { d.textContent = '—'; d.className = 'mon-dex-cell mc-muted'; } }
+
+    // Render awal: isi header CEX + show status "loading..." di kolom DEX
+    // Kolom DEX akan diisi secara progresif saat tiap DEX resolve
+    { // IIFE scope
+        const ctdSt = els?.ctdStatus; if (!blockCtD && ctdSt) ctdSt.textContent = '';
+        const dtcSt = els?.dtcStatus; if (!blockDtC && dtcSt) dtcSt.textContent = '';
         for (let i = 0; i < n; i++) {
-            const f = els?.dtcFee[i]; if (f) { f.textContent = '—'; f.className = 'mon-dex-cell mc-muted'; }
-            const p = els?.dtcPnl[i]; if (p) { p.textContent = '—'; p.className = 'mon-dex-cell mc-muted'; }
-        }
-    } else if (!dtcData.length) {
-        const reason = diagDtC || '';
-        const hdrEl0 = els?.dtcHdr[0];
-        if (hdrEl0) { hdrEl0.textContent = reason; hdrEl0.className = 'mon-dex-hdr mon-dex-hdr-err'; }
-        for (let i = 1; i < n; i++) { const h = els?.dtcHdr[i]; if (h) { h.textContent = '—'; h.className = 'mon-dex-hdr'; } }
-        const hint = diagDtC === 'MODAL BESAR' ? '↓ Kecilkan Modal' : diagDtC === 'AMOUNT NOL' ? '↓ Cek Harga CEX' : '↓ KOIN TIDAK ADA DI DEX / LP';
-        const dexEl0 = els?.dtcDex[0];
-        if (dexEl0) { dexEl0.textContent = hint; dexEl0.className = 'mon-dex-cell mc-err'; }
-        for (let i = 1; i < n; i++) { const d = els?.dtcDex[i]; if (d) { d.textContent = '—'; d.className = 'mon-dex-cell mc-muted'; } }
-    } else {
-        dtcData.forEach((r, i) => {
-            r.hdrIdx = i; // simpan index kolom untuk navigasi signal chip
-            const hdrEl = els?.dtcHdr[i] || card.querySelector(`.mon-dex-hdr[data-dir="dtc"][data-dtc-hdr="${i}"]`);
-            const cexEl = els?.dtcCex[i];
-            const dexEl = els?.dtcDex[i];
-            const feeEl = els?.dtcFee[i];
-            const pnlEl = els?.dtcPnl[i];
-            const isSignal = r.pnl >= (r.dexMinPnl ?? tokMinPnl);
-            const sigCls = isSignal ? ' col-signal' : '';
-            const _srcCfgD = Object.values(CONFIG_DEX).find(c => c.src === r.src);
-            const dtcName = _srcCfgD && !_srcCfgD.hasCount ? _srcCfgD.label : (r.name || '').slice(0, 6).toUpperCase();
-            const dtcSrcTag = _srcCfgD && _srcCfgD.hasCount ? `<span class="src-tag" style="background:${_srcCfgD.color};color:#fff;font-size:6px">${_srcCfgD.badge}</span>` : '';
-            const dtcModalSet = r.dexModalDtC;
-            const dtcInsuf = r.modalFull === false && r.modalActual && dtcModalSet && r.modalActual < dtcModalSet;
-            const dtcModalLbl = dtcInsuf
-                ? `<span class="hdr-modal-set">$${dtcModalSet}</span> | <span class="hdr-modal-act">$${r.modalActual}✅</span>`
-                : (dtcModalSet ? `<span class="hdr-modal-ok">$${dtcModalSet}✅</span>` : '');
-            if (hdrEl) { hdrEl.innerHTML = dtcName + (dtcSrcTag ? ' ' + dtcSrcTag : '') + (dtcModalLbl ? `<span class="hdr-dex-modal">${dtcModalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = dtcModalSet || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); hdrEl.dataset.dexName = dtcName + (_srcCfgD && _srcCfgD.hasCount ? ' ' + _srcCfgD.badge : ''); hdrEl.dataset.src = r.src; }
-            if (cexEl) { cexEl.innerHTML = _cexPriceHtml(`↓ ${fmtCompact(dispBidDtC)}$`, _tradeUrl); cexEl.className = 'mon-dex-cell mc-bid' + sigCls; }
-            if (dexEl) { dexEl.innerHTML = _dexPriceHtml(`↑ ${fmtCompact(r.effPrice)}$`, r.name, 'dtc'); dexEl.className = 'mon-dex-cell mc-ask' + sigCls; }
-            if (feeEl) { feeEl.textContent = _fmtFeeCell(r.wdFee, r.cexFee1 + r.cexFee2, r.feeSwap || 0); feeEl.className = 'mon-dex-cell mc-recv' + sigCls; }
-            if (pnlEl) { const cls = r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg'; pnlEl.textContent = `${fmtPnl(r.pnl)}$`; pnlEl.className = `mon-dex-cell mc-pnl ${cls}` + sigCls; pnlEl.title = `${r.name || 'DEX'}\nMin PNL: $${(r.dexMinPnl ?? tokMinPnl).toFixed(2)}\nPNL: ${fmtPnl(r.pnl)}$`; }
-        });
-        // Fill remaining empty columns with DEX name + error info
-        for (let i = dtcData.length; i < n; i++) {
-            const lbl = missingDtcLabels[i - dtcData.length];
-            const h = els?.dtcHdr[i];
-            const c = els?.dtcCex[i];
-            const d = els?.dtcDex[i];
-            const f = els?.dtcFee[i];
-            const p = els?.dtcPnl[i];
-            if (h) { h.textContent = lbl ? lbl.name : '—'; h.className = lbl ? 'mon-dex-hdr mon-dex-hdr-muted' : 'mon-dex-hdr'; }
-            if (c) { c.textContent = '-'; c.className = 'mon-dex-cell mc-muted'; }
-            if (d) { d.textContent = lbl ? lbl.error : '-'; d.className = lbl ? 'mon-dex-cell mc-err-sm' : 'mon-dex-cell mc-muted'; }
-            if (f) { f.textContent = '-'; f.className = 'mon-dex-cell mc-muted'; }
-            if (p) { p.textContent = '-'; p.className = 'mon-dex-cell mc-muted'; }
+            const cc = els?.ctdCex[i]; if (cc) { cc.innerHTML = blockCtD ? '—' : `<a href="${_tradeUrl}" target="_blank" rel="noopener" class="cex-price-link">↑ ${fmtCompact(dispAskCtD)}$</a>`; cc.className = 'mon-dex-cell mc-ask'; }
+            const dc = els?.dtcCex[i]; if (dc) { dc.innerHTML = blockDtC ? '—' : `<a href="${_tradeUrl}" target="_blank" rel="noopener" class="cex-price-link">↓ ${fmtCompact(dispBidDtC)}$</a>`; dc.className = 'mon-dex-cell mc-bid'; }
+            const cd = els?.ctdDex[i]; if (cd && !blockCtD) { cd.textContent = '…'; cd.className = 'mon-dex-cell mc-muted'; }
+            const dd = els?.dtcDex[i]; if (dd && !blockDtC) { dd.textContent = '…'; dd.className = 'mon-dex-cell mc-muted'; }
         }
     }
 
-    // 8. Signal chip & card highlight — hanya arah yang tidak blocked
-    // jika blockCtD → abaikan CTD dari pertimbangan signal
-    // jika blockDtC → abaikan DTC dari pertimbangan signal
-    const bestCtD = (!blockCtD && ctdData.length) ? ctdData[0].pnl : -999;
-    const bestDtC = (!blockDtC && dtcData.length) ? dtcData[0].pnl : -999;
-    const best = Math.max(bestCtD, bestDtC);
-    // Update chip per sinyal profitable, masing-masing arah
-    const ctdProfit = !blockCtD ? ctdData.filter(r => r.pnl >= (r.dexMinPnl ?? tokMinPnl)) : [];
-    const dtcProfit = !blockDtC ? dtcData.filter(r => r.pnl >= (r.dexMinPnl ?? tokMinPnl)) : [];
+    // ── DEX fetch: semua DEX dijalankan paralel (Promise.all) ────────────────────
+    // Setiap DEX key meluncurkan CTD + DTC bersamaan.
+    // Timeout per-call dari CONFIG_DEX[k].timeout (AbortController).
+    // Jeda per-DEX (CONFIG_DEX[k].jeda) diaplikasikan setelah kedua call selesai.
+
+    // Helper: bungkus satu fetch DEX dengan AbortController timeout
+    function _callDex(key, fn) {
+        const timeoutMs = CONFIG_DEX[key]?.timeout || 8000;
+        const ctrl      = new AbortController();
+        const tid       = setTimeout(() => ctrl.abort(), timeoutMs);
+        // fn() tidak menerima signal — DEX collectors pakai fetchWithRetry internal.
+        // Kita race fn() vs timeout promise untuk cap waktu maksimal.
+        const timeoutP  = new Promise(res => setTimeout(() => res([]), timeoutMs));
+        return Promise.race([fn(), timeoutP]).finally(() => clearTimeout(tid));
+    }
+
+    // Susun semua promise: per DEX key, CTD + DTC serentak, lalu jeda
+    const _dexPromises = _enabledKeys.map(async (k) => {
+        const fm = _dexFetchMap[k];
+        if (!fm) return;
+        const jedaMs = CONFIG_DEX[k]?.jeda || 0;
+        const [rCtD, rDtC] = await Promise.all([
+            _callDex(k, fm.ctd).catch(() => []),
+            _callDex(k, fm.dtc).catch(() => []),
+        ]);
+        _onDexResult(k, 'ctd', rCtD);
+        _onDexResult(k, 'dtc', rDtC);
+        if (jedaMs > 0) await sleep(jedaMs);
+    });
+
+    // Tunggu semua DEX selesai
+    await Promise.allSettled(_dexPromises);
+
+    // ── Signal + Telegram (dilakukan setelah semua DEX selesai) ───────────────
+    _runCtD.sort((a, b) => b.pnl - a.pnl); _runDtC.sort((a, b) => b.pnl - a.pnl);
+    const _ctdFinal = _runCtD.slice(0, n); const _dtcFinal = _runDtC.slice(0, n);
+    const bestCtD = (!blockCtD && _ctdFinal.length) ? _ctdFinal[0].pnl : -999;
+    const bestDtC = (!blockDtC && _dtcFinal.length) ? _dtcFinal[0].pnl : -999;
+    const best    = Math.max(bestCtD, bestDtC);
+    const ctdProfit = !blockCtD ? _ctdFinal.filter(r => r.pnl >= (r.dexMinPnl ?? tokMinPnl)) : [];
+    const dtcProfit = !blockDtC ? _dtcFinal.filter(r => r.pnl >= (r.dexMinPnl ?? tokMinPnl)) : [];
     updateSignalChips(tok, ctdProfit, 'CTD');
     updateSignalChips(tok, dtcProfit, 'DTC');
-    const bestMinPnl = ctdData[0] ? (ctdData[0].dexMinPnl ?? tokMinPnl) : (dtcData[0] ? (dtcData[0].dexMinPnl ?? tokMinPnl) : tokMinPnl);
+    const bestMinPnl = _ctdFinal[0] ? (_ctdFinal[0].dexMinPnl ?? tokMinPnl) : (_dtcFinal[0] ? (_dtcFinal[0].dexMinPnl ?? tokMinPnl) : tokMinPnl);
     if (best >= bestMinPnl) {
         card.classList.add('has-signal');
-        // Kumpulkan SEMUA baris yang memenuhi minPnl, dari kedua arah
-        const ctdSignals = ctdData.filter(r => r.pnl >= (r.dexMinPnl ?? tokMinPnl));
-        const dtcSignals = dtcData.filter(r => r.pnl >= (r.dexMinPnl ?? tokMinPnl));
-        const tgInfo = {
-            ctdSignals,
-            dtcSignals,
-            modalCtD: _refModalCtD,
-            modalDtC: _refModalDtC,
-            buyPriceCtD: dispAskCtD,                       // harga beli CEX (CTD)
-            sellPriceDtC: dispBidDtC,                       // harga jual CEX (DTC)
-        };
-        sendTelegram(tok, best, tgInfo);
+        const ctdSignals = _ctdFinal.filter(r => r.pnl >= (r.dexMinPnl ?? tokMinPnl));
+        const dtcSignals = _dtcFinal.filter(r => r.pnl >= (r.dexMinPnl ?? tokMinPnl));
+        sendTelegram(tok, best, { ctdSignals, dtcSignals, modalCtD: _refModalCtD, modalDtC: _refModalDtC, buyPriceCtD: dispAskCtD, sellPriceDtC: dispBidDtC });
     } else {
         card.classList.remove('has-signal');
     }
-    // Jangan hapus status WD/DP DITUTUP yang sudah ditampilkan
     if (!blockCtD && !blockDtC) setCardStatus(card, '');
+
 }
 
 // Show error/status in both sub-table headers; clear when msg is empty
@@ -773,14 +746,59 @@ let _lastScanTokenKey = null; // cache key: cegah rebuild monitor cards jika uru
 // Gas estimate per chainId dalam USD — diisi sekali saat start scan
 let _chainGasEstimateUsdt = {};
 
+// ─── Scan Timer ──────────────────────────────
+let _scanTimerStart = 0;
+let _scanTimerInterval = null;
+
+function _fmtElapsed(ms) {
+    const elapsed = Math.floor(ms / 1000);
+    const h = Math.floor(elapsed / 3600);
+    const m = Math.floor((elapsed % 3600) / 60);
+    const s = elapsed % 60;
+    return h > 0
+        ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+        : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function _startScanTimer() {
+    _scanTimerStart = Date.now();
+    // Reset semua timer badge
+    const bTimer = document.getElementById('scanBadgeTimer');
+    const dTimer = document.getElementById('scanDoneTimer');
+    const sTimer = document.getElementById('scanStopTimer');
+    if (bTimer) bTimer.textContent = '00:00';
+    if (dTimer) dTimer.textContent = '';
+    if (sTimer) sTimer.textContent = '';
+    _scanTimerInterval = setInterval(() => {
+        const el = document.getElementById('scanBadgeTimer');
+        if (el) el.textContent = _fmtElapsed(Date.now() - _scanTimerStart);
+    }, 1000);
+}
+
+// reason: 'manual' | 'done'
+function _stopScanTimer(reason) {
+    if (_scanTimerInterval) { clearInterval(_scanTimerInterval); _scanTimerInterval = null; }
+    const finalTime = _fmtElapsed(Date.now() - _scanTimerStart);
+    if (reason === 'done') {
+        const el = document.getElementById('scanDoneTimer');
+        if (el) el.textContent = finalTime;
+    } else {
+        const el = document.getElementById('scanStopTimer');
+        if (el) el.textContent = finalTime;
+    }
+    // Bersihkan timer di badge scanning
+    const bTimer = document.getElementById('scanBadgeTimer');
+    if (bTimer) bTimer.textContent = '';
+}
+
 async function runScan() {
     if (scanning) return;
     scanning = true; scanAbort = false;
+    _startScanTimer();
     document.body.classList.add('is-scanning');
     $('#btnScanIcon').text('■'); $('#btnScanLbl').text('STOP'); $('#btnScan').addClass('stop');
     $('#btnScanCount').text('');
     $('#scanBadge').addClass('active');
-    // Clear previous signal chips and reset table
     _clearAllSignalChips();
     $('#notStartedNotice').hide();
     $('#scanDoneNotice').hide();
@@ -789,7 +807,6 @@ async function runScan() {
     lockTabs();
     if (!getFilteredTokens().length) { showToast('Tidak ada token aktif! Periksa filter di Pengaturan.'); stopScan(); return; }
     showToast('▶ Scanning dimulai…');
-    // Start Android Foreground Service (keeps CPU alive when screen off)
     try { if (window.AndroidBridge && AndroidBridge.startBackgroundService) AndroidBridge.startBackgroundService(); } catch (e) { }
     await fetchUsdtRate();
 
@@ -800,44 +817,49 @@ async function runScan() {
         _chainGasEstimateUsdt[id] = await fetchChainGasEstimateUsdt(id);
     }));
 
-    const BATCH_SIZE = APP_DEV_CONFIG.scanBatchSize || 8;
+    const BATCH_SIZE = APP_DEV_CONFIG.scanBatchSize || 4;
+
     while (!scanAbort) {
         _scanRound++;
-        // Clear orderbook cache to free memory each round
         for (const k in _obCache) delete _obCache[k];
         await fetchUsdtRate();
-        // Re-fetch tokens setiap ronde: update hapus/tambah & acak ulang jika random
         if (monitorSort === 'rand') _shuffledTokens = null;
         const tokens = getFilteredTokens();
         if (!tokens.length) break;
-        // Hanya rebuild monitor cards jika urutan/daftar token berubah
-        // (untuk sort 'rand' berubah tiap ronde; untuk 'az'/'za' hanya sekali)
         const tokenKey = tokens.map(t => t.id).join(',');
         if (_lastScanTokenKey !== tokenKey) {
             buildMonitorRows(tokens);
             _lastScanTokenKey = tokenKey;
         }
+
         for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
             if (scanAbort) break;
             const batch = tokens.slice(i, Math.min(i + BATCH_SIZE, tokens.length));
             const pct = Math.round(Math.min(i + BATCH_SIZE, tokens.length) / tokens.length * 100);
             $('#scanBar').css('width', pct + '%');
             $('#btnScanCount').text(`[ ${Math.min(i + BATCH_SIZE, tokens.length)}/${tokens.length}] KOIN`);
-            await Promise.all(batch.map(tok => scanToken(tok)));
-            if (!scanAbort) await new Promise(r => setTimeout(r, CFG.interval));
+
+            // ── Semua koin dalam batch dijalankan PARALEL ──────────────────────────
+            await Promise.all(batch.map(tok => scanToken(tok).catch(() => {})));
+
+            // Jeda antar kelompok — satu-satunya parameter kecepatan dikontrol user
+            if (!scanAbort && i + BATCH_SIZE < tokens.length) {
+                await sleep(CFG.interval);
+            }
         }
+
         if (!scanAbort) {
             $('#scanBar').css('width', '0%');
             if (!autoReload) {
-                // Sekali scan: selesai langsung stop, hasil tetap tampil
                 showToast(`✅ Scan selesai!`);
                 playCompleteSound();
                 break;
             }
-            // Auto-reload: jeda 10 detik lalu mulai ronde berikutnya
-            showToast(`✅ Ronde ${_scanRound} selesai — jeda 10 detik...`, 9500);
+            // Auto-reload: jeda CFG.interval lalu ronde berikutnya
+            const roundSec = Math.round(CFG.interval / 1000);
+            showToast(`✅ Ronde ${_scanRound} selesai — jeda ${roundSec}s...`, CFG.interval - 200);
             playCompleteSound();
-            await new Promise(r => setTimeout(r, 10000));
+            await sleep(CFG.interval);
             if (!scanAbort) {
                 resetMonitorCells();
                 _clearAllSignalChips();
@@ -845,11 +867,11 @@ async function runScan() {
             }
         }
     }
-    // Jika loop keluar karena selesai natural (bukan scanAbort dari user), tandai 'done'
     stopScan(scanAbort ? 'manual' : 'done');
 }
 function stopScan(reason = 'manual') {
     scanning = false; scanAbort = true;
+    _stopScanTimer(reason);
     document.body.classList.remove('is-scanning');
     _lastScanTokenKey = null; // reset agar scan berikutnya rebuild cards bersih
     $('#btnScanIcon').text('▶'); $('#btnScanLbl').text('START'); $('#btnScan').removeClass('stop');
@@ -899,7 +921,7 @@ function _applyAutoReload() {
 $('#btnAutoReload').on('click', function () {
     if (scanning) return; // jangan ubah saat scanning berlangsung
     autoReload = !autoReload;
-    localStorage.setItem('scanAutoReload', autoReload ? '1' : '0');
+    dbSet('scanAutoReload', autoReload);
     _applyAutoReload();
     showToast(autoReload ? '🔁 Auto Reload Scanner Aktif' : '🔂 Sekali Scan Aktif');
 });

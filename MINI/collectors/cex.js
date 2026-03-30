@@ -30,7 +30,7 @@ async function fetchNativeTokenPrice(chainId) {
     if (cached !== undefined) return cached;
     try {
         const url = `https://data-api.binance.vision/api/v3/ticker/price?symbol=${sym}`;
-        const r = await fetch(url);
+        const r = await fetchWithRetry(url);
         const d = await r.json();
         const price = parseFloat(d.price) || 0;
         cacheSet(cacheKey, price, 60_000); // cache 1 menit
@@ -51,7 +51,7 @@ async function fetchChainGasEstimateUsdt(chainId) {
     if (cached !== undefined) return cached;
     try {
         const [rpcResp, nativePrice] = await Promise.all([
-            fetch(rpc, {
+            fetchWithRetry(rpc, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_gasPrice', params: [], id: 1 }),
@@ -75,11 +75,24 @@ async function fetchOrderbook(cexKey, symbol) {
         if (!cfg) return null;
         let url = cfg.ORDERBOOK.urlTpl(symbol);
         if (cfg.ORDERBOOK.proxy) url = APP_DEV_CONFIG.corsProxy + url;
+
+        // timeout & jeda diatur per-exchange di CONFIG_CEX[cexKey]
+        const timeout = cfg.timeout || 8000;
+        const jeda    = cfg.jeda    || 0;
+        const controller = new AbortController();
+        const timeoutId  = setTimeout(() => controller.abort(), timeout);
+        let result;
         try {
-            const r = await fetch(url);
+            const r = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
             const d = await r.json();
-            return parseOrderbook(d, cfg.ORDERBOOK.parser);
-        } catch (e) { return { error: e.message }; }
+            result = parseOrderbook(d, cfg.ORDERBOOK.parser);
+        } catch (e) {
+            clearTimeout(timeoutId);
+            result = { error: e.message };
+        }
+        if (jeda > 0) await sleep(jeda);
+        return result;
     });
 }
 

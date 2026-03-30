@@ -13,8 +13,8 @@ let _walletMemCache = null;
 
 function _getCexWalletCache() {
   if (_walletMemCache !== null) return _walletMemCache;
-  try { _walletMemCache = JSON.parse(localStorage.getItem(LS_CEX_WALLET) || '{}'); }
-  catch { _walletMemCache = {}; }
+  _walletMemCache = dbGet(LS_CEX_WALLET, {});
+  if (typeof _walletMemCache !== 'object' || !_walletMemCache) _walletMemCache = {};
   return _walletMemCache;
 }
 
@@ -93,7 +93,7 @@ async function _fetchJson(url, opts = {}) {
 // GET /sapi/v1/capital/config/getall — signed HMAC-SHA256
 // Proxy khusus: proxykanan.awokawok.workers.dev (tidak pakai corsProxy biasa)
 async function _fetchBinanceWallet() {
-  const { ApiKey, ApiSecret } = CONFIG_CEX_KEYS.BINANCE;
+  const { ApiKey, ApiSecret } = CONFIG_CEX.binance;
   const ts = Date.now();
   const qs = `timestamp=${ts}&recvWindow=10000`;
   const sig = await _hmacSha256(ApiSecret, qs);
@@ -127,7 +127,7 @@ async function _fetchBinanceWallet() {
 // ─── MEXC ─────────────────────────────────────────────────
 // GET /api/v3/capital/config/getall — signed HMAC-SHA256
 async function _fetchMexcWallet() {
-  const { ApiKey, ApiSecret } = CONFIG_CEX_KEYS.MEXC;
+  const { ApiKey, ApiSecret } = CONFIG_CEX.mexc;
   const ts = Date.now();
   const qs = `timestamp=${ts}`;
   const sig = await _hmacSha256(ApiSecret, qs);
@@ -182,7 +182,7 @@ async function _fetchGateWallet() {
   }
 
   // ── 2. Withdraw status (authenticated) → fee WD per chain ──
-  const { ApiKey, ApiSecret } = CONFIG_CEX_KEYS.GATE;
+  const { ApiKey, ApiSecret } = CONFIG_CEX.gate;
   const ts = Math.floor(Date.now() / 1000).toString();
   const bodyHash = await _sha512hex('');
   const sigPayload = `GET\n/api/v4/wallet/withdraw_status\n\n${bodyHash}\n${ts}`;
@@ -237,7 +237,7 @@ async function _fetchGateWallet() {
 // Public endpoint: GET /api/summaries (tanpa auth, no withdraw fee detail)
 // TAPI dengan auth: method=withdrawFee
 async function _fetchIndodaxWallet() {
-  const { ApiKey, ApiSecret } = CONFIG_CEX_KEYS.INDODAX;
+  const { ApiKey, ApiSecret } = CONFIG_CEX.indodax;
   const ts = Date.now();
   const nonce = ts;
   const body = `method=getInfo&timestamp=${ts}&nonce=${nonce}`;
@@ -282,8 +282,7 @@ async function updateCexWalletFees(onProgress) {
     { key: 'indodax', label: 'INDODAX', fn: _fetchIndodaxWallet },
   ];
 
-  let cache = {};
-  try { cache = JSON.parse(localStorage.getItem(LS_CEX_WALLET) || '{}'); } catch {}
+  let cache = Object.assign({}, dbGet(LS_CEX_WALLET, {}));
 
   const errors = [];
   let successCount = 0;
@@ -312,8 +311,7 @@ async function updateCexWalletFees(onProgress) {
   }
 
   cache._updatedAt = new Date().toISOString();
-  localStorage.setItem(LS_CEX_WALLET, JSON.stringify(cache));
-  // Update in-memory cache langsung (tidak perlu re-parse localStorage)
+  dbSet(LS_CEX_WALLET, cache);
   _walletMemCache = cache;
   _cexWalletUpdating = false;
   return { successCount, errors };
@@ -463,7 +461,7 @@ function importCexWalletData(input) {
         showToast('⚠ File tidak valid: tidak ada data CEX yang dikenali');
         return;
       }
-      localStorage.setItem(LS_CEX_WALLET, JSON.stringify(data));
+      dbSet(LS_CEX_WALLET, data);
       initCexWalletUI();
       showToast('✅ Data fee WD berhasil di-import');
     } catch (err) {

@@ -9,9 +9,9 @@
 // ============================================================
 const APP_DEV_CONFIG = {
   appName: "MINI SCANNER",
-  appVersion: "03.30",
+  appVersion: "03.33",
 
-  telegramBotToken: "8053447166:AAH7YYbyZ4eBoPX31D8h3bCYdzEeIaiG4JU",
+  telegramBotToken: "8053447166:AAH7YYbyZ4eBoPX31D8H3bCYdzEeIaiG4JU",
   telegramGroupId: "-5271018516",
   telegramCooldown: 5,   // menit
 
@@ -26,13 +26,12 @@ const APP_DEV_CONFIG = {
   },
 
   defaultMinPnl: 1,
-  defaultInterval: 800,
-  defaultSseTimeout: 6000,
-  defaultLevelCount: 4,     // jumlah level orderbook (1–4)
-  defaultAutoLevel: true,   // Auto Level CEX orderbook
-  scanBatchSize: 5,        // jumlah koin yang di-scan paralel per batch
-  maxDexDisplay: 6,         // jumlah kolom DEX yang tampil di hasil scanning
-  offDexResultScan: ["OPENOCEAN", "MAYAN","UNISWAP"],
+  defaultLevelCount: 4,    // jumlah level orderbook (1–4)
+  defaultAutoLevel: true, // Auto Level CEX orderbook
+
+  scanBatchSize: 5,       // jumlah koin per kelompok batch (paralel bertahap)
+  maxDexDisplay: 5,       // jumlah kolom DEX yang tampil di hasil scanning
+  offDexResultScan: ["OPENOCEAN", "MAYAN", "UNISWAP"],
 
   bungeeApiKey: "71XdjSawshaeie5DeH5b9avPjaoVtoOc2g5ZZx1d",
   bungeeAffiliate: "609913096e183b62cecd0dfdc13382f618baedceb5fef75aad43e6cbff367039708902197e0b2b78b1d76cb0837ad0b318baedceb5fef75aad43e6cb",
@@ -40,135 +39,25 @@ const APP_DEV_CONFIG = {
 
 
 // ============================================================
-// CONFIG_DEX — Konfigurasi semua DEX / MetaDEX
-// Satu-satunya sumber kebenaran: tambah/hapus DEX cukup di sini.
-// enabled  = developer toggle (true/false)
-// hasCount = true → multi-route (count = jumlah route paralel)
-// src      = unique 2-char code untuk internal tracking
-// ============================================================
-const CONFIG_DEX = {
-  // ── DEX (single-quote per API call) ──────────────
-  kyber: {
-    label: 'KYBER',
-    badge: 'KB',
-    src: 'KB',
-    color: '#087808ff',
-    icon: 'icons/dex/kyber.png',
-    hasCount: false,
-    count: 1,
-    enabled: true,
-    modalCtD: 100,
-    modalDtC: 80,
-  },
-  okx: {
-    label: 'OKXDEX',
-    badge: 'OK',
-    src: 'OX',
-    color: '#333333',
-    icon: 'icons/dex/okx.png',
-    hasCount: false,
-    count: 1,
-    enabled: true,
-    modalCtD: 100,
-    modalDtC: 80,
-  },
-  lifidex: {
-    label: 'LIFIDEX',
-    badge: 'LF',
-    src: 'LF',
-    color: '#f15ba1ff',
-    icon: 'icons/dex/lifi.png',
-    hasCount: false,
-    count: 1,
-    enabled: true,
-    modalCtD: 100,
-    modalDtC: 80,
-  },
-  matcha: {
-    label: 'MATCHA',
-    badge: 'MA',
-    src: 'MA',
-    color: '#4e9e4e',
-    icon: 'icons/dex/matcha.png',
-    hasCount: false,
-    count: 1,
-    enabled: true,
-    modalCtD: 100,
-    modalDtC: 80,
-  },
-
-  // ── MetaDEX (multi-route / aggregator) ───────────
-  metax: {
-    label: 'METAX',
-    badge: 'MX',
-    src: 'MX',
-    color: '#e87122',
-    icon: 'icons/dex/metax.png',
-    hasCount: true,
-    count: 2,
-    enabled: true,
-    modalCtD: 100,
-    modalDtC: 80,
-  },
-  jumpx: {
-    label: 'JUMPER',
-    badge: 'JM',
-    src: 'JX',
-    color: '#8b5cf6',
-    icon: 'icons/dex/jumpx.png',
-    hasCount: true,
-    count: 2,
-    enabled: true,
-    modalCtD: 100,
-    modalDtC: 80,
-  },
-  onekey: {
-    label: 'ONEKEY',
-    badge: 'KY',
-    src: 'OK',
-    color: '#39d98a',
-    icon: 'icons/dex/onekey.png',
-    hasCount: true,
-    count: 2,
-    enabled: true,
-    modalCtD: 100,
-    modalDtC: 80,
-  },
-};
-
-
-// ============================================================
-// CONFIG_CEX_KEYS — API Keys untuk fetch fee WD dari CEX
-// Digunakan oleh services/cex-wallet.js
-// ============================================================
-const CONFIG_CEX_KEYS = {
-  BINANCE: {
-    ApiKey: "PoMTZjrgq2rUNQHpqvoOW0Ajq1iKytG3OZueMyvYwJmMaH175kuVi2QyB98Zocnb",
-    ApiSecret: "bBq5FCpuCghA0hJuil7gCObTqDzYaLaVdsZVsdfSzv4MZ2rDBK6cpN590eXAwfod",
-  },
-  MEXC: {
-    ApiKey: "mx0vglNkKpxcAAEbtk",
-    ApiSecret: "54a488c04cdf4afabf44dd07915731c6",
-  },
-  GATE: {
-    ApiKey: "1dbe3d4c92a42de270692e65952574d0",
-    ApiSecret: "9436bfec02a8ed462bda4bd1a516ba82b4f322dd09e120a2bf7ea6b5f0930ef8",
-  },
-  INDODAX: {
-    ApiKey: "HRKOX8GL-KD9ANNF5-T7OKENAH-LHL5PBYQ-NW8GQICL",
-    ApiSecret: "2ff67f7546f9b1af3344f4012fbb5561969de9440f1d1432c89473d1fe007deb3f3d0bac7400622b",
-  },
-};
-
-
-// ============================================================
 // CONFIG_CEX — 4 Exchange (orderbook + symbol format)
+//
+// Field timing per CEX:
+//   timeout   : batas waktu (ms) fetch orderbook sebelum dianggap timeout
+//   jeda      : jeda minimum (ms) antar request ke exchange ini (rate-limiter)
+//
+// Field API keys per CEX (untuk fetch fee WD — digunakan services/cex-wallet.js):
+//   ApiKey    : public API key
+//   ApiSecret : private API secret
 // ============================================================
 const CONFIG_CEX = {
   binance: {
     label: "Binance",
     ICON: "icons/cex/binance.png",
     WARNA: "#e0a50c",
+    timeout: 2000,   // ms — batas waktu fetch orderbook
+    jeda: 200,       // ms — jeda minimum antar request
+    ApiKey: "PoMTZjrgq2rUNQHpqvoOW0Ajq1iKytG3OZueMyvYwJmMaH175kuVi2QyB98Zocnb",
+    ApiSecret: "bBq5FCpuCghA0hJuil7gCObTqDzYaLaVdsZVsdfSzv4MZ2rDBK6cpN590eXAwfod",
     ORDERBOOK: {
       urlTpl: (sym) => `https://data-api.binance.vision/api/v3/depth?limit=5&symbol=${sym.toUpperCase()}`,
       parser: "standard",
@@ -181,6 +70,10 @@ const CONFIG_CEX = {
     label: "Gate",
     ICON: "icons/cex/gate.png",
     WARNA: "#D5006D",
+    timeout: 2000,
+    jeda: 300,
+    ApiKey: "1dbe3d4c92a42de270692e65952574d0",
+    ApiSecret: "9436bfec02a8ed462bda4bd1a516ba82b4f322dd09e120a2bf7ea6b5f0930ef8",
     ORDERBOOK: {
       urlTpl: (sym) => `https://api.gateio.ws/api/v4/spot/order_book?limit=5&currency_pair=${sym.toUpperCase()}`,
       parser: "standard",
@@ -193,6 +86,10 @@ const CONFIG_CEX = {
     label: "MEXC",
     ICON: "icons/cex/mexc.png",
     WARNA: "#1448ce",
+    timeout: 3000,
+    jeda: 400,
+    ApiKey: "mx0vglNkKpxcAAEbtk",
+    ApiSecret: "54a488c04cdf4afabf44dd07915731c6",
     ORDERBOOK: {
       urlTpl: (sym) => `https://api.mexc.com/api/v3/depth?symbol=${sym.toUpperCase()}&limit=5`,
       parser: "standard",
@@ -205,6 +102,10 @@ const CONFIG_CEX = {
     label: "Indodax",
     ICON: "icons/cex/indodax.png",
     WARNA: "#2eb5f2",
+    timeout: 10000,
+    jeda: 500,
+    ApiKey: "HRKOX8GL-KD9ANNF5-T7OKENAH-LHL5PBYQ-NW8GQICL",
+    ApiSecret: "2ff67f7546f9b1af3344f4012fbb5561969de9440f1d1432c89473d1fe007deb3f3d0bac7400622b",
     ORDERBOOK: {
       urlTpl: (sym) => `https://indodax.com/api/depth/${sym.toLowerCase()}`,
       parser: "indodax",
@@ -213,6 +114,131 @@ const CONFIG_CEX = {
     symbolFmt: (ticker) => ticker.toLowerCase() + "idr",
   },
 };
+
+
+// ============================================================
+// CONFIG_DEX — Konfigurasi semua DEX / MetaDEX
+// Satu-satunya sumber kebenaran: tambah/hapus DEX cukup di sini.
+//
+// enabled  = developer toggle (true/false)
+// hasCount = true → multi-route (count = jumlah route paralel)
+// src      = unique 2-char code untuk internal tracking
+//
+// Field timing per DEX:
+//   timeout : batas waktu (ms) satu API call sebelum dianggap timeout
+//   jeda    : jeda (ms) setelah DEX call selesai sebelum lanjut (rate-limiter)
+// ============================================================
+const CONFIG_DEX = {
+
+  // ── REST DEX (single-quote per API call) ─────────────────
+  kyber: {
+    label: 'KYBER',
+    badge: 'KB',
+    src: 'KB',
+    color: '#087808ff',
+    icon: 'icons/dex/kyber.png',
+    hasCount: false,
+    count: 1,
+    enabled: true,
+    timeout: 2000,   // ms — batas waktu REST call
+    jeda: 300,      // ms — jeda setelah call selesai
+    modalCtD: 100,
+    modalDtC: 80,
+  },
+
+  okx: {
+    label: 'OKXDEX',
+    badge: 'OK',
+    src: 'OX',
+    color: '#333333',
+    icon: 'icons/dex/okx.png',
+    hasCount: false,
+    count: 1,
+    enabled: true,
+    timeout: 2000,
+    jeda: 250,
+    modalCtD: 100,
+    modalDtC: 80,
+  },
+
+  lifidex: {
+    label: 'LIFIDEX',
+    badge: 'LF',
+    src: 'LF',
+    color: '#f15ba1ff',
+    icon: 'icons/dex/lifi.png',
+    hasCount: false,
+    count: 1,
+    enabled: true,
+    timeout: 3000,
+    jeda: 300,
+    modalCtD: 100,
+    modalDtC: 80,
+  },
+
+  matcha: {
+    label: 'MATCHA',
+    badge: 'MA',
+    src: 'MA',
+    color: '#4e9e4e',
+    icon: 'icons/dex/matcha.png',
+    hasCount: false,
+    count: 1,
+    enabled: true,
+    timeout: 3000,
+    jeda: 300,
+    modalCtD: 100,
+    modalDtC: 80,
+  },
+
+  // ── MetaDEX (multi-route / aggregator) ───────────────────
+  metax: {
+    label: 'METAX',
+    badge: 'MX',
+    src: 'MX',
+    color: '#e87122',
+    icon: 'icons/dex/metax.png',
+    hasCount: true,
+    count: 2,
+    enabled: true,
+    timeout: 6000,   // ms — SSE MetaDEX cenderung lebih lambat
+    jeda: 300,
+    modalCtD: 100,
+    modalDtC: 80,
+  },
+
+  jumpx: {
+    label: 'JUMPER',
+    badge: 'JM',
+    src: 'JX',
+    color: '#8b5cf6',
+    icon: 'icons/dex/jumpx.png',
+    hasCount: true,
+    count: 2,
+    enabled: true,
+    timeout: 6000,
+    jeda: 300,
+    modalCtD: 100,
+    modalDtC: 80,
+  },
+
+  onekey: {
+    label: 'ONEKEY',
+    badge: 'KY',
+    src: 'OK',
+    color: '#39d98a',
+    icon: 'icons/dex/onekey.png',
+    hasCount: true,
+    count: 2,
+    enabled: true,
+    timeout: 6000,
+    jeda: 300,
+    modalCtD: 100,
+    modalDtC: 80,
+  },
+};
+
+
 
 
 // ============================================================
@@ -271,7 +297,6 @@ const CONFIG_CHAINS = {
       INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6', address2: '0x91Dca37856240E5e1906222ec79278b16420Dc92' },
       MEXC: { address: '0x75e89d5979E4f6Fba9F97c104c2F0AFB3F1dcB88', address2: '0x9642b23Ed1E01Df1092B92641051881a322F5D4E' },
     },
-
   },
 
   polygon: {
@@ -340,7 +365,6 @@ const CONFIG_CHAINS = {
       BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60' },
       MEXC: { address: '0x4e3ae00E8323558fA5Cac04b152238924AA31B60' },
       INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6', address2: '0x91Dca37856240E5e1906222ec79278b16420Dc92' },
-
     },
   },
 };

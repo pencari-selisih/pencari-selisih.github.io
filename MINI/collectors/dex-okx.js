@@ -22,7 +22,7 @@ async function fetchDexQuotesOkx(chainId, srcToken, destToken, amountWei, decOut
                 const url = `https://api.krystal.app/${chainName}/v2/swap/allRates` +
                     `?src=${srcToken}&srcAmount=${amountWei}&dest=${destToken}` +
                     `&platformWallet=${KRYSTAL_PLATFORM_WALLET_OX}`;
-                const resp = await fetch(url);
+                const resp = await fetchWithRetry(url);
                 if (!resp.ok) return [];
                 const data = await resp.json();
                 const rates = data?.rates || [];
@@ -35,7 +35,7 @@ async function fetchDexQuotesOkx(chainId, srcToken, destToken, amountWei, decOut
                 try {
                     const gasUnits = parseFloat(match.estimatedGas || match.estGasConsumed || 0);
                     if (gasUnits > 0) {
-                        const gasData = JSON.parse(localStorage.getItem('scp_gasFees') || '[]');
+                        const gasData = dbGet('scp_gasFees', []);
                         const chainKey = Object.keys(CONFIG_CHAINS).find(k =>
                             String(CONFIG_CHAINS[k].Kode_Chain) === String(chainId)
                         );
@@ -67,8 +67,7 @@ async function fetchDexQuotesOkx(chainId, srcToken, destToken, amountWei, decOut
                     backer: ['OKX'], wallet: _C98_WALLET,
                 });
                 const targetUrl = 'https://superlink-server.coin98.tech/quote';
-                const proxyUrl = APP_DEV_CONFIG.corsProxy + encodeURIComponent(targetUrl);
-                const resp = await fetch(proxyUrl, {
+                const resp = await proxyFetch(targetUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json; charset=utf-8' },
                     body,

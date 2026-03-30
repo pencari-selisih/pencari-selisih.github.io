@@ -208,7 +208,8 @@ function toggleFilterChip(el, type) {
 }
 
 function loadSettings() {
-    try { const s = JSON.parse(localStorage.getItem(LS_SETTINGS)); if (s) Object.assign(CFG, s); } catch { }
+    const s = dbGet(LS_SETTINGS, null);
+    if (s) Object.assign(CFG, s);
     if (!Array.isArray(CFG.activeCex)) CFG.activeCex = [];
     if (!Array.isArray(CFG.activeChains)) CFG.activeChains = [];
     if (!['all','stable','non'].includes(CFG.pairType)) CFG.pairType = 'all';
@@ -229,7 +230,6 @@ function loadSettings() {
     _syncLegacyDexCounts();
     $('#setUsername').val(CFG.username);
     $('#setWallet').val(CFG.wallet);
-    $('#setInterval').val(CFG.interval);
     $('#setSoundMuted').prop('checked', !CFG.soundMuted); // centang = suara ON
     // Dynamic DEX settings — render from CONFIG_DEX
     const _dexSettingsContainer = document.getElementById('dexSettingsContainer');
@@ -262,7 +262,7 @@ function loadSettings() {
     } else {
         $('#setLevelCount').val(CFG.levelCount ?? APP_DEV_CONFIG.defaultLevelCount);
     }
-    // Speed chips — tandai yang aktif berdasarkan CFG.interval
+    // Speed chips — tandai yang aktif berdasarkan CFG.interval (jeda antar kelompok batch)
     const speeds = [800, 700, 500];
     const nearest = speeds.reduce((a, b) => Math.abs(b - CFG.interval) < Math.abs(a - CFG.interval) ? b : a);
     $('#speedChips .sort-btn').removeClass('active');
@@ -289,7 +289,7 @@ const EVM_RE = /^0x[0-9a-fA-F]{40}$/;
 
 // ─── Auto-save helpers ────────────────────────
 function _persistCFG() {
-    localStorage.setItem(LS_SETTINGS, JSON.stringify(CFG));
+    dbSet(LS_SETTINGS, Object.assign({}, CFG));
 }
 
 // Simpan field non-kritis langsung saat berubah (tanpa toast)
@@ -506,7 +506,7 @@ $('#btnOnboard').on('click', () => {
         return;
     }
     CFG.username = u; CFG.wallet = w;
-    localStorage.setItem(LS_SETTINGS, JSON.stringify(CFG));
+    dbSet(LS_SETTINGS, Object.assign({}, CFG));
     $('#topUsername').text('@' + u);
     loadSettings();
     $('#onboardOverlay').removeClass('open');
@@ -1651,7 +1651,7 @@ $('#speedChips').on('click', '.sort-btn', function () {
     $(this).addClass('active');
     CFG.interval = parseInt($(this).data('speed'));
     _persistCFG();
-    showToast('✓ Kecepatan: ' + $(this).text());
+    showToast('✓ Kecepatan SCANNER: ' + $(this).text());
 });
 
 // Semua field lain: auto-save + toast saat berubah
@@ -2017,8 +2017,9 @@ $('#obTooltip')
 
 // ─── Init ────────────────────────────────────
 $(function () {
+    (window._dbReady || Promise.resolve()).then(function () {
     // Restore auto-reload state
-    autoReload = localStorage.getItem('scanAutoReload') === '1';
+    autoReload = !!dbGet('scanAutoReload', false);
     _applyAutoReload();
     loadSettings();
     renderDexConfig();
@@ -2041,4 +2042,5 @@ $(function () {
         sessionStorage.removeItem('justReloaded');
         showToast('Reload berhasil!');
     }
+    }); // end _dbReady.then
 });

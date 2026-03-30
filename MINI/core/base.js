@@ -4,8 +4,8 @@
    Full application logic (jQuery 3.7 + Native JS)
 ═══════════════════════════════════════════════ */
 
-// ─── LocalStorage Keys ───────────────────────
-const LS_TOKENS = 'cexdex_tokens';
+// ─── Storage Keys ────────────────────────────
+const LS_TOKENS   = 'cexdex_tokens';
 const LS_SETTINGS = 'cexdex_settings';
 
 // ─── Runtime State ───────────────────────────
@@ -24,8 +24,7 @@ const DEX_LIST = Object.entries(CONFIG_DEX).map(([key, cfg]) => ({
 let CFG = {
     username: '',
     wallet: '',
-    interval: APP_DEV_CONFIG.defaultInterval,
-    sseTimeout: APP_DEV_CONFIG.defaultSseTimeout,
+    interval: 800,    // ms — jeda antar kelompok batch (dikontrol user via speed chips)
     soundMuted: false,
     activeCex: [],    // [] = semua aktif
     activeChains: [], // [] = semua aktif
@@ -157,26 +156,21 @@ const _cardEls = new Map();  // tokenId → cached DOM element references
 let _tokenCache = null;
 const getTokens = () => {
     if (_tokenCache) return _tokenCache;
-    try { _tokenCache = JSON.parse(localStorage.getItem(LS_TOKENS)) || []; } catch { _tokenCache = []; }
+    _tokenCache = dbGet(LS_TOKENS, []);
+    if (!Array.isArray(_tokenCache)) _tokenCache = [];
     return _tokenCache;
 };
 const saveTokens = (a) => {
     // Guard: jangan simpan array kosong jika sebelumnya ada data — cegah data hilang akibat race condition
     if (!a || !a.length) {
-        try {
-            const existing = JSON.parse(localStorage.getItem(LS_TOKENS));
-            if (Array.isArray(existing) && existing.length > 0) {
-                console.warn('[saveTokens] Blocked empty save — existing data preserved (' + existing.length + ' tokens)');
-                return;
-            }
-        } catch { }
+        const existing = dbGet(LS_TOKENS);
+        if (Array.isArray(existing) && existing.length > 0) {
+            console.warn('[saveTokens] Blocked empty save — existing data preserved (' + existing.length + ' tokens)');
+            return;
+        }
     }
     _tokenCache = a;
-    try {
-        localStorage.setItem(LS_TOKENS, JSON.stringify(a));
-    } catch (e) {
-        console.error('[saveTokens] localStorage write failed:', e);
-    }
+    dbSet(LS_TOKENS, a);
 };
 const clearTokenCache = () => { _tokenCache = null; };
 const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -233,4 +227,84 @@ function cacheWrap(key, ttlMs, fn) {
         val.catch(() => { _memCache.delete(key); });
     }
     return val;
+}
+
+// ─── 429 Error Counter (untuk adaptive delay) ──
+let _429count = 0;
+function bump429() { _429count++; }
+function get429Count() { return _429count; }
+function reset429Count() { _429count = 0; }
+
+// ─── sleep helper ─────────────────────────────
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// ─── fetchWithRetry — Exponential Backoff ─────
+// Wraps fetch() with retry logic for 429 (Too Many Requests) dan 5xx errors.
+// Timeout & jeda sekarang diatur di level CEX/DEX (CONFIG_CEX[k].timeout, CONFIG_DEX[k].timeout)
+// dan TIDAK dikelola di sini. fetchWithRetry hanya mengurus retry.
+// Jika opts.signal sudah disediakan (dari caller), digunakan langsung.
+async function fetchWithRetry(url, opts = {}, maxRetries = 1, baseDelay = 500) {
+    let lastErr;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            const resp = await fetch(url, opts);
+            if (resp.status === 429 || (resp.status >= 500 && resp.status < 600)) {
+                bump429();
+                if (attempt < maxRetries) {
+                    const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 300;
+                    await sleep(delay);
+                    continue;
+                }
+            }
+            return resp;
+        } catch (err) {
+            // AbortError = timeout dari caller → lempar langsung, tidak retry
+            if (err.name === 'AbortError') throw err;
+            lastErr = err;
+            if (attempt < maxRetries) {
+                const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 300;
+                await sleep(delay);
+            }
+        }
+    }
+    throw lastErr || new Error('fetchWithRetry exhausted');
+}
+
+// ─── CORS Proxy Fetch ─────────────────────────
+// Rate-limiting sekarang diatur per-CEX/DEX via CONFIG_CEX[k].jeda / CONFIG_DEX[k].jeda.
+// proxyFetch hanya build URL proxy lalu delegate ke fetchWithRetry.
+function proxyFetch(targetUrl, opts = {}) {
+    const proxyUrl = APP_DEV_CONFIG.corsProxy + encodeURIComponent(targetUrl);
+    return fetchWithRetry(proxyUrl, opts);
+}
+
+// ─── Staggered Promise Execution ──────────────
+// Utility: jalankan array fungsi async dengan concurrency + jitter terkontrol.
+// Tidak lagi digunakan oleh scan engine (diganti Promise.all + sleep per batch).
+// Dipertahankan untuk kemungkinan penggunaan lain.
+async function staggeredPromiseAll(fns, concurrency = 4, gapMs = 200) {
+    const results = new Array(fns.length);
+    let nextIdx = 0;
+
+    async function runWorker() {
+        while (nextIdx < fns.length) {
+            const idx = nextIdx++;
+            if (idx >= concurrency && gapMs > 0) {
+                await sleep(gapMs + Math.random() * 100);
+            }
+            try {
+                results[idx] = await fns[idx]();
+            } catch (err) {
+                results[idx] = undefined;
+            }
+        }
+    }
+
+    const workers = [];
+    for (let w = 0; w < Math.min(concurrency, fns.length); w++) {
+        if (w > 0 && gapMs > 0) await sleep(Math.floor(gapMs / 2));
+        workers.push(runWorker());
+    }
+    await Promise.all(workers);
+    return results;
 }

@@ -37,8 +37,7 @@ async function fetchDexQuoteslifidex(chainId, srcToken, destToken, amountWei, de
                 // NO backer filter → best quote dari semua provider
             });
             const targetUrl = 'https://superlink-server.coin98.tech/quote';
-            const proxyUrl = APP_DEV_CONFIG.corsProxy + encodeURIComponent(targetUrl);
-            const resp = await fetch(proxyUrl, {
+            const resp = await proxyFetch(targetUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json; charset=utf-8' },
                 body,
@@ -80,8 +79,7 @@ async function fetchDexQuoteslifidex(chainId, srcToken, destToken, amountWei, de
                 slippage: '0.005',
             });
             const url = `https://temple-api-evm.prod.templewallet.com/api/swap-route?${params}`;
-            const proxyUrl = APP_DEV_CONFIG.corsProxy + encodeURIComponent(url);
-            const resp = await fetch(proxyUrl, {
+            const resp = await proxyFetch(url, {
                 headers: { 'Content-Type': 'application/json; charset=utf-8' },
             });
             if (!resp.ok) return [];

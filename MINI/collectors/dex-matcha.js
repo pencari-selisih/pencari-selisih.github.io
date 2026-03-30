@@ -31,8 +31,7 @@ async function fetchDexQuotesMatcha(chainKey, srcToken, destToken, amountWei, de
                 sellAmount:          String(amountWei),
             });
             const url = `https://swap.p.rainbow.me/v1/quote?${params}`;
-            const targetUrl = APP_DEV_CONFIG.corsProxy + encodeURIComponent(url);
-            const resp = await fetch(targetUrl, { method: 'GET' });
+            const resp = await proxyFetch(url, { method: 'GET' });
             if (!resp.ok) return [];
             const data = await resp.json();
             if (!data?.buyAmount) return [];
@@ -43,7 +42,7 @@ async function fetchDexQuotesMatcha(chainKey, srcToken, destToken, amountWei, de
                 if (data.fees?.gasFee?.amount) {
                     const gasFeeWei = parseFloat(data.fees.gasFee.amount);
                     if (gasFeeWei > 0) {
-                        const gasData = JSON.parse(localStorage.getItem('scp_gasFees') || '[]');
+                        const gasData = dbGet('scp_gasFees', []);
                         const gasInfo = gasData.find(g => String(g.chain || '').toLowerCase() === chainKey);
                         if (gasInfo?.tokenPrice) {
                             feeSwapUsdt = (gasFeeWei / 1e18) * gasInfo.tokenPrice;
@@ -67,8 +66,7 @@ async function fetchDexQuotesMatcha(chainKey, srcToken, destToken, amountWei, de
                 aggregator:           '0x',
             });
             const url = `https://api.1delta.io/swap/allowance-holder/quote?${params}`;
-            const targetUrl = APP_DEV_CONFIG.corsProxy + encodeURIComponent(url);
-            const resp = await fetch(targetUrl, { method: 'GET' });
+            const resp = await proxyFetch(url, { method: 'GET' });
             if (!resp.ok) return [];
             const data = await resp.json();
             if (!data?.buyAmount) return [];
@@ -78,7 +76,7 @@ async function fetchDexQuotesMatcha(chainKey, srcToken, destToken, amountWei, de
                 if (data.fees?.gasFee?.amount) {
                     const gasFeeWei = parseFloat(data.fees.gasFee.amount);
                     if (gasFeeWei > 0) {
-                        const gasData = JSON.parse(localStorage.getItem('scp_gasFees') || '[]');
+                        const gasData = dbGet('scp_gasFees', []);
                         const gasInfo = gasData.find(g => String(g.chain || '').toLowerCase() === chainKey);
                         if (gasInfo?.tokenPrice) {
                             feeSwapUsdt = (gasFeeWei / 1e18) * gasInfo.tokenPrice;

@@ -26,7 +26,7 @@ async function fetchDexQuotesKyber(chainKey, srcToken, destToken, amountWei, dec
             const url = `https://api.krystal.app/${chainName}/v2/swap/allRates` +
                 `?src=${srcToken}&srcAmount=${amountWei}&dest=${destToken}` +
                 `&platformWallet=${KRYSTAL_PLATFORM_WALLET_KB}`;
-            const resp = await fetch(url);
+            const resp = await fetchWithRetry(url);
             if (!resp.ok) return [];
             const data = await resp.json();
             const rates = data?.rates || [];
@@ -40,7 +40,7 @@ async function fetchDexQuotesKyber(chainKey, srcToken, destToken, amountWei, dec
             try {
                 const gasUnits = parseFloat(match.estimatedGas || match.estGasConsumed || 0);
                 if (gasUnits > 0) {
-                    const gasData = JSON.parse(localStorage.getItem('scp_gasFees') || '[]');
+                    const gasData = dbGet('scp_gasFees', []);
                     const gasInfo = gasData.find(g => String(g.chain || '').toLowerCase() === chainKey);
                     if (gasInfo?.gwei && gasInfo?.tokenPrice) {
                         feeSwapUsdt = (gasUnits * gasInfo.gwei * gasInfo.tokenPrice) / 1e9;
@@ -58,7 +58,7 @@ async function fetchDexQuotesKyber(chainKey, srcToken, destToken, amountWei, dec
             if (!chainName) return [];
             const url = `https://aggregator-api.kyberswap.com/${chainName}/api/v1/routes` +
                 `?tokenIn=${srcToken}&tokenOut=${destToken}&amountIn=${amountWei}&gasInclude=true`;
-            const resp = await fetch(url, { headers: { 'x-client-id': 'hybridapp' } });
+            const resp = await fetchWithRetry(url, { headers: { 'x-client-id': 'hybridapp' } });
             if (!resp.ok) return [];
             const data = await resp.json();
             const rs = data?.data?.routeSummary;
