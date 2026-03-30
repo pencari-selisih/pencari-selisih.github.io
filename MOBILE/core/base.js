@@ -76,13 +76,24 @@ function _syncLegacyDexCounts() {
     CFG.quoteCountOnekey = d.onekey?.active ? (d.onekey?.count || CONFIG_DEX.onekey.count) : 0;
 }
 
-function totalQuoteCount() {
-    const total = DEX_LIST.filter(def => def.enabled).reduce((sum, def) => {
+// Membangun list slot DEX berurutan sesuai pilihan user
+// Tiap slot = satu kolom di tabel (tanpa cap maxDexDisplay)
+function getDexSlots() {
+    const slots = [];
+    for (const def of DEX_LIST) {
+        if (!def.enabled) continue;
         const dc = CFG.dex?.[def.key];
-        if (!dc?.active) return sum;
-        return sum + (def.hasCount ? (dc.count || def.defaultCount) : 1);
-    }, 0);
-    return Math.min(total, CONFIG_MONITORING.maxDexDisplay);
+        if (!dc?.active) continue;
+        const count = def.hasCount ? (dc.count || def.defaultCount) : 1;
+        for (let i = 0; i < count; i++) {
+            slots.push({ key: def.key, label: def.label, badge: def.badge, color: def.color, routeIdx: i, routeTotal: count });
+        }
+    }
+    return slots;
+}
+
+function totalQuoteCount() {
+    return getDexSlots().length;
 }
 
 // ─── Enable helpers (dipakai collectors) ───────────────────

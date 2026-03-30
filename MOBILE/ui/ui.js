@@ -206,8 +206,7 @@ function renderDexSettings() {
         }
         return `<div class="dex-cfg-row dex-cfg-${def.key}${active ? '' : ' dex-off'}"
             style="border-left-color:${color}">
-          <span class="dex-row-badge dex-badge-${def.key}"
-            style="background:${color}">${def.badge}</span>
+         
           <span class="dex-row-name" style="color:${color}">${def.label}</span>
           <div class="dex-row-fields">${countHtml}</div>
           <label style="display:flex;align-items:center;gap:4px;margin-left:auto;font-size:10px;color:var(--text-muted)">
@@ -265,7 +264,7 @@ async function loadSettings() {
     $('#setUsername').val(CFG.username);
     $('#setWallet').val(CFG.wallet);
     $('#setSoundMuted').prop('checked', !CFG.soundMuted);
-    const speeds = [800, 700, 500];
+    const speeds = [800, 600, 400];
     const nearest = speeds.reduce((a, b) => Math.abs(b - CFG.interval) < Math.abs(a - CFG.interval) ? b : a);
     $('#speedChips .sort-btn').removeClass('active');
     $(`#speedChips [data-speed="${nearest}"]`).addClass('active');
@@ -517,18 +516,14 @@ function _renderDexModalPerToken(dexModals) {
     const rows = getEnabledDexList().map(def => {
         const bulkCtD = CFG.dex?.[def.key]?.modalCtD || '';
         const bulkDtC = CFG.dex?.[def.key]?.modalDtC || '';
-        const bulkPnl = CFG.dex?.[def.key]?.minPnl   || '';
         const ctdVal  = dm[def.key]?.ctd != null ? dm[def.key].ctd : '';
         const dtcVal  = dm[def.key]?.dtc != null ? dm[def.key].dtc : '';
-        const pnlVal  = dm[def.key]?.pnl != null ? dm[def.key].pnl : '';
         return `<div class="dmp-row">
           <span class="dmp-badge" style="background:${def.color}">${def.badge}</span>
           <input class="dmp-inp" id="fDexCtD_${def.key}" data-dex="${def.key}" data-dir="ctd"
             type="number" min="1" placeholder="${bulkCtD || '-'}" value="${ctdVal}">
           <input class="dmp-inp" id="fDexDtC_${def.key}" data-dex="${def.key}" data-dir="dtc"
             type="number" min="1" placeholder="${bulkDtC || '-'}" value="${dtcVal}">
-          <input class="dmp-inp" id="fDexPnl_${def.key}" data-dex="${def.key}" data-dir="pnl"
-            type="number" min="0" step="0.1" placeholder="${bulkPnl || '-'}" value="${pnlVal}">
         </div>`;
     }).join('');
     document.getElementById('dexModalPerToken').innerHTML =
@@ -536,7 +531,6 @@ function _renderDexModalPerToken(dexModals) {
           <span></span>
           <span>CEX→DEX</span>
           <span>DEX→CEX</span>
-          <span>Min PNL</span>
         </div>` + rows;
 }
 
@@ -603,8 +597,7 @@ $('#btnSheetSave').on('click', async () => {
     getEnabledDexList().forEach(def => {
         const ctd = parseFloat(($(`#fDexCtD_${def.key}`).val() || '').trim());
         const dtc = parseFloat(($(`#fDexDtC_${def.key}`).val() || '').trim());
-        const pnl = parseFloat(($(`#fDexPnl_${def.key}`).val() || '').trim());
-        if (isFinite(ctd) || isFinite(dtc) || isFinite(pnl)) {
+        if (isFinite(ctd) || isFinite(dtc)) {
             dexModals[def.key] = {};
             if (isFinite(ctd)) dexModals[def.key].ctd = ctd;
             if (isFinite(dtc)) dexModals[def.key].dtc = dtc;
@@ -686,13 +679,10 @@ async function renderTokenList() {
                 const bulk  = CFG.dex?.[def.key] || {};
                 const ctd   = dm?.ctd  ?? bulk.modalCtD ?? '?';
                 const dtc   = dm?.dtc  ?? bulk.modalDtC ?? '?';
-                const pnl   = dm?.pnl  ?? t.minPnl ?? bulk.minPnl ?? null;
                 const isOver = dm?.ctd != null || dm?.dtc != null;
-                const pnlTxt = pnl != null ? `$${pnl}` : '-';
                 return `<span class="tl-dex-tb tl-dex-badge-${def.key}${isOver ? ' tl-over' : ''}" title="${isOver?'Override per-token':'Bulk setting'}">${def.label}</span>
                   <span class="tl-dex-tc tl-dex-tc-ctd">$${ctd}</span>
-                  <span class="tl-dex-tc tl-dex-tc-dtc">$${dtc}</span>
-                  <span class="tl-dex-tc tl-dex-tc-pnl">${pnlTxt}</span>`;
+                  <span class="tl-dex-tc tl-dex-tc-dtc">$${dtc}</span>`;
             }).join('');
             return `
     <div class="token-list-item${valid ? '' : ' token-invalid'}" id="li-${t.id}">
@@ -717,7 +707,6 @@ async function renderTokenList() {
             <span class="tl-dex-th"></span>
             <span class="tl-dex-th">CEX→DEX</span>
             <span class="tl-dex-th">DEX→CEX</span>
-            <span class="tl-dex-th">Min PNL</span>
             ${dexRows}
           </div>
         </div>
@@ -764,7 +753,7 @@ async function deleteToken(id) {
 // ─── CSV Export / Import ───────────────────────────────────
 const CSV_BASE_COLS  = ['ticker','cex','symbolToken','scToken','decToken','tickerPair','symbolPair','scPair','decPair','chain','favorite'];
 const CSV_EXTRA_COLS = ['feeWd_token_usdt','feeWd_pair_usdt','wd_token_ok','dp_pair_ok'];
-const _csvDexCols    = () => DEX_LIST.flatMap(d => [`dex_${d.key}_ctd`,`dex_${d.key}_dtc`,`dex_${d.key}_pnl`]);
+const _csvDexCols    = () => DEX_LIST.flatMap(d => [`dex_${d.key}_ctd`,`dex_${d.key}_dtc`]);
 
 $('#btnExport').on('click', async () => {
     const tokens  = await getTokens();
@@ -775,7 +764,7 @@ $('#btnExport').on('click', async () => {
         const dexVals = DEX_LIST.flatMap(d => {
             const dm   = t.dexModals?.[d.key] || {};
             const bulk = CFG.dex?.[d.key] || {};
-            return [`"${dm.ctd ?? bulk.modalCtD ?? ''}"`, `"${dm.dtc ?? bulk.modalDtC ?? ''}"`, `"${dm.pnl ?? bulk.minPnl ?? ''}"`];
+            return [`"${dm.ctd ?? bulk.modalCtD ?? ''}"`, `"${dm.dtc ?? bulk.modalDtC ?? ''}"`];
         });
         let feeWdTok = '', feeWdPair = '', wdOk = '', dpOk = '';
         if (typeof getCexTokenStatus === 'function') {
@@ -832,12 +821,10 @@ $('#importFile').on('change', async e => {
                 DEX_KEYS.forEach(key => {
                     const ctd = parseFloat(raw[`dex_${key}_ctd`]);
                     const dtc = parseFloat(raw[`dex_${key}_dtc`]);
-                    const pnl = parseFloat(raw[`dex_${key}_pnl`]);
-                    if (isFinite(ctd) || isFinite(dtc) || isFinite(pnl)) {
+                    if (isFinite(ctd) || isFinite(dtc)) {
                         dexModals[key] = {};
                         if (isFinite(ctd)) dexModals[key].ctd = ctd;
                         if (isFinite(dtc)) dexModals[key].dtc = dtc;
-                        if (isFinite(pnl)) dexModals[key].pnl = pnl;
                     }
                     delete raw[`dex_${key}_ctd`]; delete raw[`dex_${key}_dtc`]; delete raw[`dex_${key}_pnl`];
                 });
@@ -894,7 +881,7 @@ function _initDraft() {
     _dexDraft = {};
     getEnabledDexList().forEach(def => {
         const src = (CFG.dex || {})[def.key] || {};
-        _dexDraft[def.key] = { active: src.active !== false, modalCtD: src.modalCtD ?? 100, modalDtC: src.modalDtC ?? 80, minPnl: src.minPnl ?? 1 };
+        _dexDraft[def.key] = { active: src.active !== false, modalCtD: src.modalCtD ?? 100, modalDtC: src.modalDtC ?? 80 };
     });
 }
 function renderDexConfig() {
@@ -919,11 +906,6 @@ function renderDexConfig() {
       <input data-dex="${def.key}" data-field="modalDtC" type="number" min="1"
         value="${cfg.modalDtC}" onchange="draftChange(this)">
     </div>
-    <div class="dex-field-grp">
-      <span class="dex-row-lbl">Min PNL</span>
-      <input data-dex="${def.key}" data-field="minPnl" type="number" min="0" step="0.1"
-        value="${cfg.minPnl}" onchange="draftChange(this)">
-    </div>
   </div>
 </div>`;
     }).join('');
@@ -947,15 +929,12 @@ async function saveDexModalAll() {
     getEnabledDexList().forEach(def => {
         const ctdEl = document.querySelector(`.dex-cfg-row [data-dex="${def.key}"][data-field="modalCtD"]`);
         const dtcEl = document.querySelector(`.dex-cfg-row [data-dex="${def.key}"][data-field="modalDtC"]`);
-        const pnlEl = document.querySelector(`.dex-cfg-row [data-dex="${def.key}"][data-field="minPnl"]`);
         const ctd   = parseFloat(ctdEl?.value);
         const dtc   = parseFloat(dtcEl?.value);
-        const pnl   = parseFloat(pnlEl?.value);
         vals[def.key] = {
             active:   _dexDraft?.[def.key]?.active ?? (CFG.dex?.[def.key]?.active !== false),
             modalCtD: !isNaN(ctd) ? ctd : (_dexDraft?.[def.key]?.modalCtD ?? CFG.dex?.[def.key]?.modalCtD ?? 100),
             modalDtC: !isNaN(dtc) ? dtc : (_dexDraft?.[def.key]?.modalDtC ?? CFG.dex?.[def.key]?.modalDtC ?? 80),
-            minPnl:   !isNaN(pnl) ? pnl : (_dexDraft?.[def.key]?.minPnl   ?? CFG.dex?.[def.key]?.minPnl   ?? 1),
         };
     });
     getEnabledDexList().forEach(def => {
@@ -974,7 +953,6 @@ async function saveDexModalAll() {
             if (!t.dexModals[def.key]) t.dexModals[def.key] = {};
             t.dexModals[def.key].ctd = dr.modalCtD;
             t.dexModals[def.key].dtc = dr.modalDtC;
-            t.dexModals[def.key].pnl = dr.minPnl;
         });
     });
     if (targetToks.length) { await saveTokens(allToks); renderTokenList(); }
@@ -1025,18 +1003,19 @@ function _wdpIcons(status, walletFetched, cexKey, ticker) {
 }
 
 let _lastBuildN = 0;
-function _dexHdrCols(pfx, color, tokId, n) {
-    let s = '';
-    for (let i = 0; i < n; i++)
-        s += `<td class="mon-dex-hdr" data-${pfx}-hdr="${i}" data-tok="${tokId}" data-dir="${pfx}" style="background:${color};cursor:pointer">-</td>`;
-    return s;
+function _dexHdrCols(pfx, tokId, slots) {
+    return slots.map((slot, i) => {
+        const lbl = slot.routeTotal > 1 ? `${slot.label}<small>#${slot.routeIdx + 1}</small>` : slot.label;
+        return `<td class="mon-dex-hdr" data-${pfx}-hdr="${i}" data-tok="${tokId}" data-dir="${pfx}">${lbl}</td>`;
+    }).join('');
 }
 function _dexDataCols(pfx, attr, n) {
     let s = '';
     for (let i = 0; i < n; i++) s += `<td class="mon-dex-cell" data-${pfx}-${attr}="${i}">-</td>`;
     return s;
 }
-function _buildSingleCard(t, n) {
+function _buildSingleCard(t, slots) {
+    const n = slots.length;
     const cc = CONFIG_CEX[t.cex] || {};
     const ch = CONFIG_CHAINS[t.chain] || {};
     const pairTk = t.tickerPair || t.ticker;
@@ -1092,10 +1071,10 @@ function _buildSingleCard(t, n) {
   </span>
 </div>
 <div class="mon-tables-wrap">
-<div class="mon-table-scroll"><table class="mon-sub-table ctd-table">
+<div class="mon-table-scroll"><table id="tbl-ctd-${t.id}" class="mon-sub-table ctd-table">
   <thead><tr>
     <td class="mon-lbl-hdr" style="background:${MON_CTD_COLOR}">${_stokCtd}<span data-modal-hdr="ctd"><span class="tbl-status"></span></span></td>
-    ${_dexHdrCols('ctd',MON_CTD_COLOR,t.id,n)}
+    ${_dexHdrCols('ctd',t.id,slots)}
   </tr></thead>
   <tbody>
     <tr><td class="mon-lbl-side lbl-buy">BELI [${t.ticker}]</td>${_dexDataCols('ctd','cex',n)}</tr>
@@ -1104,10 +1083,10 @@ function _buildSingleCard(t, n) {
     <tr class="mon-row-pnl"><td class="mon-lbl-side">💰 PNL</td>${_dexDataCols('ctd','pnl',n)}</tr>
   </tbody>
 </table></div>
-<div class="mon-table-scroll"><table class="mon-sub-table dtc-table">
+<div class="mon-table-scroll"><table id="tbl-dtc-${t.id}" class="mon-sub-table dtc-table">
   <thead><tr>
     <td class="mon-lbl-hdr" style="background:${MON_DTC_COLOR}">${_stokDtc}<span data-modal-hdr="dtc"><span class="tbl-status"></span></span></td>
-    ${_dexHdrCols('dtc',MON_DTC_COLOR,t.id,n)}
+    ${_dexHdrCols('dtc',t.id,slots)}
   </tr></thead>
   <tbody>
     <tr><td class="mon-lbl-side lbl-buy">${pairTk}→${t.ticker}</td>${_dexDataCols('dtc','dex',n)}</tr>
@@ -1156,7 +1135,8 @@ async function buildMonitorRows(tokenList) {
         monList.innerHTML = '<div class="tab-empty-msg">Tidak ada token. Tambahkan KOIN di menu DATA KOIN.</div>';
         return;
     }
-    const n = totalQuoteCount();
+    const slots = getDexSlots();
+    const n = slots.length;
     if (n !== _lastBuildN) { _cardEls.clear(); monList.textContent = ''; _lastBuildN = n; }
     const newIds = new Set(tokens.map(t => t.id));
     for (const id of [..._cardEls.keys()]) {
@@ -1170,7 +1150,7 @@ async function buildMonitorRows(tokenList) {
         const frag = document.createDocumentFragment();
         for (let i = startIdx; i < end; i++) {
             const t = tokens[i];
-            if (!_cardEls.has(t.id)) { const card = _buildSingleCard(t, n); frag.appendChild(card); _cacheCard(t, card); }
+            if (!_cardEls.has(t.id)) { const card = _buildSingleCard(t, slots); frag.appendChild(card); _cacheCard(t, card); }
         }
         if (frag.childElementCount) monList.appendChild(frag);
         if (end < tokens.length) requestAnimationFrame(() => _buildBatch(end));
@@ -1303,7 +1283,6 @@ function showObTooltip(el) {
     const totalFee   = parseFloat(el.dataset.totalFee)  || (feeWd + feeSwap);
     const pnlKotor   = parseFloat(el.dataset.pnlKotor)  || 0;
     const pnlBersih  = parseFloat(el.dataset.pnlBersih) || 0;
-    const minPnl     = parseFloat(el.dataset.minPnl)    || 0;
     const modalSet   = parseFloat(el.dataset.modalSet)  || 0;
     const modalActual= parseFloat(el.dataset.modalActual)|| 0;
 
@@ -1311,7 +1290,6 @@ function showObTooltip(el) {
     const dirLabel   = isCtd ? 'CEX → DEX' : 'DEX → CEX';
     const cexPrice   = ob ? (isCtd ? ob.dispAsk : ob.dispBid) : 0;
     const pnlCls     = pnlBersih >= 0 ? 'ob-tt-pnl-pos' : 'ob-tt-pnl-neg';
-    const minMark    = pnlBersih >= minPnl ? ' ✅' : ' ⚠️';
 
     const r = (lbl, val) =>
         `<div class="ob-tt-row"><span class="ob-tt-lbl">${lbl}</span><span class="ob-tt-val">${val}</span></div>`;
@@ -1336,8 +1314,7 @@ function showObTooltip(el) {
 
     // PNL
     html += r('PNL Kotor', `${fmtPnl(pnlKotor)}$`);
-    html += `<div class="ob-tt-row"><span class="ob-tt-lbl">PNL Bersih</span><span class="ob-tt-val ${pnlCls}">${fmtPnl(pnlBersih)}$${minMark}</span></div>`;
-    html += r('Min PNL', `$${minPnl.toFixed(2)}`);
+    html += `<div class="ob-tt-row"><span class="ob-tt-lbl">PNL Bersih</span><span class="ob-tt-val ${pnlCls}">${fmtPnl(pnlBersih)}$</span></div>`;
 
     // Orderbook levels
     if (ob) {
@@ -1368,10 +1345,6 @@ function hideObTooltip() {
     clearTimeout(_tooltipHideTimer);
     _tooltipHideTimer = setTimeout(() => _getTooltip()?.classList.remove('visible'), 120);
 }
-document.addEventListener('touchstart', e => {
-    if (!e.target.closest('[data-dir]') && !e.target.closest('#obTooltip'))
-        _getTooltip()?.classList.remove('visible');
-}, { passive: true });
 
 // ─── Speed chips ───────────────────────────────────────────
 $('#speedChips').on('click', '.sort-btn', function () {
@@ -1435,13 +1408,11 @@ $('#tokenList').on('click', '#btnLoadMore', function () {
 $('#signalBar').on('click', '.signal-chip', function () {
     const tokId  = this.dataset.tokId;
     const dir    = (this.dataset.dir || '').toLowerCase();
-    const hdrIdx = this.dataset.hdrIdx;
     function _doScroll() {
-        const card = document.getElementById('card-' + tokId);
-        if (!card) return;
-        const dexHdr = hdrIdx !== '' && hdrIdx != null
-            ? card.querySelector(`.mon-dex-hdr[data-${dir}-hdr="${hdrIdx}"]`) : null;
-        const target = dexHdr || card;
+        const card  = document.getElementById('card-' + tokId);
+        const table = document.getElementById(`tbl-${dir}-${tokId}`);
+        const target = table || card;
+        if (!target) return;
         const mc = document.querySelector('.main-content');
         if (mc) {
             const mcRect     = mc.getBoundingClientRect();
@@ -1452,8 +1423,10 @@ $('#signalBar').on('click', '.signal-chip', function () {
         } else {
             target.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-        card.classList.add('card-flash');
-        setTimeout(() => card.classList.remove('card-flash'), 1600);
+        if (card) {
+            card.classList.add('card-flash');
+            setTimeout(() => card.classList.remove('card-flash'), 1600);
+        }
     }
     const isMonitorActive = $('#tabMonitor').is(':visible');
     if (!isMonitorActive) {
@@ -1468,11 +1441,24 @@ $('#signalBar').on('click', '.signal-chip', function () {
 (function () {
     const ml = document.getElementById('monitorList');
     if (!ml) return;
-    ml.addEventListener('mouseover', e => { const h = e.target.closest('.mon-dex-hdr[data-tok]'); if (h) showObTooltip(h); });
-    ml.addEventListener('mouseout',  e => { if (e.target.closest('.mon-dex-hdr[data-tok]') && (!e.relatedTarget || !e.relatedTarget.closest('.mon-dex-hdr[data-tok]'))) hideObTooltip(); });
-    ml.addEventListener('touchstart', e => { const h = e.target.closest('.mon-dex-hdr[data-tok]'); if (h) { showObTooltip(h); e.stopPropagation(); } }, { passive: false });
+    ml.addEventListener('click', e => {
+        const h = e.target.closest('.mon-dex-hdr[data-tok]');
+        if (!h) return;
+        const tooltip = _getTooltip();
+        if (tooltip?.classList.contains('visible') && _lastTooltipEl === h) {
+            hideObTooltip();
+        } else {
+            _lastTooltipEl = h;
+            showObTooltip(h);
+        }
+        e.stopPropagation();
+    });
 })();
-$('#obTooltip').on('mouseenter', () => clearTimeout(_tooltipHideTimer)).on('mouseleave', hideObTooltip);
+let _lastTooltipEl = null;
+document.addEventListener('click', e => {
+    if (!e.target.closest('#obTooltip') && !e.target.closest('.mon-dex-hdr[data-tok]'))
+        hideObTooltip();
+});
 
 // ─── Scan button handlers ──────────────────────────────────
 function lockTabs() { $('#navToken').addClass('disabled'); }

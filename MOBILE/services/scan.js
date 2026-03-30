@@ -117,7 +117,11 @@ async function scanToken(tok) {
     const els = _cardEls.get(tok.id);
     const card = els?.card || document.getElementById('card-' + tok.id);
     if (!card) return;
-    const n = totalQuoteCount();
+    const slots = getDexSlots();
+    const n = slots.length;
+    // Peta src tag → key DEX dan key DEX → key raw data
+    const _srcKeyMap = { MX: 'metax', KY: 'onekey', KB: 'kyber', OX: 'okx', LF: 'lifidex', MA: 'matcha' };
+    const _slotRawKeyMap = { metax: 'mx', onekey: 'ky', kyber: 'kb', okx: 'ok', lifidex: 'lf', matcha: 'ma' };
 
     // 1. Fetch CEX orderbook for TOKEN
     let obToken;
@@ -249,7 +253,7 @@ async function scanToken(tok) {
     const diagCtD = diagnoseWei(_refWeiCtD);
     const diagDtC = diagnoseWei(_refWeiDtC);
     const chainId = chainCfg.Kode_Chain;
-    const tokMinPnl = (isFinite(tok.minPnl) && tok.minPnl !== null) ? tok.minPnl : 1;
+    const tokMinPnl = CONFIG_MONITORING.minPnl || 1;
     const chainGasFee = _chainGasEstimateUsdt[chainId] || 0;
 
     // ── DEX name normalization & filter ──────────────────────
@@ -282,7 +286,7 @@ async function scanToken(tok) {
     const _rawD = { mx: null, ky: null, kb: null, ok: null, lf: null, ma: null };
 
     // ── Column fill helpers (reusable for incremental + final render) ─
-    function _fillCtdCols(data, missing) {
+    function _fillCtdCols(data) {
         const ctdStatus = els?.ctdStatus;
         if (!blockCtD && ctdStatus) ctdStatus.textContent = '';
         // CEX price row — same for all columns
@@ -312,34 +316,42 @@ async function scanToken(tok) {
             for (let i = 1; i < n; i++) { const d = els?.ctdDex[i]; if (d) { d.textContent = '—'; d.className = 'mon-dex-cell mc-muted'; } }
             return;
         }
-        data.forEach((r, i) => {
-            r.hdrIdx = i;
-            const hdrEl = els?.ctdHdr[i] || card.querySelector(`.mon-dex-hdr[data-dir="ctd"][data-ctd-hdr="${i}"]`);
-            const cexEl = els?.ctdCex[i]; const dexEl = els?.ctdDex[i]; const feeEl = els?.ctdFee[i]; const pnlEl = els?.ctdPnl[i];
-            const isSignal = r.pnl >= (r.dexMinPnl ?? tokMinPnl);
-            const sigCls = isSignal ? ' col-signal' : '';
-            const nm = (r.name || '').slice(0, 6).toUpperCase();
-            const srcTag = r.src === 'MX' ? '<span class="src-tag mx">MT</span>' : r.src === 'KY' ? '<span class="src-tag ky">KY</span>' : '';
-            const ms = r.dexModalCtD; const insuf = r.modalFull === false && r.modalActual && ms && r.modalActual < ms;
-            const modalLbl = insuf ? `<span class="hdr-modal-set">$${ms}</span> | <span class="hdr-modal-act">$${r.modalActual}✅</span>` : (ms ? `<span class="hdr-modal-ok">$${ms}✅</span>` : '');
-            if (hdrEl) { hdrEl.innerHTML = nm + (srcTag ? ' ' + srcTag : '') + (modalLbl ? `<span class="hdr-dex-modal">${modalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = ms || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); const b = r.src === 'MX' ? 'MT' : r.src === 'KY' ? 'KY' : ''; hdrEl.dataset.dexName = nm + (b ? ' ' + b : ''); hdrEl.dataset.src = r.src; }
-            if (cexEl) { cexEl.innerHTML = _cexPriceHtml(`↑ ${fmtCompact(dispAskCtD)}$`, _tradeUrl); cexEl.className = 'mon-dex-cell mc-ask' + sigCls; }
-            if (dexEl) { dexEl.innerHTML = _dexPriceHtml(`↓ ${fmtCompact(r.effPrice)}$`, r.name, 'ctd'); dexEl.className = 'mon-dex-cell mc-bid' + sigCls; }
-            if (feeEl) { feeEl.textContent = _fmtFeeCell(r.wdFee, r.cexFee1 + r.cexFee2, r.feeSwap || 0); feeEl.className = 'mon-dex-cell mc-recv' + sigCls; }
-            if (pnlEl) { const cls = r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg'; pnlEl.textContent = `${fmtPnl(r.pnl)}$`; pnlEl.className = `mon-dex-cell mc-pnl ${cls}` + sigCls; pnlEl.title = `${r.name || 'DEX'}\nMin PNL: $${(r.dexMinPnl ?? tokMinPnl).toFixed(2)}\nPNL: ${fmtPnl(r.pnl)}$`; }
+        // Slot-based fill: tiap kolom = slot DEX sesuai pilihan user
+        slots.forEach((slot, slotIdx) => {
+            const slotResults = data.filter(r => (_srcKeyMap[r.src] || '') === slot.key)
+                                    .sort((a, b) => b.pnl - a.pnl);
+            const r = slotResults[slot.routeIdx];
+            const hdrEl = els?.ctdHdr[slotIdx];
+            const cexEl = els?.ctdCex[slotIdx];
+            const dexEl = els?.ctdDex[slotIdx];
+            const feeEl = els?.ctdFee[slotIdx];
+            const pnlEl = els?.ctdPnl[slotIdx];
+            if (r) {
+                r.hdrIdx = slotIdx;
+                const isSignal = r.pnl >= (r.dexMinPnl ?? tokMinPnl);
+                const sigCls = isSignal ? ' col-signal' : '';
+                const nm = slot.label + (slot.routeTotal > 1 ? '#' + (slot.routeIdx + 1) : '');
+                const ms = r.dexModalCtD; const insuf = r.modalFull === false && r.modalActual && ms && r.modalActual < ms;
+                const modalLbl = insuf ? `<span class="hdr-modal-set">$${ms}</span> | <span class="hdr-modal-act">$${r.modalActual}✅</span>` : (ms ? `<span class="hdr-modal-ok">$${ms}✅</span>` : '');
+                if (hdrEl) { hdrEl.innerHTML = nm + (modalLbl ? `<span class="hdr-dex-modal">${modalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = ms || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); hdrEl.dataset.dexName = nm; hdrEl.dataset.src = r.src; }
+                if (cexEl) { cexEl.innerHTML = _cexPriceHtml(`↑ ${fmtCompact(dispAskCtD)}$`, _tradeUrl); cexEl.className = 'mon-dex-cell mc-ask' + sigCls; }
+                if (dexEl) { dexEl.innerHTML = _dexPriceHtml(`↓ ${fmtCompact(r.effPrice)}$`, r.name, 'ctd'); dexEl.className = 'mon-dex-cell mc-bid' + sigCls; }
+                if (feeEl) { feeEl.textContent = _fmtFeeCell(r.wdFee, r.cexFee1 + r.cexFee2, r.feeSwap || 0); feeEl.className = 'mon-dex-cell mc-recv' + sigCls; }
+                if (pnlEl) { const cls = r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg'; pnlEl.textContent = `${fmtPnl(r.pnl)}$`; pnlEl.className = `mon-dex-cell mc-pnl ${cls}` + sigCls; pnlEl.title = `${r.name || 'DEX'}\nMin PNL: $${(r.dexMinPnl ?? tokMinPnl).toFixed(2)}\nPNL: ${fmtPnl(r.pnl)}$`; }
+            } else {
+                const rawArr = _rawC[_slotRawKeyMap[slot.key]];
+                const lbl = slot.label + (slot.routeTotal > 1 ? ('#' + (slot.routeIdx + 1)) : '');
+                const errCls = rawArr !== null ? ' col-error' : '';
+                if (hdrEl) { hdrEl.textContent = lbl; hdrEl.className = 'mon-dex-hdr'; }
+                if (cexEl) { cexEl.textContent = '-'; cexEl.className = 'mon-dex-cell' + errCls; }
+                if (dexEl) { dexEl.textContent = rawArr === null ? '…' : (rawArr.length === 0 ? 'TIMEOUT' : 'NO ROUTE'); dexEl.className = 'mon-dex-cell' + errCls; }
+                if (feeEl) { feeEl.textContent = '-'; feeEl.className = 'mon-dex-cell' + errCls; }
+                if (pnlEl) { pnlEl.textContent = '-'; pnlEl.className = 'mon-dex-cell' + errCls; }
+            }
         });
-        for (let i = data.length; i < n; i++) {
-            const lbl = missing ? missing[i - data.length] : null;
-            const h = els?.ctdHdr[i]; const c = els?.ctdCex[i]; const d = els?.ctdDex[i]; const f = els?.ctdFee[i]; const p = els?.ctdPnl[i];
-            if (h) { h.textContent = lbl ? lbl.name : '⏳'; h.className = lbl ? 'mon-dex-hdr mon-dex-hdr-muted' : 'mon-dex-hdr'; }
-            if (c) { c.textContent = '-'; c.className = 'mon-dex-cell mc-muted'; }
-            if (d) { d.textContent = lbl ? lbl.error : '…'; d.className = lbl ? 'mon-dex-cell mc-err-sm' : 'mon-dex-cell mc-muted'; }
-            if (f) { f.textContent = '-'; f.className = 'mon-dex-cell mc-muted'; }
-            if (p) { p.textContent = '-'; p.className = 'mon-dex-cell mc-muted'; }
-        }
     }
 
-    function _fillDtcCols(data, missing) {
+    function _fillDtcCols(data) {
         const dtcStatus = els?.dtcStatus;
         if (!blockDtC && dtcStatus) dtcStatus.textContent = '';
         for (let i = 0; i < n; i++) {
@@ -368,72 +380,60 @@ async function scanToken(tok) {
             for (let i = 1; i < n; i++) { const d = els?.dtcDex[i]; if (d) { d.textContent = '—'; d.className = 'mon-dex-cell mc-muted'; } }
             return;
         }
-        data.forEach((r, i) => {
-            r.hdrIdx = i;
-            const hdrEl = els?.dtcHdr[i] || card.querySelector(`.mon-dex-hdr[data-dir="dtc"][data-dtc-hdr="${i}"]`);
-            const cexEl = els?.dtcCex[i]; const dexEl = els?.dtcDex[i]; const feeEl = els?.dtcFee[i]; const pnlEl = els?.dtcPnl[i];
-            const isSignal = r.pnl >= (r.dexMinPnl ?? tokMinPnl);
-            const sigCls = isSignal ? ' col-signal' : '';
-            const nm = (r.name || '').slice(0, 6).toUpperCase();
-            const srcTag = r.src === 'MX' ? '<span class="src-tag mx">MT</span>' : r.src === 'KY' ? '<span class="src-tag ky">KY</span>' : '';
-            const ms = r.dexModalDtC; const insuf = r.modalFull === false && r.modalActual && ms && r.modalActual < ms;
-            const modalLbl = insuf ? `<span class="hdr-modal-set">$${ms}</span> | <span class="hdr-modal-act">$${r.modalActual}✅</span>` : (ms ? `<span class="hdr-modal-ok">$${ms}✅</span>` : '');
-            if (hdrEl) { hdrEl.innerHTML = nm + (srcTag ? ' ' + srcTag : '') + (modalLbl ? `<span class="hdr-dex-modal">${modalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = ms || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); const b = r.src === 'MX' ? 'MT' : r.src === 'KY' ? 'KY' : ''; hdrEl.dataset.dexName = nm + (b ? ' ' + b : ''); hdrEl.dataset.src = r.src; }
-            if (cexEl) { cexEl.innerHTML = _cexPriceHtml(`↓ ${fmtCompact(dispBidDtC)}$`, _tradeUrl); cexEl.className = 'mon-dex-cell mc-bid' + sigCls; }
-            if (dexEl) { dexEl.innerHTML = _dexPriceHtml(`↑ ${fmtCompact(r.effPrice)}$`, r.name, 'dtc'); dexEl.className = 'mon-dex-cell mc-ask' + sigCls; }
-            if (feeEl) { feeEl.textContent = _fmtFeeCell(r.wdFee, r.cexFee1 + r.cexFee2, r.feeSwap || 0); feeEl.className = 'mon-dex-cell mc-recv' + sigCls; }
-            if (pnlEl) { const cls = r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg'; pnlEl.textContent = `${fmtPnl(r.pnl)}$`; pnlEl.className = `mon-dex-cell mc-pnl ${cls}` + sigCls; pnlEl.title = `${r.name || 'DEX'}\nMin PNL: $${(r.dexMinPnl ?? tokMinPnl).toFixed(2)}\nPNL: ${fmtPnl(r.pnl)}$`; }
+        // Slot-based fill: tiap kolom = slot DEX sesuai pilihan user
+        slots.forEach((slot, slotIdx) => {
+            const slotResults = data.filter(r => (_srcKeyMap[r.src] || '') === slot.key)
+                                    .sort((a, b) => b.pnl - a.pnl);
+            const r = slotResults[slot.routeIdx];
+            const hdrEl = els?.dtcHdr[slotIdx];
+            const cexEl = els?.dtcCex[slotIdx];
+            const dexEl = els?.dtcDex[slotIdx];
+            const feeEl = els?.dtcFee[slotIdx];
+            const pnlEl = els?.dtcPnl[slotIdx];
+            if (r) {
+                r.hdrIdx = slotIdx;
+                const isSignal = r.pnl >= (r.dexMinPnl ?? tokMinPnl);
+                const sigCls = isSignal ? ' col-signal' : '';
+                const nm = slot.label + (slot.routeTotal > 1 ? '#' + (slot.routeIdx + 1) : '');
+                const ms = r.dexModalDtC; const insuf = r.modalFull === false && r.modalActual && ms && r.modalActual < ms;
+                const modalLbl = insuf ? `<span class="hdr-modal-set">$${ms}</span> | <span class="hdr-modal-act">$${r.modalActual}✅</span>` : (ms ? `<span class="hdr-modal-ok">$${ms}✅</span>` : '');
+                if (hdrEl) { hdrEl.innerHTML = nm + (modalLbl ? `<span class="hdr-dex-modal">${modalLbl}</span>` : ''); hdrEl.className = 'mon-dex-hdr'; hdrEl.dataset.effprice = r.effPrice; hdrEl.dataset.cexFee1 = r.cexFee1.toFixed(4); hdrEl.dataset.cexFee2 = r.cexFee2.toFixed(4); hdrEl.dataset.feeWd = r.wdFee.toFixed(4); hdrEl.dataset.feeSwap = (r.feeSwap || 0).toFixed(6); hdrEl.dataset.totalFee = r.totalFee.toFixed(6); hdrEl.dataset.pnlKotor = (r.pnlKotor || 0).toFixed(4); hdrEl.dataset.pnlBersih = r.pnl.toFixed(4); hdrEl.dataset.modalSet = ms || ''; hdrEl.dataset.modalActual = r.modalActual != null ? r.modalActual : ''; hdrEl.dataset.minPnl = (r.dexMinPnl ?? tokMinPnl).toFixed(2); hdrEl.dataset.dexName = nm; hdrEl.dataset.src = r.src; }
+                if (cexEl) { cexEl.innerHTML = _cexPriceHtml(`↓ ${fmtCompact(dispBidDtC)}$`, _tradeUrl); cexEl.className = 'mon-dex-cell mc-bid' + sigCls; }
+                if (dexEl) { dexEl.innerHTML = _dexPriceHtml(`↑ ${fmtCompact(r.effPrice)}$`, r.name, 'dtc'); dexEl.className = 'mon-dex-cell mc-ask' + sigCls; }
+                if (feeEl) { feeEl.textContent = _fmtFeeCell(r.wdFee, r.cexFee1 + r.cexFee2, r.feeSwap || 0); feeEl.className = 'mon-dex-cell mc-recv' + sigCls; }
+                if (pnlEl) { const cls = r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg'; pnlEl.textContent = `${fmtPnl(r.pnl)}$`; pnlEl.className = `mon-dex-cell mc-pnl ${cls}` + sigCls; pnlEl.title = `${r.name || 'DEX'}\nMin PNL: $${(r.dexMinPnl ?? tokMinPnl).toFixed(2)}\nPNL: ${fmtPnl(r.pnl)}$`; }
+            } else {
+                const rawArr = _rawD[_slotRawKeyMap[slot.key]];
+                const lbl = slot.label + (slot.routeTotal > 1 ? ('#' + (slot.routeIdx + 1)) : '');
+                const errCls = rawArr !== null ? ' col-error' : '';
+                if (hdrEl) { hdrEl.textContent = lbl; hdrEl.className = 'mon-dex-hdr'; }
+                if (cexEl) { cexEl.textContent = '-'; cexEl.className = 'mon-dex-cell' + errCls; }
+                if (dexEl) { dexEl.textContent = rawArr === null ? '…' : (rawArr.length === 0 ? 'TIMEOUT' : 'NO ROUTE'); dexEl.className = 'mon-dex-cell' + errCls; }
+                if (feeEl) { feeEl.textContent = '-'; feeEl.className = 'mon-dex-cell' + errCls; }
+                if (pnlEl) { pnlEl.textContent = '-'; pnlEl.className = 'mon-dex-cell' + errCls; }
+            }
         });
-        for (let i = data.length; i < n; i++) {
-            const lbl = missing ? missing[i - data.length] : null;
-            const h = els?.dtcHdr[i]; const c = els?.dtcCex[i]; const d = els?.dtcDex[i]; const f = els?.dtcFee[i]; const p = els?.dtcPnl[i];
-            if (h) { h.textContent = lbl ? lbl.name : '⏳'; h.className = lbl ? 'mon-dex-hdr mon-dex-hdr-muted' : 'mon-dex-hdr'; }
-            if (c) { c.textContent = '-'; c.className = 'mon-dex-cell mc-muted'; }
-            if (d) { d.textContent = lbl ? lbl.error : '…'; d.className = lbl ? 'mon-dex-cell mc-err-sm' : 'mon-dex-cell mc-muted'; }
-            if (f) { f.textContent = '-'; f.className = 'mon-dex-cell mc-muted'; }
-            if (p) { p.textContent = '-'; p.className = 'mon-dex-cell mc-muted'; }
-        }
     }
 
-    // ── Incremental render: re-sort + update DOM immediately ─
-    function _renderCols(missingCtd, missingDtc) {
-        allCtD.sort((a, b) => b.pnl - a.pnl);
-        allDtC.sort((a, b) => b.pnl - a.pnl);
-        _fillCtdCols(allCtD.slice(0, n), missingCtd || null);
-        _fillDtcCols(allDtC.slice(0, n), missingDtc || null);
+    // ── Incremental render: update DOM dengan data terkini ──
+    function _renderCols() {
+        _fillCtdCols(allCtD);
+        _fillDtcCols(allDtC);
     }
 
     // ── Push helpers: add result → immediate partial render ──
     const _pCtD = (r, dk) => {
         r.dexModalCtD = tok.dexModals?.[dk]?.ctd || tok.modalCtD || CFG.dex?.[dk]?.modalCtD;
         r.modalFull = dxCtD[dk].full; r.modalActual = Math.round(dxCtD[dk].modal);
-        r.dexMinPnl = tok.dexModals?.[dk]?.pnl ?? tokMinPnl ?? CFG.dex?.[dk]?.minPnl ?? 1;
+        r.dexMinPnl = tokMinPnl;
         allCtD.push(r); _renderCols();
     };
     const _pDtC = (r, dk) => {
         r.dexModalDtC = tok.dexModals?.[dk]?.dtc || tok.modalDtC || CFG.dex?.[dk]?.modalDtC;
         r.modalFull = dxDtC[dk].full; r.modalActual = Math.round(dxDtC[dk].modal);
-        r.dexMinPnl = tok.dexModals?.[dk]?.pnl ?? tokMinPnl ?? CFG.dex?.[dk]?.minPnl ?? 1;
+        r.dexMinPnl = tokMinPnl;
         allDtC.push(r); _renderCols();
     };
-
-    // ── buildMissingLabels — dipakai setelah semua fetch selesai ─
-    function buildMissingLabels(allData, raw) {
-        const labels = [];
-        const mtIn = allData.filter(r => r.src === 'MX').length;
-        const kyIn = allData.filter(r => r.src === 'KY').length;
-        const kbIn = allData.some(r => r.src === 'KB');
-        const okIn = allData.some(r => r.src === 'OX');
-        const lfIn = allData.some(r => r.src === 'LF');
-        const maIn = allData.some(r => r.src === 'MA');
-        for (let i = mtIn; i < CFG.quoteCountMetax; i++) labels.push({ name: 'METAX', error: (raw.mx || []).length === 0 ? 'TIMEOUT' : 'NO ROUTE' });
-        for (let i = kyIn; i < CFG.quoteCountOnekey; i++) labels.push({ name: 'ONEKEY', error: (raw.ky || []).length === 0 ? 'TIMEOUT' : 'NO ROUTE' });
-        if (isKyberEnabled() && !kbIn) labels.push({ name: 'KYBER', error: (raw.kb || []).length === 0 ? 'NO QUOTE' : 'NO ROUTE' });
-        if (isOkxEnabled() && !okIn) labels.push({ name: 'OKX', error: (raw.ok || []).length === 0 ? 'NO QUOTE' : 'NO ROUTE' });
-        if (isOnekeyLifiEnabled() && !lfIn) labels.push({ name: 'LIFIDEX', error: (raw.lf || []).length === 0 ? 'TIMEOUT' : 'NO ROUTE' });
-        if (isMatchaEnabled() && !maIn) labels.push({ name: 'MATCHA', error: (raw.ma || []).length === 0 ? 'NO QUOTE' : 'NO ROUTE' });
-        return labels;
-    }
 
     // ── 4. DEX fetches: SSE (MetaX/OneKey) background, REST (Kyber/OKX/LiFi/Matcha) awaited ─
     // SSE tidak di-await → tidak blokir batch berikutnya, tetap update DOM saat resolve
@@ -462,9 +462,7 @@ async function scanToken(tok) {
 
     // Tunggu REST selesai → final render (SSE MetaX/OneKey masih berjalan di background)
     await Promise.all(_fetches);
-    const missingCtdLabels = blockCtD ? [] : buildMissingLabels(allCtD, _rawC);
-    const missingDtcLabels = buildMissingLabels(allDtC, _rawD);
-    _renderCols(missingCtdLabels, missingDtcLabels);
+    _renderCols();
 
     // 8. Signal chip & card highlight — hanya arah yang tidak blocked
     // jika blockCtD → abaikan CTD dari pertimbangan signal
@@ -682,7 +680,8 @@ ${_body}
 // ─── Reset Monitor Cells ──────────────────────
 // Kosongkan semua sel tabel dan sinyal setelah setiap ronde selesai
 function resetMonitorCells() {
-    const n = totalQuoteCount();
+    const slots = getDexSlots();
+    const n = slots.length;
     _cardEls.forEach(els => {
         const card = els.card;
         if (!card) return;
@@ -691,12 +690,14 @@ function resetMonitorCells() {
         if (els.ctdStatus) { els.ctdStatus.textContent = ''; els.ctdStatus.className = 'tbl-status'; }
         if (els.dtcStatus) { els.dtcStatus.textContent = ''; els.dtcStatus.className = 'tbl-status'; }
         for (let i = 0; i < n; i++) {
-            const ctdH = els.ctdHdr[i]; if (ctdH) { ctdH.textContent = '-'; ctdH.className = 'mon-dex-hdr'; }
+            const slot = slots[i];
+            const slotLbl = slot ? slot.label + (slot.routeTotal > 1 ? (' ' + (slot.routeIdx + 1)) : '') : '-';
+            const ctdH = els.ctdHdr[i]; if (ctdH) { ctdH.textContent = slotLbl; ctdH.className = 'mon-dex-hdr'; }
             const ctdC = els.ctdCex[i]; if (ctdC) { ctdC.textContent = '-'; ctdC.className = 'mon-dex-cell'; }
             const ctdD = els.ctdDex[i]; if (ctdD) { ctdD.textContent = '-'; ctdD.className = 'mon-dex-cell'; }
             const ctdF = els.ctdFee[i]; if (ctdF) { ctdF.textContent = '-'; ctdF.className = 'mon-dex-cell'; }
             const ctdP = els.ctdPnl[i]; if (ctdP) { ctdP.textContent = '-'; ctdP.className = 'mon-dex-cell'; }
-            const dtcH = els.dtcHdr[i]; if (dtcH) { dtcH.textContent = '-'; dtcH.className = 'mon-dex-hdr'; }
+            const dtcH = els.dtcHdr[i]; if (dtcH) { dtcH.textContent = slotLbl; dtcH.className = 'mon-dex-hdr'; }
             const dtcC = els.dtcCex[i]; if (dtcC) { dtcC.textContent = '-'; dtcC.className = 'mon-dex-cell'; }
             const dtcD = els.dtcDex[i]; if (dtcD) { dtcD.textContent = '-'; dtcD.className = 'mon-dex-cell'; }
             const dtcF = els.dtcFee[i]; if (dtcF) { dtcF.textContent = '-'; dtcF.className = 'mon-dex-cell'; }

@@ -84,6 +84,59 @@ const CONFIG_MONITORING = {
 // ============================================================
 const CONFIG_DEX = {
 
+  // ── DEX LANGSUNG ─────────────────────────────────────────
+  kyber: {
+    label:    'KYBER',
+    color:    '#087808ff',
+    icon:     'icons/dex/kyber.png',
+    hasCount: false,
+    count:    1,       // sumber: Kyber direct + Krystal[filter Kyber]
+    enabled:  true,
+    timing: {
+      timeout: 3000,
+      jeda: 300,
+    },
+  },
+
+  okx: {
+    label:    'OKXDEX',
+    color:    '#333333',
+    icon:     'icons/dex/okx.png',
+    hasCount: false,
+    count:    1,       // sumber: C98[OKX] + Krystal[filter OKX]
+    enabled:  true,
+    timing: {
+      timeout: 2000,
+      jeda: 300,
+    },
+  },
+
+  lifidex: {
+    label:    'LIFIDEX',
+    color:    '#f15ba1ff',
+    icon:     'icons/dex/lifi.png',
+    hasCount: false,
+    count:    1,       // sumber: Temple API + C98[LiFi]
+    enabled:  true,
+    timing: {
+      timeout: 6000,   // LiFi cross-chain butuh lebih lama
+      jeda: 400,
+    },
+  },
+
+  matcha: {
+    label:    'MATCHA',
+    color:    '#00d395',
+    icon:     'icons/dex/matcha.png',
+    hasCount: false,
+    count:    1,       // sumber: 1Delta proxy + Rainbow proxy
+    enabled:  true,
+    timing: {
+      timeout: 4500,
+      jeda: 500,
+    },
+  },
+
   // ── METADEX (multi-route aggregator) ─────────────────────
   metax: {
     label:    'METAX',
@@ -100,8 +153,8 @@ const CONFIG_DEX = {
   },
 
   onekey: {
-    label:    'ONEKEY',
-    badge:    'KY',
+    label:    'ONEX',
+    badge:    'OK',
     color:    '#00b812',
     icon:     'icons/dex/onekey.png',
     hasCount: true,
@@ -113,62 +166,6 @@ const CONFIG_DEX = {
     },
   },
 
-  // ── DEX LANGSUNG ─────────────────────────────────────────
-  kyber: {
-    label:    'KYBER',
-    badge:    'KB',
-    color:    '#087808ff',
-    icon:     'icons/dex/kyber.png',
-    hasCount: false,
-    count:    1,       // sumber: Kyber direct + Krystal[filter Kyber]
-    enabled:  true,
-    timing: {
-      timeout: 3000,
-      jeda: 300,
-    },
-  },
-
-  okx: {
-    label:    'OKX',
-    badge:    'OK',
-    color:    '#333333',
-    icon:     'icons/dex/okx.png',
-    hasCount: false,
-    count:    1,       // sumber: C98[OKX] + Krystal[filter OKX]
-    enabled:  true,
-    timing: {
-      timeout: 2000,
-      jeda: 300,
-    },
-  },
-
-  lifidex: {
-    label:    'LIFIDEX',
-    badge:    'LF',
-    color:    '#f15ba1ff',
-    icon:     'icons/dex/lifi.png',
-    hasCount: false,
-    count:    1,       // sumber: Temple API + C98[LiFi]
-    enabled:  true,
-    timing: {
-      timeout: 2000,   // LiFi cross-chain butuh lebih lama
-      jeda: 300,
-    },
-  },
-
-  matcha: {
-    label:    'MATCHA',
-    badge:    'MA',
-    color:    '#00d395',
-    icon:     'icons/dex/matcha.png',
-    hasCount: false,
-    count:    1,       // sumber: 1Delta proxy + Rainbow proxy
-    enabled:  true,
-    timing: {
-      timeout: 3500,
-      jeda: 300,
-    },
-  },
 };
 
 
