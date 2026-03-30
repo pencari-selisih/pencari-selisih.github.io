@@ -9,7 +9,7 @@
 // ============================================================
 const APP_DEV_CONFIG = {
   appName: "MINI SCANNER",
-  appVersion: "04.00",
+  appVersion: "03.30",
 
   telegramBotToken: "8053447166:AAH7YYbyZ4eBoPX31D8h3bCYdzEeIaiG4JU",
   telegramGroupId: "-5271018516",
@@ -30,7 +30,7 @@ const APP_DEV_CONFIG = {
   defaultSseTimeout: 6000,
   defaultLevelCount: 4,     // jumlah level orderbook (1–4)
   defaultAutoLevel: true,   // Auto Level CEX orderbook
-  scanBatchSize: 10,        // jumlah koin yang di-scan paralel per batch
+  scanBatchSize: 5,        // jumlah koin yang di-scan paralel per batch
   maxDexDisplay: 6,         // jumlah kolom DEX yang tampil di hasil scanning
   offDexResultScan: ["OPENOCEAN", "MAYAN"],
 
