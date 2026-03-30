@@ -32,7 +32,7 @@ const APP_DEV_CONFIG = {
   defaultAutoLevel: true,   // Auto Level CEX orderbook
   scanBatchSize: 5,        // jumlah koin yang di-scan paralel per batch
   maxDexDisplay: 6,         // jumlah kolom DEX yang tampil di hasil scanning
-  offDexResultScan: ["OPENOCEAN", "MAYAN"],
+  offDexResultScan: ["OPENOCEAN", "MAYAN","UNISWAP"],
 
   bungeeApiKey: "71XdjSawshaeie5DeH5b9avPjaoVtoOc2g5ZZx1d",
   bungeeAffiliate: "609913096e183b62cecd0dfdc13382f618baedceb5fef75aad43e6cbff367039708902197e0b2b78b1d76cb0837ad0b318baedceb5fef75aad43e6cb",
@@ -118,7 +118,7 @@ const CONFIG_DEX = {
     icon: 'icons/dex/jumpx.png',
     hasCount: true,
     count: 2,
-    enabled: false,
+    enabled: true,
     modalCtD: 100,
     modalDtC: 80,
   },
