@@ -707,8 +707,9 @@ async function runScan() {
     $('#btnScanIcon').text('■'); $('#btnScanLbl').text('STOP'); $('#btnScan').addClass('stop');
     $('#btnScanCount').text('');
     $('#scanBadge').addClass('active');
-    // Clear previous signal chips and reset table
+    // Clear previous signal chips and force full card rebuild (empty cells)
     _clearAllSignalChips();
+    _lastBuildN = 0;
     $('#notStartedNotice').hide();
     $('#scanDoneNotice').hide();
     $('#scanStopNotice').hide();

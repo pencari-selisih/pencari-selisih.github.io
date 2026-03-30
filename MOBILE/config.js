@@ -30,7 +30,7 @@ const APP_DEV_CONFIG = {
   defaultSseTimeout: 6000,
   defaultLevelCount: 4,
   defaultAutoLevel: true,
-  scanBatchSize: 10,
+  scanBatchSize: 5,
   maxDexDisplay: 6,
   offDexResultScan: ["OPENOCEAN", "MAYAN","UNISWAP"],
 

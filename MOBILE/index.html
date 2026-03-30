@@ -61,7 +61,7 @@
                     <button class="sort-btn active" data-sort="az">A→Z</button>
                     <button class="sort-btn" data-sort="za">Z→A</button>
                 </div>
-                <button class="sort-btn" id="monFavFilter" title="Filter Favorit">⭐</button>
+                <button class="sort-btn" id="monFavFilter" title="Filter Favorit">⭐<span id="monFavCount"></span></button>
                 <button class="fab-scan" id="btnScan">
                     <span id="btnScanIcon">▶</span>
                     <span id="btnScanLbl">START</span>
@@ -124,10 +124,10 @@
                 </div>
             </div>
             <div class="csv-bar">
-                <button class="btn-outline" id="btnExport">↓ Export</button>
-                <button class="btn-outline" id="btnImportTrigger">↑ Import</button>
+                <button class="btn-outline btn-eksport" id="btnExport">↓ Export</button>
+                <button class="btn-outline btn-import" id="btnImportTrigger">↑ Import</button>
                 <button class="btn-outline btn-modal-dex" onclick="openBulkModal()">$ Modal DEX</button>
-                <button class="btn-primary btn-add-koin" id="fabAdd">+ Tambah</button>
+                <button class="btn-outline  btn-add-koin" id="fabAdd">+ Tambah</button>
                 <input type="file" id="importFile"
                     accept=".csv,text/csv,text/plain,text/comma-separated-values,application/octet-stream"
                     style="display:none">
@@ -187,23 +187,14 @@
                         <button class="sort-btn" data-speed="500">FAST</button>
                     </div>
                 </div>
+                <div class="set-toggle-inline">
+                    <label class="set-label">🔔 Suara</label>
+                    <input type="checkbox" id="setSoundMuted" class="set-toggle-chk">
+                </div>
             </div>
-            <div class="uk-margin-small-top">
+            <div style="margin-top:6px;">
                 <label class="set-label">Wallet Metamask (EVM)</label>
                 <input class="uk-input set-input" id="setWallet" type="text" placeholder="0x...">
-            </div>
-
-            <!-- Preferensi -->
-            <div class="set-section">⚙️ Preferensi</div>
-            <div class="set-toggle-row">
-                <div class="set-toggle-lbl">
-                    <span>🔔</span>
-                    <div>
-                        <div class="set-toggle-title">Notifikasi Suara</div>
-                        <div class="set-toggle-desc">Aktifkan suara saat sinyal ditemukan</div>
-                    </div>
-                </div>
-                <input type="checkbox" id="setSoundMuted" class="set-toggle-chk">
             </div>
 
             <!-- DEX Settings — dirender JS dari CONFIG_DEX -->
@@ -216,9 +207,9 @@
             <div class="set-section">🔍 FILTER KOIN [<span id="filterCoinCount">0</span> KOIN]</div>
             <div class="set-label">Exchanger Aktif <span class="set-hint">(ketuk untuk nonaktifkan)</span></div>
             <div class="fchip-group" id="filterCexChips"></div>
-            <div class="set-label uk-margin-small-top">Chain Aktif <span class="set-hint">(ketuk untuk nonaktifkan)</span></div>
+            <div class="set-label" style="margin-top:6px;">Chain Aktif <span class="set-hint">(ketuk untuk nonaktifkan)</span></div>
             <div class="fchip-group" id="filterChainChips"></div>
-            <div class="set-label uk-margin-small-top">Pilih Pair</div>
+            <div class="set-label" style="margin-top:6px;">Pilih Pair</div>
             <div class="fchip-group" id="filterPairTypeChips">
                 <span class="fchip pair-type-chip on" data-val="all"    onclick="setPairTypeFilter('all')">🟢 SEMUA</span>
                 <span class="fchip pair-type-chip"    data-val="stable" onclick="setPairTypeFilter('stable')">🟡 STABLE</span>
@@ -226,17 +217,19 @@
             </div>
 
             <!-- CEX Wallet -->
-            <div class="set-section">💳 BIAYA WD & STATUS WD/DP</div>
-            <div class="set-label set-hint">Terakhir diperbarui: <span id="walletLastUpdate">—</span></div>
-            <div class="cex-wallet-status" id="cexWalletStatus">
-                Belum ada info. Ketuk tombol di bawah untuk mengambil data dari Exchanger.
+            <div class="set-section">💳 CEK BIAYA WD & STATUS WD/DP</div>
+            <div class="set-cexwallet-row">
+                <button class="btn-outline" id="btnUpdateCexWallet" onclick="runUpdateCexWallet()">🔄 Check Wallet Exchanger</button>
+                <span class="set-label set-hint" style="margin:0;">Diperbarui: <span id="walletLastUpdate">—</span></span>
             </div>
-            <button class="btn-outline uk-margin-small-top" id="btnUpdateCexWallet" onclick="runUpdateCexWallet()">
-                🔄 Check Wallet Exchanger
-            </button>
+            <div class="cex-wallet-status" id="cexWalletStatus">
+                Belum ada info. Ketuk tombol di atas untuk mengambil data dari Exchanger.
+            </div>
+           
 
-            <div class="uk-margin-top uk-text-right">
-                <button class="uk-button uk-button-primary uk-modal-close" onclick="saveSettings()">💾 Simpan</button>
+            <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:10px;">
+                <button class="btn-set-action uk-modal-close">✕ Batal</button>
+                <button class="btn-set-action btn-set-save uk-modal-close" onclick="saveSettings()">💾 Simpan</button>
             </div>
         </div>
     </div>

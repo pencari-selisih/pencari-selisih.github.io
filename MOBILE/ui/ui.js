@@ -127,6 +127,8 @@ async function updateScanCount() {
         $('#btnScanCount').text('[' + n + ' KOIN ]');
         $('#btnScan').prop('disabled', n === 0).toggleClass('disabled', n === 0);
     }
+    const favN = all.filter(t => t.favorite).length;
+    $('#monFavCount').text(favN > 0 ? ' ' + favN : '');
 }
 
 function renderFilterChips() {
@@ -335,9 +337,21 @@ $('#btnOnboard').on('click', () => {
     $('#onboardOverlay').hide();
 });
 
+// ─── Block settings/editor modals during scanning (kalkulator tetap bisa diakses)
+['#modalSettings', '#modalBulk', '#modalToken'].forEach(sel => {
+    UIkit.util.on(sel, 'beforeshow', e => {
+        if (scanning) { e.preventDefault(); showToast('⛔ Hentikan scan terlebih dahulu'); }
+    });
+});
+
 // ─── Tab Navigation ───────────────────────────────────────
 function switchTab(tabId) {
     if (!tabId) return;
+    if (tabId === 'tabSettings') {
+        if (scanning) { showToast('⛔ Hentikan scan terlebih dahulu'); return; }
+        UIkit.modal('#modalSettings').show();
+        return;
+    }
     if (scanning && tabId !== 'tabMonitor') return;
     $('.nav-item').removeClass('active');
     $(`.nav-item[data-tab="${tabId}"]`).addClass('active');
@@ -367,6 +381,7 @@ UIkit.util.on('#modalSettings', 'show', function () { loadSettings(); });
 
 // ─── Token Form — Bottom Sheet ────────────────────────────
 function openSheet(id) {
+    if (scanning) { showToast('⛔ Hentikan scan terlebih dahulu'); return; }
     resetSheetForm();
     if (id) fillSheetForm(id);
     $('#sheetTitle').text(id ? 'Edit Token' : 'Tambah KOIN');
@@ -725,6 +740,7 @@ async function renderTokenList() {
 }
 
 async function deleteToken(id) {
+    if (scanning) { showToast('⛔ Hentikan scan terlebih dahulu'); return; }
     const tokens = await getTokens();
     const tok    = tokens.find(x => x.id === id);
     const name   = tok ? tok.ticker : 'token ini';
@@ -860,11 +876,16 @@ async function toggleFavorite(id) {
     if (idx < 0) return;
     tokens[idx].favorite = !tokens[idx].favorite;
     await saveTokens(tokens);
+    const isFav = tokens[idx].favorite;
+    const ticker = tokens[idx].ticker || id;
+    showToast(isFav ? `⭐ ${ticker} ditambah ke Favorit` : `☆ ${ticker} dihapus dari Favorit`);
+    const favN = tokens.filter(t => t.favorite).length;
+    $('#monFavCount').text(favN > 0 ? ' ' + favN : '');
     if (tokenFavFilter) { renderTokenList(); return; }
     // Update scanner card ⭐
-    document.querySelector(`#card-${id} .mon-fav`)?.classList.toggle('fav-active', tokens[idx].favorite);
+    document.querySelector(`#card-${id} .mon-fav`)?.classList.toggle('fav-active', isFav);
     // Update token list ⭐ (class tok-fav di action-bar)
-    document.querySelector(`#li-${id} .tok-fav`)?.classList.toggle('fav-active', tokens[idx].favorite);
+    document.querySelector(`#li-${id} .tok-fav`)?.classList.toggle('fav-active', isFav);
 }
 
 // ─── Bulk DEX Modal ───────────────────────────────────────
@@ -1033,7 +1054,7 @@ function _buildSingleCard(t, n) {
         const addrs = [_walletInfo.address, _walletInfo.address2, _walletInfo.address3].filter(Boolean);
         const icons = addrs.map((addr, i) => {
             const url = `${_explorerBase}/token/${sc}?a=${addr}`;
-            return `<a href="${url}" target="_blank" rel="noopener" class="stok-link" onclick="event.stopPropagation()">📦</a>`;
+            return `<a href="${url}" target="_blank" rel="noopener" class="stok-link" onclick="event.stopPropagation()">&nbsp;📦</a>`;
         }).join('');
         return `<span>${label}</span>${icons}`;
     }
@@ -1374,6 +1395,7 @@ $('#monSortBar').on('click', '.sort-btn', function () {
     $(this).addClass('active');
     _clearAllSignalChips();
     updateNoSignalNotice();
+    showToast(monitorSort === 'az' ? '🔤 Urutan A → Z' : '🔤 Urutan Z → A');
     buildMonitorRows();
 });
 $('#monFavFilter').on('click', function () {
@@ -1381,6 +1403,7 @@ $('#monFavFilter').on('click', function () {
     $(this).toggleClass('active', monitorFavOnly);
     if (!scanning) buildMonitorRows();
     updateScanCount();
+    showToast(monitorFavOnly ? '⭐ Filter Favorit ON' : '⭐ Filter Favorit OFF');
 });
 $('#tokSortAZ, #tokSortZA').on('click', function () {
     tokenSort = $(this).data('sort');
@@ -1388,12 +1411,14 @@ $('#tokSortAZ, #tokSortZA').on('click', function () {
     $(this).addClass('active');
     tokenRenderLimit = 50;
     renderTokenList();
+    showToast(tokenSort === 'az' ? '🔤 Urutan A → Z' : '🔤 Urutan Z → A');
 });
 $('#tokFavFilter').on('click', function () {
     tokenFavFilter = !tokenFavFilter;
     $(this).toggleClass('active', tokenFavFilter);
     tokenRenderLimit = 50;
     renderTokenList();
+    showToast(tokenFavFilter ? '⭐ Filter Favorit ON' : '⭐ Filter Favorit OFF');
 });
 $('#tokenSearch').on('input', function () {
     tokenSearchQuery = $(this).val().trim();

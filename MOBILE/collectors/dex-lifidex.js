@@ -17,10 +17,9 @@ async function _fetchLifiTemple(chainId, srcToken, destToken, amountWei, decOut)
             toChain:     chainId.toString(),
             fromToken:   srcToken,
             toToken:     destToken,
-            fromAmount:  amountWei.toString(),
+            amount:      amountWei.toString(),
             fromAddress: wallet,
-            slippage:    '0.03',
-            order:       'RECOMMENDED',
+            slippage:    '0.005',
         });
         const resp = await fetch(
             `https://temple-api-evm.prod.templewallet.com/api/swap-route?${params}`
