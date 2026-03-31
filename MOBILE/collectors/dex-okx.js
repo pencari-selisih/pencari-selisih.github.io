@@ -6,7 +6,6 @@
 // Krystal: GET  https://api.krystal.app/{chain}/v2/swap/allRates (direct)
 
 const _C98_NATIVE = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
-const _C98_WALLET  = '0xB7B10292EE6c5828b20eB0942C8c1275E8344800';
 
 // Fetch OKX quote via C98 Superlink
 async function _fetchOkxC98(chainId, srcToken, destToken, amountWei, decOut, decIn, symIn, symOut) {
@@ -21,7 +20,8 @@ async function _fetchOkxC98(chainId, srcToken, destToken, amountWei, decOut, dec
         const token1 = { chainId, symbol: symOut, decimals: decOut };
         if (!isNativeDst) token1.address = destToken;
 
-        const body = JSON.stringify({ isAuto: true, amount, token0, token1, backer: ['OKX'], wallet: _C98_WALLET });
+        const wallet = CFG.wallet || '0x0000000000000000000000000000000000000000';
+        const body = JSON.stringify({ isAuto: true, amount, token0, token1, backer: ['OKX'], wallet });
         const targetUrl = 'https://superlink-server.coin98.tech/quote';
         const proxyUrl  = APP_DEV_CONFIG.corsProxy + encodeURIComponent(targetUrl);
         const resp = await fetch(proxyUrl, {
@@ -33,7 +33,7 @@ async function _fetchOkxC98(chainId, srcToken, destToken, amountWei, decOut, dec
         const data = await resp.json();
         const toAmt = data?.data?.[0]?.amount;
         if (toAmt == null) return null;
-        return { amount: parseFloat(toAmt), dec: decOut, name: 'OKXDEX', src: 'OX', feeSwapUsdt: 0 };
+        return { amount: parseFloat(toAmt), dec: 0, name: 'OKXDEX', src: 'OX', feeSwapUsdt: 0 };
     } catch { return null; }
 }
 
@@ -42,8 +42,8 @@ function _bestOkx(a, b) {
     if (!a && !b) return null;
     if (!a) return b;
     if (!b) return a;
-    const aH = a.amount / Math.pow(10, a.dec || 0);
-    const bH = b.amount / Math.pow(10, b.dec || 0);
+    const aH = a.amount / Math.pow(10, a.dec ?? 0);
+    const bH = b.amount / Math.pow(10, b.dec ?? 0);
     return bH >= aH ? b : a;
 }
 

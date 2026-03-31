@@ -52,6 +52,7 @@ async function fetchDexQuotesOkx(chainId, srcToken, destToken, amountWei, decOut
                 return [{ amount: parseFloat(match.amount), dec, name, src: 'OX', feeSwapUsdt }];
             } else {
                 // CTD: C98 Superlink — backer OKX
+                const userAddr = CFG.wallet || '0x0000000000000000000000000000000000000000';
                 const amount = parseFloat(amountWei) / Math.pow(10, decIn);
                 if (!isFinite(amount) || amount <= 0) return [];
                 const isNativeSrc = srcToken.toLowerCase() === _C98_NATIVE;
@@ -64,7 +65,7 @@ async function fetchDexQuotesOkx(chainId, srcToken, destToken, amountWei, decOut
                 else token1.address = destToken;
                 const body = JSON.stringify({
                     isAuto: true, amount, token0, token1,
-                    backer: ['OKX'], wallet: _C98_WALLET,
+                    backer: ['OKX'], wallet: userAddr,
                 });
                 const targetUrl = 'https://superlink-server.coin98.tech/quote';
                 const resp = await proxyFetch(targetUrl, {

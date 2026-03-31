@@ -2,7 +2,7 @@
 function fetchDexQuotesMetax(chainId, srcToken, destToken, amountWei) {
     const cacheKey = `dex:mx:${chainId}:${srcToken}:${destToken}:${amountWei}`;
     return cacheWrap(cacheKey, 900, () => new Promise(resolve => {
-        const dummy = CFG.wallet || '0x7809151CFEF645A14a52F5903dE04CB9D2a0D14b';
+        const dummy = CFG.wallet || '0x0000000000000000000000000000000000000000';
         const params = new URLSearchParams({
             walletAddress: dummy, destWalletAddress: dummy,
             srcChainId: chainId, destChainId: chainId,

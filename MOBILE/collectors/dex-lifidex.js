@@ -5,10 +5,9 @@
 // Output terbesar yang digunakan.
 
 const _LIFI_C98_NATIVE = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
-const _LIFI_C98_WALLET  = '0xB7B10292EE6c5828b20eB0942C8c1275E8344800';
 
 // Sumber 1: Temple API (LiFi proxy, EVM)
-// Response: estimate.toAmount → wei string
+// Response: toAmount → wei string (root level), gasCostUSD → USD string (root level)
 async function _fetchLifiTemple(chainId, srcToken, destToken, amountWei, decOut) {
     try {
         const wallet = CFG.wallet || '0x0000000000000000000000000000000000000000';
@@ -21,20 +20,20 @@ async function _fetchLifiTemple(chainId, srcToken, destToken, amountWei, decOut)
             fromAddress: wallet,
             slippage:    '0.005',
         });
-        const resp = await fetch(
-            `https://temple-api-evm.prod.templewallet.com/api/swap-route?${params}`
-        );
+        const targetUrl = `https://temple-api-evm.prod.templewallet.com/api/swap-route?${params}`;
+        const proxyUrl  = APP_DEV_CONFIG.corsProxy + encodeURIComponent(targetUrl);
+        const resp = await fetch(proxyUrl);
         if (!resp.ok) return null;
         const data = await resp.json();
-        const toAmount = data?.estimate?.toAmount;
+        const toAmount = data?.toAmount;
         if (!toAmount) return null;
-        const feeSwapUsdt = parseFloat(data?.estimate?.gasCosts?.[0]?.amountUSD || 0) || 0;
+        const feeSwapUsdt = parseFloat(data?.gasCostUSD || 0) || 0;
         return { amount: parseFloat(toAmount), dec: decOut, name: 'LIFIDEX', src: 'LF', feeSwapUsdt };
     } catch { return null; }
 }
 
 // Sumber 2: C98 Superlink dengan backer LiFi
-// Response: data[0].amount → dalam token decimal units (setara wei)
+// Response: data[0].amount → human-readable (bukan wei) → dec: 0
 async function _fetchLifiC98(chainId, srcToken, destToken, amountWei, decOut, decIn) {
     try {
         const _decIn = decIn != null ? decIn : 18;
@@ -48,10 +47,11 @@ async function _fetchLifiC98(chainId, srcToken, destToken, amountWei, decOut, de
         const token1 = { chainId, decimals: decOut };
         if (!isNativeDst) token1.address = destToken;
 
+        const wallet = CFG.wallet || '0x0000000000000000000000000000000000000000';
         const body = JSON.stringify({
             isAuto: true, amount, token0, token1,
             backer: ['LiFi'],
-            wallet: _LIFI_C98_WALLET,
+            wallet,
         });
         const targetUrl = 'https://superlink-server.coin98.tech/quote';
         const proxyUrl  = APP_DEV_CONFIG.corsProxy + encodeURIComponent(targetUrl);
@@ -64,12 +64,12 @@ async function _fetchLifiC98(chainId, srcToken, destToken, amountWei, decOut, de
         const data = await resp.json();
         const toAmt = data?.data?.[0]?.amount;
         if (toAmt == null) return null;
-        return { amount: parseFloat(toAmt), dec: decOut, name: 'LIFIDEX', src: 'LF', feeSwapUsdt: 0 };
+        return { amount: parseFloat(toAmt), dec: 0, name: 'LIFIDEX', src: 'LF', feeSwapUsdt: 0 };
     } catch { return null; }
 }
 
 // Helper: konversi ke human-readable untuk perbandingan
-function _liHuman(r) { return r ? r.amount / Math.pow(10, r.dec || 0) : -1; }
+function _liHuman(r) { return r ? r.amount / Math.pow(10, r.dec ?? 0) : -1; }
 
 function fetchDexQuotesOnekeyLifi(chainId, srcToken, destToken, amountWei, decOut, decIn) {
     if (!isOnekeyLifiEnabled()) return Promise.resolve([]);

@@ -18,6 +18,7 @@ async function fetchDexQuoteslifidex(chainId, srcToken, destToken, amountWei, de
     try {
         if (dir === 'dtc') {
             // DTC: C98 Superlink tanpa filter backer — best quote dari semua provider
+            const userAddr = CFG.wallet || '0x0000000000000000000000000000000000000000';
             const _decIn = decIn != null ? decIn : 18;
             const amount = parseFloat(amountWei) / Math.pow(10, _decIn);
             if (!isFinite(amount) || amount <= 0) return [];
@@ -33,7 +34,7 @@ async function fetchDexQuoteslifidex(chainId, srcToken, destToken, amountWei, de
 
             const body = JSON.stringify({
                 isAuto: true, amount, token0, token1,
-                wallet: LIFI_C98_WALLET,
+                wallet: userAddr,
                 // NO backer filter → best quote dari semua provider
             });
             const targetUrl = 'https://superlink-server.coin98.tech/quote';

@@ -42,7 +42,7 @@ function calcPnl(modal, pairAmt, bidPair, cexKey, feeWdUsdt = 0, isPairStable = 
 // Jika DEX tidak return (= 0): gunakan chainGasFallback dari eth_gasPrice × gasUnits × nativePrice
 // Jika chainGasFallback juga 0: feeSwap = 0 (tidak ada estimasi)
 function computeQuotePnl(parsed, destDec, bidPrice, modal, cexKey, askPrice, direction, feeWdUsdt = 0, isPairStable = false, chainGasFallback = 0) {
-    const recv = fromWei(parsed.amount + '', parsed.dec || destDec);
+    const recv = fromWei(parsed.amount + '', parsed.dec ?? destDec);
     const recvUSDT = recv * bidPrice;
     const feeSwapUsdt = parsed.feeSwapUsdt > 0 ? parsed.feeSwapUsdt : chainGasFallback;
     if (direction === 'ctd') {
