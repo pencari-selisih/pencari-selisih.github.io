@@ -623,6 +623,16 @@ body.fab-hidden .main-content {
 .fchip.on { color: #fff; border-color: transparent; }
 .fchip:not(.on):hover { border-color: var(--accent); }
 .chip-icon { width: 14px; height: 14px; border-radius: 2px; }
+.chip-count {
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+.fchip:not(.on) .chip-count { background: rgba(0, 0, 0, 0.08); }
 
 /* Speed chips */
 .speed-chips { display: flex; gap: 4px; }

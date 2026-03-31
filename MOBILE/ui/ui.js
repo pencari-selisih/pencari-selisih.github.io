@@ -131,14 +131,26 @@ async function updateScanCount() {
     $('#monFavCount').text(favN > 0 ? ' ' + favN : '');
 }
 
-function renderFilterChips() {
+async function renderFilterChips() {
+    // Hitung jumlah koin per CEX berdasarkan filter chain + pair aktif (tanpa filter CEX)
+    const _allToks = await getTokens();
+    const _cexCounts = {};
+    _allToks.forEach(t => {
+        const chainOk = CFG.activeChains.length === 0 || CFG.activeChains.includes(t.chain);
+        const pairTk = (t.tickerPair || 'USDT').toUpperCase();
+        const isStable = STABLE_COINS.has(pairTk);
+        const pairOk = CFG.pairType === 'all' || (CFG.pairType === 'stable' ? isStable : !isStable);
+        if (chainOk && pairOk) _cexCounts[t.cex] = (_cexCounts[t.cex] || 0) + 1;
+    });
+
     $('#filterCexChips').html(Object.entries(CONFIG_CEX).map(([k, v]) => {
         const on = CFG.activeCex.length === 0 || CFG.activeCex.includes(k);
+        const cnt = _cexCounts[k] || 0;
         return `<span class="fchip${on ? ' on' : ''}" data-key="${k}" data-type="cex"
           style="${on ? `background:${v.WARNA};` : ''}"
           onclick="toggleFilterChip(this,'cex')">
           <img src="icons/cex/${k}.png" class="chip-icon" onerror="this.style.display='none'">
-          ${v.label}</span>`;
+          ${v.label}<span class="chip-count">${cnt}</span></span>`;
     }).join(''));
     $('#filterChainChips').html(Object.entries(CONFIG_CHAINS).map(([k, v]) => {
         const on = CFG.activeChains.length === 0 || CFG.activeChains.includes(k);
