@@ -94,7 +94,8 @@
                     <!-- <img src="icons/setting.png" class="top-tab-icon" alt="PENGATURAN APLIKASI"> -->
                 </button>
                 <button class="nav-item" onclick="openCalcModal()">
-                    <span class="nav-icon"><img src="icons/kalkulator.png" class="nav-icon-img" alt="KALKULATOR CRYPTO"></span>
+                    <span class="nav-icon"><img src="icons/kalkulator.png" class="nav-icon-img"
+                            alt="KALKULATOR CRYPTO"></span>
                 </button>
                 <!-- <button class="nav-item" id="navReload" onclick="reloadWithToast()">
                 <span class="nav-icon"><img src="icons/reload.png" class="nav-icon-img" alt="reload"></span>
@@ -197,8 +198,10 @@
                     </div>
                 </div>
 
-                <!-- DEX route counts -->
-                <div class="settings-grid-4">
+                <!-- DEX on/off + route counts -->
+                <div class="settings-row">
+                    <label class="settings-label">DEX Scanner <span class="settings-hint">ketuk toggle untuk
+                            aktifkan/nonaktifkan</span></label>
                     <div id="dexSettingsContainer"></div>
                 </div>
             </div>
@@ -210,15 +213,20 @@
                     <div class="fchip-group" id="filterCexChips"></div>
                 </div>
                 <div class="settings-row">
-                    <label class="settings-label">Chain <span class="settings-hint">ketuk untuk nonaktifkan</span></label>
+                    <label class="settings-label">Chain <span class="settings-hint">ketuk untuk
+                            nonaktifkan</span></label>
                     <div class="fchip-group" id="filterChainChips"></div>
                 </div>
                 <div class="settings-row">
-                    <label class="settings-label">Pair <span class="settings-hint">ketuk untuk nonaktifkan</span></label>
+                    <label class="settings-label">Pair <span class="settings-hint">ketuk untuk
+                            nonaktifkan</span></label>
                     <div class="fchip-group" id="filterPairTypeChips">
-                        <span class="fchip pair-type-chip on" data-val="all" onclick="setPairTypeFilter('all')">🟢 SEMUA</span>
-                        <span class="fchip pair-type-chip" data-val="stable" onclick="setPairTypeFilter('stable')">🟡 STABLE</span>
-                        <span class="fchip pair-type-chip" data-val="non" onclick="setPairTypeFilter('non')">🔴 NON-STABLE</span>
+                        <span class="fchip pair-type-chip on" data-val="all" onclick="setPairTypeFilter('all')">🟢
+                            SEMUA</span>
+                        <span class="fchip pair-type-chip" data-val="stable" onclick="setPairTypeFilter('stable')">🟡
+                            STABLE</span>
+                        <span class="fchip pair-type-chip" data-val="non" onclick="setPairTypeFilter('non')">🔴
+                            NON-STABLE</span>
                     </div>
                 </div>
             </div>
@@ -367,6 +375,11 @@
                 <button class="bulk-modal-close" onclick="closeBulkModal()">✕</button>
             </div>
             <div class="bulk-modal-body">
+                <div class="dex-cfg-header">
+                    <span class="dex-cfg-hdr-name">NAMA DEX / METADEX</span>
+                    <span class="dex-cfg-hdr-col">CEX $</span>
+                    <span class="dex-cfg-hdr-col">DEX $</span>
+                </div>
                 <div id="dexConfigList" class="dex-config-list">
                     <!-- Dirender oleh JS: renderDexConfig() -->
                 </div>

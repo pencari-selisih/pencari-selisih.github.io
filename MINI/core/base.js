@@ -104,6 +104,9 @@ function isAutoLevelEnabled() { return APP_DEV_CONFIG.defaultAutoLevel !== false
 // DEX yang diizinkan tampil di UI — dikendalikan developer lewat CONFIG_DEX.enabled
 const getEnabledDexList = () => DEX_LIST.filter(def => CONFIG_DEX[def.key]?.enabled !== false);
 
+// DEX yang aktif untuk scanner & tampilan CRUD — developer enabled + user toggle aktif
+const getUserActiveDexList = () => DEX_LIST.filter(def => isDexEnabled(def.key));
+
 // Kembalikan token yang lolos filter CEX+chain, diurutkan sesuai monitorSort
 let monitorSort = 'az'; // 'az' | 'za' | 'rand'
 let monitorFavOnly = false; // jika true, hanya tampilkan koin favorit di scanner

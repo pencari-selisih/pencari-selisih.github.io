@@ -241,29 +241,7 @@ function loadSettings() {
     $('#setWallet').val(CFG.wallet);
     $('#setSoundMuted').prop('checked', !CFG.soundMuted); // centang = suara ON
     // Dynamic DEX settings — render from CONFIG_DEX
-    const _dexSettingsContainer = document.getElementById('dexSettingsContainer');
-    if (_dexSettingsContainer) {
-        _dexSettingsContainer.innerHTML = '';
-        Object.entries(CONFIG_DEX).forEach(([key, cfg]) => {
-            if (!cfg.hasCount || !cfg.enabled) return;
-            const div = document.createElement('div');
-            div.className = 'settings-field';
-            div.id = `fieldQuote_${key}`;
-            div.innerHTML = `<label class="settings-label">DEX <span class="src-tag" style="--c: var(--dex-${key})">${cfg.badge}</span></label>
-                <input class="settings-input" id="setQuote_${key}" type="number" min="1" max="5" value="${CFG.dex[key]?.count || cfg.count}">`;
-            _dexSettingsContainer.appendChild(div);
-            // Bind change event
-            div.querySelector('input').addEventListener('change', function() {
-                const v = Math.min(5, Math.max(1, parseInt(this.value) || cfg.count));
-                this.value = v;
-                if (!CFG.dex[key]) CFG.dex[key] = {};
-                CFG.dex[key].count = v;
-                _syncLegacyDexCounts();
-                saveSettings();
-                showToast(`✓ ${cfg.label} Route: ${v}`);
-            });
-        });
-    }
+    renderDexSettings();
     // Auto Level CEX — selalu aktif, on/off via config.js defaultAutoLevel
     CFG.autoLevel = isAutoLevelEnabled();
     if (!isAutoLevelEnabled()) {
@@ -330,39 +308,24 @@ function renderDexConfig() {
     const d = _dexDraft || CFG.dex || {};
     const html = getEnabledDexList().map(def => {
         const cfg = d[def.key] || {};
-        const active = cfg.active !== false;
+        const active = CFG.dex?.[def.key]?.active !== false;
         const dis = active ? '' : 'disabled';
-        return `<div class="dex-cfg-row${active ? ' dex-on' : ''}" style="--c: var(--dex-${def.key})">
-  <div class="dex-row-top">
-    <span class="dex-sw-wrap" onclick="draftToggle('${def.key}')" title="${active ? 'Klik untuk nonaktifkan' : 'Klik untuk aktifkan'}">
-      <span class="dex-sw${active ? ' on' : ''}"></span>
+        const cls = active ? '' : ' dex-cfg-off';
+        return `<div class="dex-cfg-row-compact${cls}" style="--c: var(--dex-${def.key})">
+    <span class="dex-row-name-compact">
+      <span class="dex-badge" style="--c: var(--dex-${def.key})">${def.badge}</span>
+      ${def.label}
     </span>
-    <span class="dex-badge" style="--c: var(--dex-${def.key})">${def.badge}</span>
-    <span class="dex-row-name">${def.label}</span>
-    <span class="dex-active-lbl${active ? ' on' : ''}">${active ? '✅ AKTIF' : '❌ NONAKTIF'}</span>
-  </div>
-  <div class="dex-row-fields${active ? '' : ' dex-cfg-disabled'}">
-    <div class="dex-field-grp">
-      <span class="dex-lbl">CEX→DEX $</span>
-      <input class="dex-inp" data-dex="${def.key}" data-field="modalCtD" type="number" min="1"
-        value="${cfg.modalCtD}" ${dis} oninput="draftChange(this)">
-    </div>
-    <div class="dex-field-grp">
-      <span class="dex-lbl">DEX→CEX $</span>
-      <input class="dex-inp" data-dex="${def.key}" data-field="modalDtC" type="number" min="1"
-        value="${cfg.modalDtC}" ${dis} oninput="draftChange(this)">
-    </div>
-  </div>
+    <input class="dex-inp-compact" data-dex="${def.key}" data-field="modalCtD" type="number" min="1"
+      value="${cfg.modalCtD}" ${dis} oninput="draftChange(this)">
+    <input class="dex-inp-compact" data-dex="${def.key}" data-field="modalDtC" type="number" min="1"
+      value="${cfg.modalDtC}" ${dis} oninput="draftChange(this)">
 </div>`;
     }).join('');
     $('#dexConfigList').html(html);
 }
 
-function draftToggle(key) {
-    if (!_dexDraft) _initDraft();
-    _dexDraft[key].active = !_dexDraft[key].active;
-    renderDexConfig();
-}
+// draftToggle removed — no more on/off toggle in modal editor
 
 function draftChange(el) {
     if (!_dexDraft) return;
@@ -375,17 +338,17 @@ function draftChange(el) {
 function saveDexModalAll() {
     if (!CFG.dex) CFG.dex = {};
 
-    // Baca nilai langsung dari DOM (robust, tidak bergantung _dexDraft saja)
+    // Baca nilai langsung dari DOM (compact inputs)
     const vals = {};
     getEnabledDexList().forEach(def => {
-        const ctdEl = document.querySelector(`.dex-inp[data-dex="${def.key}"][data-field="modalCtD"]`);
-        const dtcEl = document.querySelector(`.dex-inp[data-dex="${def.key}"][data-field="modalDtC"]`);
+        const ctdEl = document.querySelector(`.dex-inp-compact[data-dex="${def.key}"][data-field="modalCtD"]`);
+        const dtcEl = document.querySelector(`.dex-inp-compact[data-dex="${def.key}"][data-field="modalDtC"]`);
         const ctd = parseFloat(ctdEl?.value);
         const dtc = parseFloat(dtcEl?.value);
         vals[def.key] = {
-            active:   _dexDraft?.[def.key]?.active ?? (CFG.dex?.[def.key]?.active !== false),
-            modalCtD: !isNaN(ctd) ? ctd : (_dexDraft?.[def.key]?.modalCtD ?? CFG.dex?.[def.key]?.modalCtD ?? 100),
-            modalDtC: !isNaN(dtc) ? dtc : (_dexDraft?.[def.key]?.modalDtC ?? CFG.dex?.[def.key]?.modalDtC ?? 80),
+            active:   CFG.dex?.[def.key]?.active !== false,
+            modalCtD: !isNaN(ctd) ? ctd : (CFG.dex?.[def.key]?.modalCtD ?? 100),
+            modalDtC: !isNaN(dtc) ? dtc : (CFG.dex?.[def.key]?.modalDtC ?? 80),
         };
     });
 
@@ -474,6 +437,64 @@ function _saveUserInfo() {
 
 // Tetap ada untuk kompatibilitas (dipakai loadSettings & onboarding)
 function saveSettings() { _saveUserInfo(); _autoSaveFields(); }
+
+// ─── DEX Settings (toggle on/off per DEX di tab Settings) ────
+function renderDexSettings() {
+    const container = document.getElementById('dexSettingsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    Object.entries(CONFIG_DEX).forEach(([key, cfg]) => {
+        if (!cfg.enabled) return;
+        const isActive = CFG.dex?.[key]?.active !== false;
+        const div = document.createElement('div');
+        div.className = 'dex-setting-row' + (isActive ? ' dex-setting-on' : '');
+        div.id = `dexRow_${key}`;
+
+        let countHtml = '';
+        if (cfg.hasCount) {
+            const count = CFG.dex[key]?.count || cfg.count;
+            countHtml = `<span class="dex-count-lbl">Route</span>
+                <input class="settings-input dex-count-inp" id="setQuote_${key}" type="number" min="1" max="5"
+                    value="${count}" ${isActive ? '' : 'disabled'}>`;
+        }
+
+        div.innerHTML = `
+            <span class="dex-sw-wrap" onclick="toggleDexSetting('${key}')">
+                <span class="dex-sw${isActive ? ' on' : ''}"></span>
+            </span>
+            <span class="dex-setting-badge" style="background:var(--dex-${key})">${cfg.badge}</span>
+            <span class="dex-setting-name${isActive ? '' : ' dex-setting-off'}">${cfg.label}</span>
+            ${countHtml}
+        `;
+        container.appendChild(div);
+
+        if (cfg.hasCount) {
+            div.querySelector('.dex-count-inp').addEventListener('change', function () {
+                const v = Math.min(5, Math.max(1, parseInt(this.value) || cfg.count));
+                this.value = v;
+                if (!CFG.dex[key]) CFG.dex[key] = {};
+                CFG.dex[key].count = v;
+                _syncLegacyDexCounts();
+                _persistCFG();
+                showToast(`✓ ${cfg.label} Route: ${v}`);
+            });
+        }
+    });
+}
+
+function toggleDexSetting(key) {
+    if (!CFG.dex) CFG.dex = {};
+    if (!CFG.dex[key]) CFG.dex[key] = { active: true, modalCtD: 100, modalDtC: 80 };
+    CFG.dex[key].active = !CFG.dex[key].active;
+    _syncLegacyDexCounts();
+    _persistCFG();
+    renderDexSettings();
+    if (!scanning) buildMonitorRows();
+    renderTokenList();
+    updateScanCount();
+    const def = DEX_LIST.find(d => d.key === key);
+    showToast(`${def?.label || key.toUpperCase()}: ${CFG.dex[key].active ? '✅ Aktif' : '❌ Nonaktif'}`);
+}
 
 // ─── Onboarding ──────────────────────────────
 function checkOnboarding() {
@@ -704,27 +725,21 @@ $(document).on('click', function (e) {
 // ─── Sheet Form ──────────────────────────────
 function _renderDexModalPerToken(dexModals) {
     const dm = dexModals || {};
-    const html = getEnabledDexList().map(def => {
+    const html = getUserActiveDexList().map(def => {
         const bulkCtD = CFG.dex?.[def.key]?.modalCtD || '';
         const bulkDtC = CFG.dex?.[def.key]?.modalDtC || '';
         const ctdVal  = dm[def.key]?.ctd != null ? dm[def.key].ctd : '';
         const dtcVal  = dm[def.key]?.dtc != null ? dm[def.key].dtc : '';
         const hasOverride = dm[def.key] != null;
-        return `<div class="dex-modal-per-row${hasOverride ? ' dex-row-overridden' : ''}">
-          <span class="dex-modal-per-badge" style="--c: var(--dex-${def.key})">${def.badge}</span>
-          <span class="dex-modal-per-name">${def.label}</span>
-          <div class="dex-modal-per-inputs">
-            <div class="dex-modal-per-field">
-              <span class="dex-modal-per-lbl">↑ CEX→DEX ($)</span>
-              <input class="form-input dex-modal-inp" id="fDexCtD_${def.key}" data-dex="${def.key}" data-dir="ctd"
-                type="number" min="1" placeholder="${bulkCtD || 'bulk'}" value="${ctdVal}">
-            </div>
-            <div class="dex-modal-per-field">
-              <span class="dex-modal-per-lbl">↓ DEX→CEX ($)</span>
-              <input class="form-input dex-modal-inp" id="fDexDtC_${def.key}" data-dex="${def.key}" data-dir="dtc"
-                type="number" min="1" placeholder="${bulkDtC || 'bulk'}" value="${dtcVal}">
-            </div>
-          </div>
+        return `<div class="dmp-row${hasOverride ? ' dmp-override' : ''}">
+          <span class="dmp-badge" style="background:var(--dex-${def.key})">${def.badge}</span>
+          <span class="dmp-name">${def.label}</span>
+          <span class="dmp-lbl">↑$</span>
+          <input class="dmp-inp" id="fDexCtD_${def.key}" data-dex="${def.key}" data-dir="ctd"
+            type="number" min="1" placeholder="${bulkCtD || '-'}" value="${ctdVal}">
+          <span class="dmp-lbl">↓$</span>
+          <input class="dmp-inp" id="fDexDtC_${def.key}" data-dex="${def.key}" data-dir="dtc"
+            type="number" min="1" placeholder="${bulkDtC || '-'}" value="${dtcVal}">
         </div>`;
     }).join('');
     document.getElementById('dexModalPerToken').innerHTML = html;
@@ -814,7 +829,7 @@ $('#btnSheetSave').on('click', () => {
         errs.push(['fDecPair', 'Decimal Pair harus angka antara 0–30']);
 
     // Validasi per-DEX: jika diisi harus angka > 0
-    getEnabledDexList().forEach(def => {
+    getUserActiveDexList().forEach(def => {
         const ctdRaw = ($(`#fDexCtD_${def.key}`).val() || '').trim();
         const dtcRaw = ($(`#fDexDtC_${def.key}`).val() || '').trim();
         if (ctdRaw !== '' && (isNaN(parseFloat(ctdRaw)) || parseFloat(ctdRaw) <= 0))
@@ -834,7 +849,7 @@ $('#btnSheetSave').on('click', () => {
 
     // Kumpulkan modal per-DEX (hanya yang diisi = override, kosong = ikut bulk)
     const dexModals = {};
-    getEnabledDexList().forEach(def => {
+    getUserActiveDexList().forEach(def => {
         const ctdRaw = ($(`#fDexCtD_${def.key}`).val() || '').trim();
         const dtcRaw = ($(`#fDexDtC_${def.key}`).val() || '').trim();
         const ctd = ctdRaw !== '' ? parseFloat(ctdRaw) : null;
@@ -946,7 +961,7 @@ function renderTokenList() {
             <span class="tl-dex-th"></span>
             <span class="tl-dex-th">CEX</span>
             <span class="tl-dex-th">DEX</span>
-            ${getEnabledDexList().map(def => {
+            ${getUserActiveDexList().map(def => {
                 const dm     = t.dexModals?.[def.key];
                 const bulk   = CFG.dex?.[def.key] || {};
                 const ctd    = dm?.ctd ?? bulk.modalCtD ?? '?';
