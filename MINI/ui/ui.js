@@ -138,13 +138,25 @@ function updateScanCount() {
 }
 
 function renderFilterChips() {
+    // Hitung jumlah koin per CEX berdasarkan filter chain + pair aktif (tanpa filter CEX)
+    const _allToks = getTokens();
+    const _cexCounts = {};
+    _allToks.forEach(t => {
+        const chainOk = CFG.activeChains.length === 0 || CFG.activeChains.includes(t.chain);
+        const pairTk = (t.tickerPair || 'USDT').toUpperCase();
+        const isStable = STABLE_COINS.has(pairTk);
+        const pairOk = CFG.pairType === 'all' || (CFG.pairType === 'stable' ? isStable : !isStable);
+        if (chainOk && pairOk) _cexCounts[t.cex] = (_cexCounts[t.cex] || 0) + 1;
+    });
+
     // CEX filter chips (multi-select toggle)
     $('#filterCexChips').html(Object.entries(CONFIG_CEX).map(([k, v]) => {
         const on = CFG.activeCex.length === 0 || CFG.activeCex.includes(k);
+        const cnt = _cexCounts[k] || 0;
         return `<span class="fchip${on ? ' on' : ''}" style="--c: var(--cex-${k})" data-key="${k}" data-type="cex"
           onclick="toggleFilterChip(this,'cex')">
           <img src="icons/cex/${k}.png" class="chip-icon" onerror="this.style.display='none'">
-          ${v.label}</span>`;
+          ${v.label}<span class="chip-count">${cnt}</span></span>`;
     }).join(''));
     // Chain filter chips (multi-select toggle)
     $('#filterChainChips').html(Object.entries(CONFIG_CHAINS).map(([k, v]) => {

@@ -1599,7 +1599,7 @@ body.is-scanning .scan-sort-group {
 }
 
 .token-list-header h2 {
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--accent-dk);
   letter-spacing: .3px;
@@ -1612,7 +1612,8 @@ body.is-scanning .scan-sort-group {
 }
 
 .token-count {
-  font-size: 13px;
+  font-size: 12px;
+   font-weight: 500;
   color: var(--accent-dk);
   background: var(--glass);
   padding: 2px 10px;
@@ -1621,8 +1622,8 @@ body.is-scanning .scan-sort-group {
 }
 
 .fav-count {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   color: #0e0e0d;
   background: rgba(255, 200, 50, 0.15);
   padding: 2px 10px;
@@ -2493,6 +2494,20 @@ body.is-scanning .scan-sort-group {
 
 .fchip:not(.on) {
   opacity: 0.45;
+}
+
+.chip-count {
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 10px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+.fchip:not(.on) .chip-count {
+  background: rgba(139, 138, 138, 0.08);
 }
 
 /* ── Warna chip filter CEX / Chain — generic via var(--c) ── */
@@ -3875,9 +3890,8 @@ body.is-scanning .scan-sort-group {
   z-index: 150;
   opacity: 0;
   transition: opacity .25s;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  padding-bottom: 40%;
 }
 
 .calc-overlay.open {
