@@ -978,12 +978,24 @@
         const data = response.data[0];
         const amount_out = parseFloat(data.toTokenAmount) / Math.pow(10, des_output);
 
-        // estimateGasFee dari OKX API adalah nilai USD langsung
+        // ✅ FIX: estimateGasFee dari OKX API adalah GAS UNITS, bukan USD!
+        // Perlu dikonversi: gasUnits * gasPriceGwei * nativeTokenPrice / 1e9
         let FeeSwap = getFeeSwap(chainName);
         try {
-          const feeUsd = parseFloat(data.estimateGasFee || 0);
-          if (Number.isFinite(feeUsd) && feeUsd > 0) {
-            FeeSwap = feeUsd;
+          const gasUnits = parseFloat(data.estimateGasFee || 0);
+          if (Number.isFinite(gasUnits) && gasUnits > 0) {
+            const allGasData = (typeof getFromLocalStorage === 'function')
+              ? getFromLocalStorage("ALL_GAS_FEES")
+              : null;
+            if (allGasData) {
+              const gasInfo = allGasData.find(g =>
+                String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase()
+              );
+              if (gasInfo && gasInfo.gwei && gasInfo.tokenPrice) {
+                const gasUSD = (parseFloat(gasInfo.gwei) * gasUnits / 1e9) * parseFloat(gasInfo.tokenPrice);
+                if (Number.isFinite(gasUSD) && gasUSD > 0 && gasUSD < 100) FeeSwap = gasUSD;
+              }
+            }
           }
         } catch (e) {
           // Fallback to default gas fee if calculation fails
@@ -2013,6 +2025,7 @@
   dexStrategies['swoop-matcha'] = createFilteredSwoopStrategy('0x', 'MATCHA');        // Matcha uses 0x
   dexStrategies['swoop-okx'] = createFilteredSwoopStrategy('okx', 'OKX');
   dexStrategies['swoop-sushi'] = createFilteredSwoopStrategy('sushiswap', 'SUSHI');   // If SWOOP supports Sushi
+  dexStrategies['swoop-lifi']  = createFilteredSwoopStrategy('lifi', 'LIFIDEX');      // ✅ LIFI via SWOOP (confirmed supported)
 
   // =============================
   // RABBY Filtered Strategy Factory - Rabby Wallet Swap API as Provider
