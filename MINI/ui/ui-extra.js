@@ -167,12 +167,10 @@ function closeBulkModal() {
 $('#btnBulkApply').on('click', function () {
     const ctd = parseFloat($('#bulkCtD').val());
     const dtc = parseFloat($('#bulkDtC').val());
-    const pnl = parseFloat($('#bulkPnl').val());
     const ctdValid = !isNaN(ctd) && ctd > 0;
     const dtcValid = !isNaN(dtc) && dtc > 0;
-    const pnlValid = !isNaN(pnl) && pnl >= 0;
-    if (!ctdValid && !dtcValid && !pnlValid) {
-        showAlert('Isi minimal salah satu: Modal CEX→DEX, Modal DEX→CEX, atau Min PNL (nilai harus > 0).', 'Bulk Modal', 'warn');
+    if (!ctdValid && !dtcValid) {
+        showAlert('Isi minimal salah satu: Modal CEX→DEX atau Modal DEX→CEX (nilai harus > 0).', 'Bulk Modal', 'warn');
         return;
     }
     // Filter tokens same as renderTokenList (respect settings)
@@ -190,7 +188,6 @@ $('#btnBulkApply').on('click', function () {
     const parts = [];
     if (ctdValid) parts.push(`CEX→DEX: $${ctd}`);
     if (dtcValid) parts.push(`DEX→CEX: $${dtc}`);
-    if (pnlValid) parts.push(`Min PNL: $${pnl}`);
     // Hitung favorit hanya dari koin yang lolos filter CEX/chain yang sama
     const favSkipped = allTokens.filter(t => inScope(t) && t.favorite).length;
     const totalScope = filtered.length + favSkipped;
@@ -205,7 +202,6 @@ $('#btnBulkApply').on('click', function () {
                 if (!ids.has(t.id)) return;
                 if (ctdValid) t.modalCtD = ctd;
                 if (dtcValid) t.modalDtC = dtc;
-                if (pnlValid) t.minPnl = pnl;
             });
             saveTokens(allTokens);
             renderTokenList();

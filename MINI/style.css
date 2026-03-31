@@ -33,12 +33,16 @@
   --loss: #e63950;
   --warn: #f59e0b;
 
-  /* ─── DEX Colors ─── */
-  --metax-color: #e87122;
-  --lifi-color: #8b5cf6;
-  --kyber-color: #2980b9;
-  --okx-color: #333333;
-  --krystal-color: #ed92d9;
+  /* ─── DEX/CEX/Chain Colors ─────────────────────────────────────
+     Seluruh variabel --dex-*, --cex-*, --chain-* diinjeksi RUNTIME
+     oleh _applyConfigColors() di base.js, bersumber dari config.js.
+     JANGAN tambahkan nilai warna di sini — edit config.js saja.
+     CSS ini sepenuhnya reusable tanpa tahu nama CEX/DEX/chain apapun.
+  ─────────────────────────────────────────────────────────────── */
+
+  /* ─── Monitor CTD/DTC ─── */
+  --mon-ctd: #4a9a6a;
+  --mon-dtc: #c0504d;
 
   /* ─── Misc ─── */
   --radius: 16px;
@@ -93,35 +97,12 @@ body {
 }
 
 /* ══════════════════════════════════════════
-   METAX / JUMPX BADGES
+   GENERIC ENTITY-COLORED BADGE
+   Set --c on element via inline style, CSS reads var(--c).
 ══════════════════════════════════════════ */
-.badge-metax {
+.badge-dex {
   display: inline-block;
-  background: var(--metax-color);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 4px;
-  letter-spacing: .3px;
-  vertical-align: middle;
-}
-
-.badge-jumpx {
-  display: inline-block;
-  background: var(--lifi-color);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 4px;
-  letter-spacing: .3px;
-  vertical-align: middle;
-}
-
-.badge-krystal {
-  display: inline-block;
-  background: var(--krystal-color);
+  background: var(--c);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -701,6 +682,17 @@ body {
   box-shadow: 0 0 24px rgba(10, 191, 122, 0.15), var(--shadow);
 }
 
+/* ── Chain accent: border kiri + header gradient — generic via var(--c) ── */
+.mon-card { border-left: 3px solid var(--c, transparent); }
+.mon-card .mon-card-hdr {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 33%, transparent) 0%, color-mix(in srgb, var(--c) 12%, transparent) 100%);
+  border-bottom: 2px solid color-mix(in srgb, var(--c) 53%, transparent);
+}
+
+/* ── CEX / Chain background badge — generic via var(--c) ── */
+.cex-bg   { background: var(--c) !important; color: #fff; }
+.chain-bg { background: var(--c) !important; color: #fff; }
+
 .mon-card-hdr {
   display: flex;
   align-items: center;
@@ -974,8 +966,9 @@ body {
 
 .mon-lbl-hdr {
   text-align: left;
-  min-width: 64px;
-  max-width: 80px;
+  width: 100px;
+  min-width: 100px;
+  max-width: 100px;
   vertical-align: middle;
   font-size: 11px;
   font-weight: 700;
@@ -1098,38 +1091,10 @@ body {
   line-height: 1;
 }
 
-.src-tag.mx {
-  background: var(--metax-color);
-  color: #fff;
-  font-size: 6px;
-}
-
-.src-tag.jx {
-  background: var(--lifi-color);
-  color: #fff;
-  font-size: 6px;
-}
-
-.src-tag.kb {
-  background: var(--kyber-color);
-  color: #fff;
-}
-
-.src-tag.ox {
-  background: var(--okx-color);
-  color: #fff;
-}
-
-.src-tag.kr {
-  background: var(--krystal-color);
-  color: #fff;
-  font-size: 6px;
-}
-
-.src-tag.lf {
-  background: #06b6d4;
-  color: #fff;
-  font-size: 6px;
+/* src-tag — generic via var(--c), set inline per element */
+.src-tag {
+  background: var(--c, #555);
+  color: var(--ct, #fff);
 }
 
 /* src-tag inside settings labels — larger for readability */
@@ -1183,21 +1148,29 @@ body {
   color: #0e6aec;
   font-weight: 600;
   white-space: nowrap;
-  min-width: 72px;
-  max-width: 110px;
+  width: 100px;
+  min-width: 100px;
+  max-width: 100px;
   padding: 3px 6px !important;
   position: sticky;
   left: 0;
   z-index: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.ctd-table .mon-lbl-side {
-  background: #e8f3eb;
-}
+/* ── Background sticky column per arah (beli=hijau, jual=merah) ── */
+/* CTD: CEX = beli (hijau), DEX = jual (merah) */
+.ctd-table .mon-row-cex .mon-lbl-side  { background: color-mix(in srgb, var(--mon-ctd) 14%, #fff); }
+.ctd-table .mon-row-dex .mon-lbl-side  { background: color-mix(in srgb, var(--mon-dtc) 14%, #fff); }
+.ctd-table .mon-row-recv .mon-lbl-side,
+.ctd-table .mon-row-pnl .mon-lbl-side  { background: #f0f2f5; }
 
-.dtc-table .mon-lbl-side {
-  background: #f5e8e8;
-}
+/* DTC: DEX = beli (hijau), CEX = jual (merah) */
+.dtc-table .mon-row-dex .mon-lbl-side  { background: color-mix(in srgb, var(--mon-ctd) 14%, #fff); }
+.dtc-table .mon-row-cex .mon-lbl-side  { background: color-mix(in srgb, var(--mon-dtc) 14%, #fff); }
+.dtc-table .mon-row-recv .mon-lbl-side,
+.dtc-table .mon-row-pnl .mon-lbl-side  { background: #f0f2f5; }
 
 .lbl-pair {
   font-size: 11px;
@@ -1232,6 +1205,24 @@ body {
 .pnl-neg {
   color: var(--loss);
 }
+
+/* ── Monitor table: label buy/sell & header CTD/DTC (via CSS var) ── */
+.lbl-buy  { color: var(--mon-ctd); font-weight: 600; }
+.lbl-sell { color: var(--mon-dtc); font-weight: 600; }
+
+/* Background pada level <tr> agar tetap hijau/merah meski scan.js
+   mengganti className sel-sel DEX header (sehingga tidak perlu
+   mempertahankan kelas mon-hdr-* di setiap update scan). */
+.ctd-table .mon-sub-hdr { background: var(--mon-ctd); }
+.dtc-table .mon-sub-hdr { background: var(--mon-dtc); }
+
+/* Sel pertama (label stok) — specificity (0,2,0) mengalahkan
+   .mon-sub-hdr td (0,1,1) agar warna solid, bukan semi-transparan. */
+.mon-sub-hdr .mon-hdr-ctd { background: var(--mon-ctd); }
+.mon-sub-hdr .mon-hdr-dtc { background: var(--mon-dtc); }
+
+/* DEX column header — warna background via inline CSS var --dex-hdr-bg */
+.dex-col-hdr { background: var(--dex-hdr-bg); cursor: pointer; }
 
 /* Entire DEX column highlight when signal fires */
 .col-signal {
@@ -1301,11 +1292,25 @@ mc-pnl {
 
 /* Tombol emoji — ukuran seragam */
 .scan-sort-group .sort-btn[data-sort="rand"],
-#monFavFilter,
 #btnAutoReload {
   width: 36px;
   padding: 0;
   font-size: 17px;
+}
+
+#monFavFilter {
+  padding: 0 6px;
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.fav-mon-count {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .scan-sort-group .sort-btn.active {
@@ -1690,7 +1695,7 @@ body.is-scanning .scan-sort-group {
 .csv-bar {
   display: flex;
   gap: 8px;
-  padding: 0 12px 10px;
+  padding: 0 9px 10px;
 }
 
 .btn-outline {
@@ -1700,8 +1705,8 @@ body.is-scanning .scan-sort-group {
   border: 1px solid rgba(0, 0, 0, 0.10);
   background: var(--glass);
   color: var(--text2);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 500;
   font-family: 'Montserrat', sans-serif;
   cursor: pointer;
   display: flex;
@@ -1837,12 +1842,14 @@ body.is-scanning .scan-sort-group {
   padding: 1px 5px;
   vertical-align: middle;
   margin-left: 3px;
+  margin-left: 20px;
 }
 
 
 .token-list-info {
   flex: 1;
   min-width: 0;
+  margin-left: 20px;
 }
 
 .token-list-sym {
@@ -1872,8 +1879,8 @@ body.is-scanning .scan-sort-group {
 
 .tl-dex-table {
   display: grid;
-  grid-template-columns: 40px 55px 55px 50px;
-  gap: 2px 3px;
+  grid-template-columns: 56px 1fr 1fr;
+  gap: 2px 4px;
   margin-top: 0;
   align-items: center;
   font-family: 'Montserrat', sans-serif;
@@ -1930,30 +1937,9 @@ body.is-scanning .scan-sort-group {
   text-align: center;
 }
 
-.tl-dex-tc-pnl {
-  color: #f5a623;
-  font-size: 11px;
-  text-align: center;
-}
-
-.tl-dex-badge-metax {
-  background: var(--metax-color);
-}
-
-.tl-dex-badge-jumpx {
-  background: var(--lifi-color);
-}
-
-.tl-dex-badge-kyber {
-  background: var(--kyber-color);
-}
-
-.tl-dex-badge-okx {
-  background: var(--okx-color);
-}
-
-.tl-dex-badge-krystal {
-  background: var(--krystal-color);
+/* Token list DEX badge — generic via var(--c) */
+.tl-dex-tb {
+  background: var(--c, #555);
 }
 
 .tl-modal-divider {
@@ -2181,7 +2167,7 @@ body.is-scanning .scan-sort-group {
   background: #f39c12;
   color: #fff;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
   font-family: 'Montserrat', sans-serif;
   cursor: pointer;
   flex: 1;
@@ -2509,6 +2495,13 @@ body.is-scanning .scan-sort-group {
   opacity: 0.45;
 }
 
+/* ── Warna chip filter CEX / Chain — generic via var(--c) ── */
+.fchip.on,
+.chip.selected { background: var(--c); color: #fff; }
+
+/* ── Pair type chip ── */
+.pair-type-chip.on { background: var(--accent); color: #fff; border-color: transparent; }
+
 .settings-checkbox {
   width: 12px;
   height: 12px;
@@ -2576,30 +2569,10 @@ body.is-scanning .scan-sort-group {
   transition: background .15s, border-color .15s;
 }
 
-/* Warna aksen kiri per DEX */
-.dex-cfg-row.dex-cfg-metax {
-  border-left-color: var(--metax-color);
-  background: rgba(232, 113, 34, 0.05);
-}
-
-.dex-cfg-row.dex-cfg-jumpx {
-  border-left-color: var(--lifi-color);
-  background: rgba(139, 92, 246, 0.05);
-}
-
-.dex-cfg-row.dex-cfg-kyber {
-  border-left-color: var(--kyber-color);
-  background: rgba(41, 128, 185, 0.05);
-}
-
-.dex-cfg-row.dex-cfg-okx {
-  border-left-color: var(--okx-color);
-  background: rgba(51, 51, 51, 0.04);
-}
-
-.dex-cfg-row.dex-cfg-krystal {
-  border-left-color: var(--krystal-color);
-  background: rgba(10, 191, 122, 0.05);
+/* Warna aksen kiri per DEX — generic via var(--c) */
+.dex-cfg-row {
+  border-left-color: var(--c);
+  background: color-mix(in srgb, var(--c) 7%, transparent);
 }
 
 .dex-cfg-row.dex-on {
@@ -2616,28 +2589,8 @@ body.is-scanning .scan-sort-group {
 .dex-row-name {
   font-size: 12px;
   font-weight: 700;
-  color: var(--text);
+  color: var(--c, var(--text));
   flex: 1;
-}
-
-.dex-cfg-metax .dex-row-name {
-  color: var(--metax-color);
-}
-
-.dex-cfg-jumpx .dex-row-name {
-  color: var(--lifi-color);
-}
-
-.dex-cfg-kyber .dex-row-name {
-  color: var(--kyber-color);
-}
-
-.dex-cfg-okx .dex-row-name {
-  color: #888;
-}
-
-.dex-cfg-krystal .dex-row-name {
-  color: var(--krystal-color);
 }
 
 
@@ -2699,30 +2652,15 @@ body.is-scanning .scan-sort-group {
   color: #fff;
 }
 
-.dex-badge-mx {
-  background: var(--metax-color);
+/* DEX badge — generic via var(--c) */
+.dex-badge {
+  background: var(--c, #555);
 }
 
-.dex-badge-jx {
-  background: var(--lifi-color);
-}
-
-.dex-badge-kb {
-  background: var(--kyber-color);
-}
-
-.dex-badge-ok {
-  background: var(--okx-color);
-}
-
-.dex-badge-kr {
-  background: var(--krystal-color);
-}
-
-/* Fields row: 3 compact inputs in one line */
+/* Fields row: 2 compact inputs in one line */
 .dex-row-fields {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 6px;
 }
 
@@ -2939,24 +2877,9 @@ body.is-scanning .scan-sort-group {
   text-align: center;
 }
 
-.dex-modal-per-badge.dex-badge-metax {
-  background: var(--metax-color);
-}
-
-.dex-modal-per-badge.dex-badge-jumpx {
-  background: var(--lifi-color);
-}
-
-.dex-modal-per-badge.dex-badge-kyber {
-  background: var(--kyber-color);
-}
-
-.dex-modal-per-badge.dex-badge-okx {
-  background: var(--okx-color);
-}
-
-.dex-modal-per-badge.dex-badge-krystal {
-  background: var(--krystal-color);
+/* DEX modal per-badge — generic via var(--c) */
+.dex-modal-per-badge {
+  background: var(--c, #555);
 }
 
 .dex-modal-per-name {

@@ -128,7 +128,9 @@ function getAllFilteredTokens() {
 function updateScanCount() {
     const allN = getAllFilteredTokens().length;  // semua koin (termasuk fav) untuk settings
     const n = getFilteredTokens().length;         // koin aktif untuk scan (bisa filtered by fav)
+    const favN = getAllFilteredTokens().filter(t => t.favorite).length;
     $('#filterCoinCount').text(allN);
+    $('#monFavFilter').html(favN > 0 ? `⭐ <span class="fav-mon-count">${favN}</span>` : '⭐');
     if (!scanning) {
         $('#btnScanCount').text('[' + n + ' KOIN ]');
         $('#btnScan').prop('disabled', n === 0).toggleClass('disabled', n === 0);
@@ -139,8 +141,7 @@ function renderFilterChips() {
     // CEX filter chips (multi-select toggle)
     $('#filterCexChips').html(Object.entries(CONFIG_CEX).map(([k, v]) => {
         const on = CFG.activeCex.length === 0 || CFG.activeCex.includes(k);
-        return `<span class="fchip${on ? ' on' : ''}" data-key="${k}" data-type="cex"
-          style="${on ? `background:${v.WARNA};color:#fff;` : ''}"
+        return `<span class="fchip${on ? ' on' : ''}" style="--c: var(--cex-${k})" data-key="${k}" data-type="cex"
           onclick="toggleFilterChip(this,'cex')">
           <img src="icons/cex/${k}.png" class="chip-icon" onerror="this.style.display='none'">
           ${v.label}</span>`;
@@ -148,18 +149,14 @@ function renderFilterChips() {
     // Chain filter chips (multi-select toggle)
     $('#filterChainChips').html(Object.entries(CONFIG_CHAINS).map(([k, v]) => {
         const on = CFG.activeChains.length === 0 || CFG.activeChains.includes(k);
-        return `<span class="fchip${on ? ' on' : ''}" data-key="${k}" data-type="chain"
-          style="${on ? `background:${v.WARNA};color:#fff;` : ''}"
+        return `<span class="fchip${on ? ' on' : ''}" style="--c: var(--chain-${k})" data-key="${k}" data-type="chain"
           onclick="toggleFilterChip(this,'chain')">
           <img src="icons/chains/${k}.png" class="chip-icon" onerror="this.style.display='none'">
           ${v.label}</span>`;
     }).join(''));
     // Pair type chips — sync active state
     document.querySelectorAll('#filterPairTypeChips .pair-type-chip').forEach(el => {
-        const active = el.dataset.val === (CFG.pairType || 'all');
-        el.classList.toggle('on', active);
-        el.style.background = active ? '#365cd3' : '';
-        el.style.color = active ? '#fff' : '';
+        el.classList.toggle('on', el.dataset.val === (CFG.pairType || 'all'));
     });
 }
 
@@ -240,7 +237,7 @@ function loadSettings() {
             const div = document.createElement('div');
             div.className = 'settings-field';
             div.id = `fieldQuote_${key}`;
-            div.innerHTML = `<label class="settings-label">DEX <span class="src-tag" style="background:${cfg.color};color:#fff;font-size:7px">${cfg.badge}</span></label>
+            div.innerHTML = `<label class="settings-label">DEX <span class="src-tag" style="--c: var(--dex-${key})">${cfg.badge}</span></label>
                 <input class="settings-input" id="setQuote_${key}" type="number" min="1" max="5" value="${CFG.dex[key]?.count || cfg.count}">`;
             _dexSettingsContainer.appendChild(div);
             // Bind change event
@@ -313,7 +310,6 @@ function _initDraft() {
             active:   src.active !== false,
             modalCtD: src.modalCtD != null ? src.modalCtD : 100,
             modalDtC: src.modalDtC != null ? src.modalDtC : 80,
-            minPnl:   src.minPnl  != null ? src.minPnl  : 1,
         };
     });
 }
@@ -324,12 +320,12 @@ function renderDexConfig() {
         const cfg = d[def.key] || {};
         const active = cfg.active !== false;
         const dis = active ? '' : 'disabled';
-        return `<div class="dex-cfg-row dex-cfg-${def.key}${active ? ' dex-on' : ''}">
+        return `<div class="dex-cfg-row${active ? ' dex-on' : ''}" style="--c: var(--dex-${def.key})">
   <div class="dex-row-top">
     <span class="dex-sw-wrap" onclick="draftToggle('${def.key}')" title="${active ? 'Klik untuk nonaktifkan' : 'Klik untuk aktifkan'}">
       <span class="dex-sw${active ? ' on' : ''}"></span>
     </span>
-    <span class="dex-badge dex-badge-${def.key}">${def.badge}</span>
+    <span class="dex-badge" style="--c: var(--dex-${def.key})">${def.badge}</span>
     <span class="dex-row-name">${def.label}</span>
     <span class="dex-active-lbl${active ? ' on' : ''}">${active ? '✅ AKTIF' : '❌ NONAKTIF'}</span>
   </div>
@@ -343,11 +339,6 @@ function renderDexConfig() {
       <span class="dex-lbl">DEX→CEX $</span>
       <input class="dex-inp" data-dex="${def.key}" data-field="modalDtC" type="number" min="1"
         value="${cfg.modalDtC}" ${dis} oninput="draftChange(this)">
-    </div>
-    <div class="dex-field-grp">
-      <span class="dex-lbl">Min PnL $</span>
-      <input class="dex-inp" data-dex="${def.key}" data-field="minPnl" type="number" min="0" step="0.1"
-        value="${cfg.minPnl}" ${dis} oninput="draftChange(this)">
     </div>
   </div>
 </div>`;
@@ -377,15 +368,12 @@ function saveDexModalAll() {
     getEnabledDexList().forEach(def => {
         const ctdEl = document.querySelector(`.dex-inp[data-dex="${def.key}"][data-field="modalCtD"]`);
         const dtcEl = document.querySelector(`.dex-inp[data-dex="${def.key}"][data-field="modalDtC"]`);
-        const pnlEl = document.querySelector(`.dex-inp[data-dex="${def.key}"][data-field="minPnl"]`);
         const ctd = parseFloat(ctdEl?.value);
         const dtc = parseFloat(dtcEl?.value);
-        const pnl = parseFloat(pnlEl?.value);
         vals[def.key] = {
             active:   _dexDraft?.[def.key]?.active ?? (CFG.dex?.[def.key]?.active !== false),
             modalCtD: !isNaN(ctd) ? ctd : (_dexDraft?.[def.key]?.modalCtD ?? CFG.dex?.[def.key]?.modalCtD ?? 100),
             modalDtC: !isNaN(dtc) ? dtc : (_dexDraft?.[def.key]?.modalDtC ?? CFG.dex?.[def.key]?.modalDtC ?? 80),
-            minPnl:   !isNaN(pnl) ? pnl : (_dexDraft?.[def.key]?.minPnl   ?? CFG.dex?.[def.key]?.minPnl   ?? 1),
         };
     });
 
@@ -407,7 +395,6 @@ function saveDexModalAll() {
             if (!t.dexModals[def.key]) t.dexModals[def.key] = {};
             t.dexModals[def.key].ctd = dr.modalCtD;
             t.dexModals[def.key].dtc = dr.modalDtC;
-            t.dexModals[def.key].pnl = dr.minPnl;
         });
     });
     if (targetToks.length) {
@@ -446,19 +433,13 @@ function saveDexModal(el) {
     const key = el.dataset.dex;
     const field = el.dataset.field;
     if (!CFG.dex) CFG.dex = {};
-    if (!CFG.dex[key]) CFG.dex[key] = { active: true, modalCtD: 100, modalDtC: 80, minPnl: 1 };
-    if (field === 'minPnl') {
-        const v = Math.max(0, parseFloat(el.value) || 0);
-        CFG.dex[key].minPnl = v;
-        el.value = v;
-    } else {
-        const v = parseFloat(el.value);
-        if (isNaN(v) || v < 1) return;
-        CFG.dex[key][field] = v;
-    }
+    if (!CFG.dex[key]) CFG.dex[key] = { active: true, modalCtD: 100, modalDtC: 80 };
+    const v = parseFloat(el.value);
+    if (isNaN(v) || v < 1) return;
+    CFG.dex[key][field] = v;
     _persistCFG();
     const def = DEX_LIST.find(d => d.key === key);
-    const lbl = field === 'modalCtD' ? 'CEX→DEX' : field === 'modalDtC' ? 'DEX→CEX' : 'Min PnL';
+    const lbl = field === 'modalCtD' ? 'CEX→DEX' : 'DEX→CEX';
     showToast(`✓ ${def?.label || key.toUpperCase()} ${lbl}: $${el.value}`);
 }
 
@@ -577,8 +558,7 @@ $('#tokenSheet').on('input change', '.form-input', function () { $(this).removeC
 // ─── CEX & Chain Chips ───────────────────────
 function renderCexChips(selected) {
     const html = Object.entries(CONFIG_CEX).map(([k, v]) =>
-        `<span class="chip ${selected === k ? 'selected' : ''}" data-cex="${k}"
-      style="${selected === k ? `background:${v.WARNA};` : ''}"
+        `<span class="chip${selected === k ? ' selected' : ''}" style="--c: var(--cex-${k})" data-cex="${k}"
       onclick="selectCex('${k}')">
       <img src="icons/cex/${k}.png" class="chip-icon" onerror="this.style.display='none'">
       ${v.label}
@@ -598,8 +578,7 @@ function selectedCex() { return $('#cexChips .chip.selected').data('cex') || Obj
 
 function renderChainChips(selected) {
     const html = Object.entries(CONFIG_CHAINS).map(([k, v]) =>
-        `<span class="chip ${selected === k ? 'selected' : ''}" data-chain="${k}"
-      style="${selected === k ? `background:${v.WARNA};` : ''}"
+        `<span class="chip${selected === k ? ' selected' : ''}" style="--c: var(--chain-${k})" data-chain="${k}"
       onclick="selectChain('${k}')">
       <img src="icons/chains/${k}.png" class="chip-icon" onerror="this.style.display='none'">
       ${v.label}
@@ -716,13 +695,11 @@ function _renderDexModalPerToken(dexModals) {
     const html = getEnabledDexList().map(def => {
         const bulkCtD = CFG.dex?.[def.key]?.modalCtD || '';
         const bulkDtC = CFG.dex?.[def.key]?.modalDtC || '';
-        const bulkPnl = CFG.dex?.[def.key]?.minPnl    || '';
         const ctdVal  = dm[def.key]?.ctd != null ? dm[def.key].ctd : '';
         const dtcVal  = dm[def.key]?.dtc != null ? dm[def.key].dtc : '';
-        const pnlVal  = dm[def.key]?.pnl != null ? dm[def.key].pnl : '';
         const hasOverride = dm[def.key] != null;
         return `<div class="dex-modal-per-row${hasOverride ? ' dex-row-overridden' : ''}">
-          <span class="dex-modal-per-badge dex-badge-${def.key}">${def.badge}</span>
+          <span class="dex-modal-per-badge" style="--c: var(--dex-${def.key})">${def.badge}</span>
           <span class="dex-modal-per-name">${def.label}</span>
           <div class="dex-modal-per-inputs">
             <div class="dex-modal-per-field">
@@ -734,11 +711,6 @@ function _renderDexModalPerToken(dexModals) {
               <span class="dex-modal-per-lbl">↓ DEX→CEX ($)</span>
               <input class="form-input dex-modal-inp" id="fDexDtC_${def.key}" data-dex="${def.key}" data-dir="dtc"
                 type="number" min="1" placeholder="${bulkDtC || 'bulk'}" value="${dtcVal}">
-            </div>
-            <div class="dex-modal-per-field dex-pnl-field">
-              <span class="dex-modal-per-lbl">💰 Min PnL ($)</span>
-              <input class="form-input dex-modal-inp" id="fDexPnl_${def.key}" data-dex="${def.key}" data-dir="pnl"
-                type="number" min="0" step="0.1" placeholder="${bulkPnl || 'bulk'}" value="${pnlVal}">
             </div>
           </div>
         </div>`;
@@ -833,13 +805,10 @@ $('#btnSheetSave').on('click', () => {
     getEnabledDexList().forEach(def => {
         const ctdRaw = ($(`#fDexCtD_${def.key}`).val() || '').trim();
         const dtcRaw = ($(`#fDexDtC_${def.key}`).val() || '').trim();
-        const pnlRaw = ($(`#fDexPnl_${def.key}`).val() || '').trim();
         if (ctdRaw !== '' && (isNaN(parseFloat(ctdRaw)) || parseFloat(ctdRaw) <= 0))
             errs.push([`fDexCtD_${def.key}`, `Modal ${def.label} CEX→DEX harus > 0 atau dikosongkan`]);
         if (dtcRaw !== '' && (isNaN(parseFloat(dtcRaw)) || parseFloat(dtcRaw) <= 0))
             errs.push([`fDexDtC_${def.key}`, `Modal ${def.label} DEX→CEX harus > 0 atau dikosongkan`]);
-        if (pnlRaw !== '' && (isNaN(parseFloat(pnlRaw)) || parseFloat(pnlRaw) < 0))
-            errs.push([`fDexPnl_${def.key}`, `Min PnL ${def.label} harus ≥ 0 atau dikosongkan`]);
     });
 
 
@@ -851,20 +820,17 @@ $('#btnSheetSave').on('click', () => {
         return;
     }
 
-    // Kumpulkan modal & pnl per-DEX (hanya yang diisi = override, kosong = ikut bulk)
+    // Kumpulkan modal per-DEX (hanya yang diisi = override, kosong = ikut bulk)
     const dexModals = {};
     getEnabledDexList().forEach(def => {
         const ctdRaw = ($(`#fDexCtD_${def.key}`).val() || '').trim();
         const dtcRaw = ($(`#fDexDtC_${def.key}`).val() || '').trim();
-        const pnlRaw = ($(`#fDexPnl_${def.key}`).val() || '').trim();
         const ctd = ctdRaw !== '' ? parseFloat(ctdRaw) : null;
         const dtc = dtcRaw !== '' ? parseFloat(dtcRaw) : null;
-        const pnl = pnlRaw !== '' ? parseFloat(pnlRaw) : null;
-        if (ctd !== null || dtc !== null || pnl !== null) {
+        if (ctd !== null || dtc !== null) {
             dexModals[def.key] = {};
             if (ctd !== null) dexModals[def.key].ctd = ctd;
             if (dtc !== null) dexModals[def.key].dtc = dtc;
-            if (pnl !== null) dexModals[def.key].pnl = pnl;
         }
     });
 
@@ -954,12 +920,8 @@ function renderTokenList() {
             <span class="tl-tok-name">${t.tickerPair || t.ticker}<span class="wdp-ic">${_icPair}</span></span>
             ${invalidBadge}
           </div>
-          <span class="badge-cex" style="background:${cexCfg.WARNA || '#555'}">
-             ${cexCfg.label || t.cex}
-          </span>
-          <span class="badge-chain" style="background:${chainCfg.WARNA || '#555'}">
-            ${chainCfg.label || t.chain}
-          </span>
+          <span class="badge-cex cex-bg" style="--c: var(--cex-${t.cex})">${cexCfg.label || t.cex}</span>
+          <span class="badge-chain chain-bg" style="--c: var(--chain-${t.chain})">${chainCfg.label || t.chain}</span>
            <div class="token-list-actions-bar">
         <button class="tok-fav btn-icon ${t.favorite ? 'fav-active' : ''}" onclick="toggleFavorite('${t.id}')" title="Favorit">⭐</button>
         <button class="btn-icon" onclick="openSheet('${t.id}')">✏️</button>
@@ -972,19 +934,15 @@ function renderTokenList() {
             <span class="tl-dex-th"></span>
             <span class="tl-dex-th">CEX</span>
             <span class="tl-dex-th">DEX</span>
-            <span class="tl-dex-th">PNL</span>
             ${getEnabledDexList().map(def => {
                 const dm     = t.dexModals?.[def.key];
                 const bulk   = CFG.dex?.[def.key] || {};
                 const ctd    = dm?.ctd ?? bulk.modalCtD ?? '?';
                 const dtc    = dm?.dtc ?? bulk.modalDtC ?? '?';
-                const pnl    = dm?.pnl ?? t.minPnl ?? bulk.minPnl ?? null;
                 const isOver = dm?.ctd != null || dm?.dtc != null;
-                const pnlTxt = pnl != null ? `$${pnl}` : '-';
-                return `<span class="tl-dex-tb tl-dex-badge-${def.key}${isOver ? ' tl-over' : ''}" title="${def.label}${isOver ? ' (override)' : ' (bulk)'}">${def.badge}</span>
+                return `<span class="tl-dex-tb${isOver ? ' tl-over' : ''}" style="--c: var(--dex-${def.key})" title="${def.label}${isOver ? ' (override)' : ' (bulk)'}">${def.label}</span>
                   <span class="tl-dex-tc tl-dex-tc-ctd">$${ctd}</span>
-                  <span class="tl-dex-tc tl-dex-tc-dtc">$${dtc}</span>
-                  <span class="tl-dex-tc tl-dex-tc-pnl">${pnlTxt}</span>`;
+                  <span class="tl-dex-tc tl-dex-tc-dtc">$${dtc}</span>`;
             }).join('')}
           </div>
         </div>
@@ -1041,9 +999,9 @@ function deleteToken(id) {
 const CSV_BASE_COLS = ['ticker', 'cex', 'symbolToken', 'scToken', 'decToken', 'tickerPair', 'symbolPair', 'scPair', 'decPair', 'chain', 'favorite'];
 // Kolom info tambahan untuk export (read-only dari cache, tidak dipakai saat import)
 const CSV_EXTRA_COLS = ['feeWd_token_usdt', 'feeWd_pair_usdt', 'wd_token_ok', 'dp_pair_ok'];
-// Kolom per-DEX: dex_[key]_ctd, dex_[key]_dtc, dex_[key]_pnl
+// Kolom per-DEX: dex_[key]_ctd, dex_[key]_dtc
 const _csvDexCols = () => DEX_LIST.flatMap(d => [
-    `dex_${d.key}_ctd`, `dex_${d.key}_dtc`, `dex_${d.key}_pnl`
+    `dex_${d.key}_ctd`, `dex_${d.key}_dtc`
 ]);
 
 $('#btnExport').on('click', () => {
@@ -1053,14 +1011,13 @@ $('#btnExport').on('click', () => {
     const rows = [allCols.join(','), ...tokens.map(t => {
         // Kolom inti
         const base = CSV_BASE_COLS.map(c => `"${t[c] ?? ''}"`);
-        // Kolom per-DEX modal & PNL
+        // Kolom per-DEX modal
         const dexVals = DEX_LIST.flatMap(d => {
             const dm = t.dexModals?.[d.key] || {};
             const bulk = CFG.dex?.[d.key] || {};
             const ctd = dm.ctd ?? bulk.modalCtD ?? '';
             const dtc = dm.dtc ?? bulk.modalDtC ?? '';
-            const pnl = dm.pnl ?? bulk.minPnl ?? '';
-            return [`"${ctd}"`, `"${dtc}"`, `"${pnl}"`];
+            return [`"${ctd}"`, `"${dtc}"`];
         });
         // Kolom info fee WD dari cache (informatif saja)
         let feeWdTok = '', feeWdPair = '', wdOk = '', dpOk = '';
@@ -1146,15 +1103,14 @@ $('#importFile').on('change', e => {
                     DEX_KEYS.forEach(key => {
                         const ctd = parseFloat(raw[`dex_${key}_ctd`]);
                         const dtc = parseFloat(raw[`dex_${key}_dtc`]);
-                        const pnl = parseFloat(raw[`dex_${key}_pnl`]);
-                        if (isFinite(ctd) || isFinite(dtc) || isFinite(pnl)) {
+                        if (isFinite(ctd) || isFinite(dtc)) {
                             dexModals[key] = {};
                             if (isFinite(ctd)) dexModals[key].ctd = ctd;
                             if (isFinite(dtc)) dexModals[key].dtc = dtc;
-                            if (isFinite(pnl)) dexModals[key].pnl = pnl;
                         }
                         delete raw[`dex_${key}_ctd`];
                         delete raw[`dex_${key}_dtc`];
+                        // abaikan kolom pnl lama jika ada di CSV lama
                         delete raw[`dex_${key}_pnl`];
                     });
                     raw.dexModals = dexModals;
@@ -1217,6 +1173,8 @@ function toggleFavorite(id) {
     if (idx < 0) return;
     tokens[idx].favorite = !tokens[idx].favorite;
     saveTokens(tokens);
+    // Update counter bintang di scanner
+    updateScanCount();
     // Jika filter fav aktif di tab koin, re-render agar item hilang/muncul sesuai filter
     if (tokenFavFilter) { renderTokenList(); return; }
     // Update visual without full rebuild
@@ -1227,8 +1185,7 @@ function toggleFavorite(id) {
 }
 
 // ─── Monitor Cards Build ──────────────────────
-const MON_CTD_COLOR = '#4a9a6a'; // hijau CEXtoDEX (beli CEX, jual DEX)
-const MON_DTC_COLOR = '#c0504d'; // merah DEXtoCEX (beli DEX, jual CEX)
+// Warna CTD/DTC diatur via CSS var(--mon-ctd) dan var(--mon-dtc) di style.css
 
 // ─── WD/DP Badge HTML (build-time, dari cache) ────────────
 // Dipanggil saat buildMonitorRows & renderTokenList
@@ -1283,10 +1240,10 @@ function _wdpIcons(status, walletFetched, cexKey, ticker) {
 // Dibuat sekali di module scope agar tidak re-alloc tiap buildMonitorRows
 let _lastBuildN = 0; // track column count; rebuild if changed
 
-function _dexHdrCols(pfx, color, tokId, n) {
+function _dexHdrCols(pfx, hdrClass, tokId, n) {
     let s = '';
     for (let i = 0; i < n; i++)
-        s += `<td class="mon-dex-hdr" data-${pfx}-hdr="${i}" data-tok="${tokId}" data-dir="${pfx}" style="background:${color};cursor:pointer">-</td>`;
+        s += `<td class="mon-dex-hdr ${hdrClass}" data-${pfx}-hdr="${i}" data-tok="${tokId}" data-dir="${pfx}">-</td>`;
     return s;
 }
 function _dexDataCols(pfx, attr, n) {
@@ -1337,9 +1294,9 @@ function _buildSingleCard(t, n) {
     const div = document.createElement('div');
     div.className = 'mon-card';
     div.id = 'card-' + t.id;
-    div.style.borderLeft = `3px solid ${chainColor}`;
+    div.style.setProperty('--c', `var(--chain-${t.chain})`);
     div.innerHTML =
-`<div class="mon-card-hdr" style="background:linear-gradient(135deg,${chainColor}55 0%,${chainColor}20 100%);border-bottom:2px solid ${chainColor}88">
+`<div class="mon-card-hdr">
   <span class="mon-sym">
     <span class="mon-num">0</span>
     <span class="mon-tok-name">${_tokNameHtml}<span class="wdp-ic" id="wdic-tok-${t.id}">${_icTok}</span></span>
@@ -1347,9 +1304,9 @@ function _buildSingleCard(t, n) {
     <span class="mon-tok-name">${_pairNameHtml}<span class="wdp-ic" id="wdic-pair-${t.id}">${_icPair}</span></span>
   </span>
   <span class="mon-card-actions">
-    <span class="mon-cex-label" style="background:${cc.WARNA||'#555'}">${(cc.label||t.cex).toUpperCase()}</span>
+    <span class="mon-cex-label cex-bg" style="--c: var(--cex-${t.cex})">${(cc.label||t.cex).toUpperCase()}</span>
     ${_dflLink}
-    <span class="mon-chain-label" style="background:${chainColor}">${ch.label||t.chain.toUpperCase()}</span>
+    <span class="mon-chain-label chain-bg" style="--c: var(--chain-${t.chain})">${ch.label||t.chain.toUpperCase()}</span>
     <button class="btn-icon mon-act mon-fav ${t.favorite?'fav-active':''}" onclick="toggleFavorite('${t.id}')" title="Favorit">⭐</button>
     <button class="btn-icon mon-act" onclick="openSheet('${t.id}')" title="Edit Koin">✏️</button>
     <button class="btn-icon danger mon-act" onclick="deleteToken('${t.id}')" title="Hapus Koin">🗑️</button>
@@ -1358,24 +1315,24 @@ function _buildSingleCard(t, n) {
 <div class="mon-tables-wrap">
 <div class="mon-table-scroll"><table class="mon-sub-table ctd-table">
   <thead><tr class="mon-sub-hdr">
-    <td class="mon-lbl-hdr" style="background:${MON_CTD_COLOR}">${_stokCtd}<span class="hdr-amt" data-modal-hdr="ctd"><span class="tbl-status"></span></span></td>
-    ${_dexHdrCols('ctd',MON_CTD_COLOR,t.id,n)}
+    <td class="mon-lbl-hdr mon-hdr-ctd">${_stokCtd}<span class="hdr-amt" data-modal-hdr="ctd"><span class="tbl-status"></span></span></td>
+    ${_dexHdrCols('ctd','mon-hdr-ctd',t.id,n)}
   </tr></thead>
   <tbody>
-    <tr class="mon-row-cex"><td class="mon-lbl-side"><span style='color:green;'>BELI [${t.ticker}]</span></td>${_dexDataCols('ctd','cex',n)}</tr>
-    <tr class="mon-row-dex"><td class="mon-lbl-side"><span style='color:red;'>${t.ticker}→${pairTk}</span></td>${_dexDataCols('ctd','dex',n)}</tr>
+    <tr class="mon-row-cex"><td class="mon-lbl-side"><span class="lbl-buy">BELI [${t.ticker}]</span></td>${_dexDataCols('ctd','cex',n)}</tr>
+    <tr class="mon-row-dex"><td class="mon-lbl-side"><span class="lbl-sell">${t.ticker}→${pairTk}</span></td>${_dexDataCols('ctd','dex',n)}</tr>
     <tr class="mon-row-recv"><td class="mon-lbl-side">ALL FEE</td>${_dexDataCols('ctd','fee',n)}</tr>
     <tr class="mon-row-pnl"><td class="mon-lbl-side">💰 PNL</td>${_dexDataCols('ctd','pnl',n)}</tr>
   </tbody>
 </table></div>
 <div class="mon-table-scroll"><table class="mon-sub-table dtc-table">
   <thead><tr class="mon-sub-hdr">
-    <td class="mon-lbl-hdr" style="background:${MON_DTC_COLOR}">${_stokDtc}<span class="hdr-amt" data-modal-hdr="dtc"><span class="tbl-status"></span></span></td>
-    ${_dexHdrCols('dtc',MON_DTC_COLOR,t.id,n)}
+    <td class="mon-lbl-hdr mon-hdr-dtc">${_stokDtc}<span class="hdr-amt" data-modal-hdr="dtc"><span class="tbl-status"></span></span></td>
+    ${_dexHdrCols('dtc','mon-hdr-dtc',t.id,n)}
   </tr></thead>
   <tbody>
-    <tr class="mon-row-dex"><td class="mon-lbl-side"><span style='color:green;'>${pairTk}→${t.ticker}</span></td>${_dexDataCols('dtc','dex',n)}</tr>
-    <tr class="mon-row-cex"><td class="mon-lbl-side lbl-pair"><span style='color:red;'>JUAL [${t.ticker}]</span></td>${_dexDataCols('dtc','cex',n)}</tr>
+    <tr class="mon-row-dex"><td class="mon-lbl-side"><span class="lbl-buy">${pairTk}→${t.ticker}</span></td>${_dexDataCols('dtc','dex',n)}</tr>
+    <tr class="mon-row-cex"><td class="mon-lbl-side lbl-pair"><span class="lbl-sell">JUAL [${t.ticker}]</span></td>${_dexDataCols('dtc','cex',n)}</tr>
     <tr class="mon-row-recv"><td class="mon-lbl-side">ALL FEE</td>${_dexDataCols('dtc','fee',n)}</tr>
     <tr class="mon-row-pnl"><td class="mon-lbl-side">💰 PNL</td>${_dexDataCols('dtc','pnl',n)}</tr>
   </tbody>
@@ -1592,8 +1549,9 @@ function updateSignalChips(tok, signals, dir) {
         const _chipSrcCfg = Object.values(CONFIG_DEX).find(c => c.src === dexSrc);
         const dexName  = _chipSrcCfg && !_chipSrcCfg.hasCount ? _chipSrcCfg.label : (r.name ? r.name.toUpperCase() : 'DEX');
         const dexBadge = _chipSrcCfg && _chipSrcCfg.hasCount ? _chipSrcCfg.badge : '';
-        const dexSrcCls = dexSrc.toLowerCase();
-        const badgeHtml = dexBadge ? `<span class="src-tag ${dexSrcCls}">${dexBadge}</span>` : '';
+        const _chipDexCfg = Object.entries(CONFIG_DEX).find(([, c]) => c.src === dexSrc);
+        const _chipDexKey = _chipDexCfg ? _chipDexCfg[0] : '';
+        const badgeHtml = dexBadge ? `<span class="src-tag" style="--c: var(--dex-${_chipDexKey})">${dexBadge}</span>` : '';
         const pairTicker = tok.tickerPair || 'USDT';
         // Simpan index kolom untuk navigasi langsung ke kolom DEX yang tepat
         chip.dataset.hdrIdx = r.hdrIdx ?? '';
@@ -1721,11 +1679,9 @@ $('#tokenSearch').on('input', function () {
 });
 
 // ─── Orderbook Tooltip ────────────────────────
-let _tooltipHideTimer = null;
 let _tooltipEl = null;
 function _getTooltip() { return _tooltipEl || (_tooltipEl = document.getElementById('obTooltip')); }
 function showObTooltip(el) {
-    clearTimeout(_tooltipHideTimer);
     const tokId = el.dataset.tok;
     const dir = el.dataset.dir; // 'ctd' or 'dtc'
     const ob = _obCache[tokId];
@@ -1756,7 +1712,6 @@ function showObTooltip(el) {
     const _totalFee  = parseFloat(el.dataset.totalFee)  || (_cexFee1 + _cexFee2 + _feeWd + _feeSwap);
     const _pnlKotor  = parseFloat(el.dataset.pnlKotor)  || 0;
     const _pnlBersih = parseFloat(el.dataset.pnlBersih) || 0;
-    const _minPnl    = el.dataset.minPnl != null && el.dataset.minPnl !== '' ? parseFloat(el.dataset.minPnl) : null;
     const _buyLabel  = dir === 'ctd' ? `Fee Beli ${tokenSym} (CEX)` : `Fee Beli ${pairSym} (CEX)`;
     const _sellLabel = dir === 'ctd' ? `Fee Jual ${pairSym} (CEX)` : `Fee Jual ${tokenSym} (CEX)`;
     const _pnlKotorSign  = _pnlKotor  >= 0 ? '+' : '';
@@ -1774,7 +1729,6 @@ function showObTooltip(el) {
             <div class="ob-tip-fee-row"><span class="ob-tip-lbl">PNL Kotor</span><span class="ob-tip-pnl-gross">${_pnlKotorSign}${_pnlKotor.toFixed(3)}$</span></div>
             <div class="ob-tip-fee-row"><span class="ob-tip-lbl">All Fee</span><span class="ob-tip-feewd-val">-${_totalFee.toFixed(3)}$</span></div>
             <div class="ob-tip-fee-row ob-tip-pnl-net-row"><span class="ob-tip-lbl">PNL Bersih</span><span class="${_pnlBersihCls} ob-tip-pnl-net">${_pnlBersihSign}${_pnlBersih.toFixed(3)}$</span></div>
-            ${_minPnl != null ? `<div class="ob-tip-fee-row ob-tip-minpnl-row"><span class="ob-tip-lbl">Min PNL (set)</span><span class="ob-tip-minpnl-val${_pnlBersih >= _minPnl ? ' ob-tip-minpnl-ok' : ' ob-tip-minpnl-no'}">$${_minPnl.toFixed(2)}${_pnlBersih >= _minPnl ? ' ✅' : ' ✖'}</span></div>` : ''}
           </div>`
         : '';
     // CTD: tampilkan token → pair; DTC: tampilkan pair → token
@@ -1866,20 +1820,6 @@ function showObTooltip(el) {
     tooltip.style.top = (rect.bottom + window.scrollY + 4) + 'px';
     tooltip.classList.add('visible');
 }
-function hideObTooltip() {
-    clearTimeout(_tooltipHideTimer);
-    _tooltipHideTimer = setTimeout(() => {
-        const tooltip = _getTooltip();
-        if (tooltip) tooltip.classList.remove('visible');
-    }, 120);
-}
-// Close tooltip when tapping elsewhere
-document.addEventListener('touchstart', function (e) {
-    if (!e.target.closest('[data-dir]') && !e.target.closest('#obTooltip')) {
-        const tooltip = _getTooltip();
-        if (tooltip) tooltip.classList.remove('visible');
-    }
-}, { passive: true });
 
 // ─── Lazy UI Extra Loader (Calculator + Bulk) ─────────
 let _uiExtraLoading = null;
@@ -1989,31 +1929,49 @@ $('#signalBar').on('click', '.signal-chip', function () {
     }
 });
 
-// ─── Tooltip hover keep-open ─────────────────
-// Tooltip tetap terbuka saat cursor berada di atasnya (untuk klik link)
-$('#obTooltip')
-    .on('mouseenter', function () { clearTimeout(_tooltipHideTimer); })
-    .on('mouseleave', function () { hideObTooltip(); });
-
-// ─── Event delegation untuk tooltip DEX header ───
-// Gantikan 65K+ inline onmouseenter/onmouseleave/ontouchstart per cell
-// dengan 3 listener tunggal di container (#monitorList)
+// ─── Event delegation untuk tooltip DEX header (click only) ───
+// Tooltip hanya tampil saat user klik kolom DEX, bukan hover
 (function () {
     const ml = document.getElementById('monitorList');
     if (!ml) return;
-    ml.addEventListener('mouseover', function (e) {
+    // Click / tap untuk toggle tooltip
+    ml.addEventListener('click', function (e) {
         const hdr = e.target.closest('.mon-dex-hdr[data-tok]');
-        if (hdr) showObTooltip(hdr, e);
+        if (!hdr) return;
+        const tooltip = _getTooltip();
+        // Toggle: jika sudah visible dan sama kolom, tutup; jika beda, buka baru
+        if (tooltip && tooltip.classList.contains('visible') && tooltip._srcEl === hdr) {
+            tooltip.classList.remove('visible');
+            tooltip._srcEl = null;
+        } else {
+            if (tooltip) tooltip._srcEl = hdr;
+            showObTooltip(hdr, e);
+        }
+        e.stopPropagation();
     });
-    ml.addEventListener('mouseout', function (e) {
-        if (!e.target.closest('.mon-dex-hdr[data-tok]')) return;
-        if (!e.relatedTarget || !e.relatedTarget.closest('.mon-dex-hdr[data-tok]')) hideObTooltip();
-    });
+    // Touchstart juga support (mobile)
     ml.addEventListener('touchstart', function (e) {
         const hdr = e.target.closest('.mon-dex-hdr[data-tok]');
-        if (hdr) { showObTooltip(hdr, e); e.stopPropagation(); }
+        if (!hdr) return;
+        const tooltip = _getTooltip();
+        if (tooltip && tooltip.classList.contains('visible') && tooltip._srcEl === hdr) {
+            tooltip.classList.remove('visible');
+            tooltip._srcEl = null;
+        } else {
+            if (tooltip) tooltip._srcEl = hdr;
+            showObTooltip(hdr, e);
+        }
+        e.stopPropagation();
     }, { passive: false });
 })();
+
+// Tutup tooltip saat klik/tap di luar area DEX header atau tooltip
+document.addEventListener('click', function (e) {
+    if (!e.target.closest('.mon-dex-hdr[data-tok]') && !e.target.closest('#obTooltip')) {
+        const tooltip = _getTooltip();
+        if (tooltip) { tooltip.classList.remove('visible'); tooltip._srcEl = null; }
+    }
+});
 
 // ─── Init ────────────────────────────────────
 $(function () {

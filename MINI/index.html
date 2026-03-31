@@ -140,8 +140,7 @@
         <div class="csv-bar">
             <button class="btn-outline" id="btnExport"><i class="bi bi-download"></i> Export</button>
             <button class="btn-outline" id="btnImportTrigger"><i class="bi bi-upload"></i> Import</button>
-            <button class="btn-open-bulk" onclick="openBulkModal()"><i class="bi bi-currency-dollar"></i> Modal
-                DEX</button>
+            <button class="btn-open-bulk" onclick="openBulkModal()"><i class="bi bi-currency-dollar"></i>Modal</button>
             <button class="btn-outline btn-add-koin" id="fabAdd"><i class="bi bi-plus-lg"></i> Tambah</button>
             <input type="file" id="importFile"
                 accept=".csv,text/csv,text/plain,text/comma-separated-values,application/octet-stream"
@@ -342,10 +341,10 @@
                 </div>
             </div>
 
-            <!-- Modal & PNL -->
-            <div class="sheet-section-title" style="padding-top:6px">Modal & PNL</div>
+            <!-- Modal per DEX -->
+            <div class="sheet-section-title" style="padding-top:6px">Modal per DEX</div>
 
-            <div class="sheet-sub-label">Modal & Min PnL per DEX</div>
+            <div class="sheet-sub-label">Override Modal CEX↔DEX per DEX</div>
             <div id="dexModalPerToken" class="dex-modal-per-table"></div>
 
         </div><!-- /sheet-body -->
@@ -360,7 +359,7 @@
     <div class="bulk-overlay" id="bulkOverlay" onclick="if(event.target===this)closeBulkModal()">
         <div class="bulk-modal">
             <div class="bulk-modal-hdr">
-                <span class="bulk-modal-title">📊 MODAL DEX</span>
+                <span class="bulk-modal-title">📊 EDITOR MODAL DEX</span>
                 <button class="bulk-modal-close" onclick="closeBulkModal()">✕</button>
             </div>
             <div class="bulk-modal-body">

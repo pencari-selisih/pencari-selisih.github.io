@@ -34,6 +34,22 @@ let CFG = {
     dex: {},
 };
 
+// ─── CSS Color Injection (config.js → CSS custom properties) ─
+// Menjadikan config.js sebagai satu-satunya sumber kebenaran warna.
+// CSS hanya menggunakan var(--dex-*), var(--cex-*), var(--chain-*).
+(function _applyConfigColors() {
+    const root = document.documentElement;
+    Object.entries(CONFIG_DEX).forEach(([key, cfg]) => {
+        if (cfg.color) root.style.setProperty('--dex-' + key, cfg.color);
+    });
+    Object.entries(CONFIG_CEX).forEach(([key, cfg]) => {
+        if (cfg.WARNA) root.style.setProperty('--cex-' + key, cfg.WARNA);
+    });
+    Object.entries(CONFIG_CHAINS).forEach(([key, cfg]) => {
+        if (cfg.WARNA) root.style.setProperty('--chain-' + key, cfg.WARNA);
+    });
+})();
+
 // Init CFG.dex dari CONFIG_DEX defaults
 (function _initCfgDex() {
     Object.entries(CONFIG_DEX).forEach(([key, cfg]) => {
