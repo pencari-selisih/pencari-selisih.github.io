@@ -9,7 +9,7 @@
 // ============================================================
 const APP_DEV_CONFIG = {
   appName: "MINI SCANNER",
-  appVersion: "03.33",
+  appVersion: "03.31",
 
   telegramBotToken: "8053447166:AAH7YYbyZ4eBoPX31D8H3bCYdzEeIaiG4JU",
   telegramGroupId: "-5271018516",
@@ -26,11 +26,11 @@ const APP_DEV_CONFIG = {
   },
 
   defaultMinPnl: 1,
-  defaultLevelCount: 4,    // jumlah level orderbook (1–4)
+  defaultLevelCount: 2,    // jumlah level orderbook (1–4)
   defaultAutoLevel: true, // Auto Level CEX orderbook
 
   scanBatchSize: 5,       // jumlah koin per kelompok batch (paralel bertahap)
-  maxDexDisplay: 5,       // jumlah kolom DEX yang tampil di hasil scanning
+  maxDexDisplay: 4,       // jumlah kolom DEX yang tampil di hasil scanning
   offDexResultScan: ["OPENOCEAN", "MAYAN", "UNISWAP"],
 
   bungeeApiKey: "71XdjSawshaeie5DeH5b9avPjaoVtoOc2g5ZZx1d",
@@ -54,7 +54,7 @@ const CONFIG_CEX = {
     label: "Binance",
     ICON: "icons/cex/binance.png",
     WARNA: "#e0a50c",
-    timeout: 2000,   // ms — batas waktu fetch orderbook
+    timeout: 1500,   // ms — batas waktu fetch orderbook
     jeda: 200,       // ms — jeda minimum antar request
     ApiKey: "PoMTZjrgq2rUNQHpqvoOW0Ajq1iKytG3OZueMyvYwJmMaH175kuVi2QyB98Zocnb",
     ApiSecret: "bBq5FCpuCghA0hJuil7gCObTqDzYaLaVdsZVsdfSzv4MZ2rDBK6cpN590eXAwfod",
@@ -70,7 +70,7 @@ const CONFIG_CEX = {
     label: "Gate",
     ICON: "icons/cex/gate.png",
     WARNA: "#D5006D",
-    timeout: 2000,
+    timeout: 2500,
     jeda: 300,
     ApiKey: "1dbe3d4c92a42de270692e65952574d0",
     ApiSecret: "9436bfec02a8ed462bda4bd1a516ba82b4f322dd09e120a2bf7ea6b5f0930ef8",
@@ -102,7 +102,7 @@ const CONFIG_CEX = {
     label: "Indodax",
     ICON: "icons/cex/indodax.png",
     WARNA: "#2eb5f2",
-    timeout: 10000,
+    timeout: 3000,
     jeda: 500,
     ApiKey: "HRKOX8GL-KD9ANNF5-T7OKENAH-LHL5PBYQ-NW8GQICL",
     ApiSecret: "2ff67f7546f9b1af3344f4012fbb5561969de9440f1d1432c89473d1fe007deb3f3d0bac7400622b",
@@ -155,8 +155,8 @@ const CONFIG_DEX = {
     hasCount: false,
     count: 1,
     enabled: true,
-    timeout: 2000,
-    jeda: 250,
+    timeout: 3000,
+    jeda: 350,
     modalCtD: 100,
     modalDtC: 80,
   },
@@ -170,8 +170,8 @@ const CONFIG_DEX = {
     hasCount: false,
     count: 1,
     enabled: true,
-    timeout: 3000,
-    jeda: 300,
+    timeout: 3500,
+    jeda: 400,
     modalCtD: 100,
     modalDtC: 80,
   },
@@ -202,7 +202,7 @@ const CONFIG_DEX = {
     count: 2,
     enabled: true,
     timeout: 6000,   // ms — SSE MetaDEX cenderung lebih lambat
-    jeda: 300,
+    jeda: 400,
     modalCtD: 100,
     modalDtC: 80,
   },
