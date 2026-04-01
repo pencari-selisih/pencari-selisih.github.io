@@ -1269,15 +1269,17 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     // DEX to CEX (isKiri=false): transfer/deposit fee ke CEX wallet (gas fee)
                                     const feeWD = isKiri ? Number(DataCEX.feeWDToken || 0) : 0;
 
-                                    // ✅ FIX: Untuk DEX to CEX, tambahkan gas transfer fee
-                                    // Estimate: transfer gas ~50% dari swap gas (karena transfer lebih simple)
-                                    const feeTransfer = !isKiri ? (feeSwap * 0.5) : 0;
+                                    // ✅ REFACTORED: Gas transfer onchain 65000 units (bukan feeSwap*0.5)
+                                    const feeTransfer = !isKiri
+                                        ? ((typeof getTransferFeeUSD === 'function') ? getTransferFeeUSD(token.chain) : 0)
+                                        : 0;
 
-                                    // Non-USDT pair = 2 transaksi CEX (beli TOKEN + jual PAIR ke USDT) → 2x feeTrade
-                                    const _pairIsStable = isKiri
-                                        ? nameOut === 'USDT'
-                                        : nameIn === 'USDT';
-                                    const feeTrade = 0.0014 * modal * (_pairIsStable ? 1 : 2);
+                                    // ✅ REFACTORED: Per-CEX fee dari getCexTradeFee() + getCexFeeMultiplier()
+                                    // INDODAX: pair IDR → selalu 2x (IDR→USDT→KOIN)
+                                    const _logPairIsStable = isKiri ? (nameOut === 'USDT') : (nameIn === 'USDT');
+                                    const _logFeeRate = (typeof getCexTradeFee === 'function') ? getCexTradeFee(token.cex) : 0.001;
+                                    const _logFeeMulti = (typeof getCexFeeMultiplier === 'function') ? getCexFeeMultiplier(token.cex, _logPairIsStable) : (_logPairIsStable ? 1 : 2);
+                                    const feeTrade = _logFeeRate * modal * _logFeeMulti;
 
                                     // Harga efektif DEX (USDT/token)
                                     let effDexPerToken = 0;

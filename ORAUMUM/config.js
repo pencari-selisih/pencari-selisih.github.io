@@ -9,6 +9,9 @@ const CONFIG_APP = {
         AUTO_VOLUME: true,  // cek volume otomatis untuk filter dan alert
         VOL_CHECK: true, // cek volume aktual
         DEBUG_LOG: false,
+        // Gas units untuk ERC-20 transfer onchain (DEX → CEX wallet)
+        // Lebih kecil dari swap gas (~150k-300k) karena hanya transfer biasa
+        TRANSFER_GAS_LIMIT: 65000,
         // META-DEX: fitur DEX TAMBAHAN yang menampilkan BANYAK quote sekaligus per token.
         // Berbeda dari DEX regular (single-quote). Berjalan TERPISAH dari scan DEX regular.
         // Jika true → Settings menampilkan panel: Modal DEX, Filter Scanner, Card Signal, Jeda DEX.
@@ -88,6 +91,7 @@ const CONFIG_CEX = {
     GATE: {
         ICON: "assets/icons/cex/gate.png",
         WARNA: "#D5006D",  // Pink tua
+        TRADE_FEE: 0.001,  // 0.1% taker fee
         LINKS: {
             tradeToken: ({ token }) => `https://www.gate.com/trade/${String(token || '').toUpperCase()}_USDT`,
             tradePair: ({ pair }) => `https://www.gate.com/trade/${String(pair || '').toUpperCase()}_USDT`,
@@ -102,6 +106,7 @@ const CONFIG_CEX = {
     BINANCE: {
         ICON: "assets/icons/cex/binance.png",
         WARNA: "#e0a50c",  // Orange tua
+        TRADE_FEE: 0.001,  // 0.1% taker fee
         LINKS: {
             tradeToken: ({ token }) => `https://www.binance.com/en/trade/${String(token || '').toUpperCase()}_USDT`,
             tradePair: ({ pair }) => `https://www.binance.com/en/trade/${String(pair || '').toUpperCase()}_USDT`,
@@ -116,6 +121,7 @@ const CONFIG_CEX = {
     MEXC: {
         ICON: "assets/icons/cex/mexc.png",
         WARNA: "#1448ce",  // Biru muda
+        TRADE_FEE: 0.0005,  // 0.05% taker fee
         LINKS: {
             tradeToken: ({ token }) => `https://www.mexc.com/exchange/${String(token || '').toUpperCase()}_USDT?_from=search`,
             tradePair: ({ pair }) => `https://www.mexc.com/exchange/${String(pair || '').toUpperCase()}_USDT?_from=search`,
@@ -130,6 +136,7 @@ const CONFIG_CEX = {
     KUCOIN: {
         ICON: "assets/icons/cex/kucoin.png",
         WARNA: "#29b3af",
+        TRADE_FEE: 0.001,  // 0.1% taker fee
         LINKS: {
             tradeToken: ({ token }) => `https://www.kucoin.com/trade/${String(token || '').toUpperCase()}-USDT`,
             tradePair: ({ pair }) => `https://www.kucoin.com/trade/${String(pair || '').toUpperCase()}-USDT`,
@@ -145,6 +152,7 @@ const CONFIG_CEX = {
     BITGET: {
         ICON: "assets/icons/cex/bitget.png",
         WARNA: "#1aaaba",
+        TRADE_FEE: 0.001,  // 0.1% taker fee
         LINKS: {
             tradeToken: ({ token }) => `https://www.bitget.com/spot/${String(token || '').toUpperCase()}USDT`,
             tradePair: ({ pair }) => `https://www.bitget.com/spot/${String(pair || '').toUpperCase()}USDT`,
@@ -160,6 +168,7 @@ const CONFIG_CEX = {
     BYBIT: {
         ICON: "assets/icons/cex/bybit.png",
         WARNA: "#f29900",
+        TRADE_FEE: 0.001,  // 0.1% taker fee
         LINKS: {
             tradeToken: ({ token }) => `https://www.bybit.com/trade/spot/${String(token || '').toUpperCase()}/USDT`,
             tradePair: ({ pair }) => `https://www.bybit.com/trade/spot/${String(pair || '').toUpperCase()}/USDT`,
@@ -175,6 +184,11 @@ const CONFIG_CEX = {
     INDODAX: {
         ICON: "assets/icons/cex/indodax.png",
         WARNA: "#2eb5f2",
+        TRADE_FEE: 0.003,  // 0.3% taker fee
+        // Pair Indodax adalah IDR, sehingga flow selalu 2 langkah:
+        // CEX→DEX: KOIN→IDR (jual) + IDR→USDT (konversi) → 2x fee
+        // DEX→CEX: USDT→IDR (konversi) + IDR→KOIN (beli) → 2x fee
+        PAIR_IS_IDR: true,  // Flag: pair selalu IDR, bukan USDT
         LINKS: {
             tradeToken: ({ token }) => `https://indodax.com/trade/${String(token || '').toUpperCase()}IDR`,
             tradePair: ({ pair }) => `https://indodax.com/trade/${String(pair || '').toUpperCase()}IDR`,
@@ -206,6 +220,7 @@ const CONFIG_CEX = {
     HTX: {
         ICON: "assets/icons/cex/htx.png",
         WARNA: "#008cd6",  // HTX Blue color
+        TRADE_FEE: 0.002,  // 0.2% taker fee
         LINKS: {
             tradeToken: ({ token }) => `https://www.htx.com/trade/${String(token || '').toLowerCase()}_usdt`,
             tradePair: ({ pair }) => `https://www.htx.com/trade/${String(pair || '').toLowerCase()}_usdt`,
@@ -222,6 +237,7 @@ const CONFIG_CEX = {
     OKX: {
         ICON: "assets/icons/cex/okx.png",
         WARNA: "#000000",
+        TRADE_FEE: 0.001,  // 0.1% taker fee
         LINKS: {
             tradeToken: ({ token }) => `https://www.okx.com/trade-spot/${String(token || '').toLowerCase()}-usdt`,
             tradePair: ({ pair }) => `https://www.okx.com/trade-spot/${String(pair || '').toLowerCase()}-usdt`,
@@ -234,6 +250,48 @@ const CONFIG_CEX = {
         }
     }
 };
+
+/**
+ * Mengambil trade fee fraction (bukan persen) untuk CEX tertentu.
+ * @param {string} cexKey - Nama CEX, case-insensitive (misal: 'BINANCE', 'mexc')
+ * @returns {number} Fee fraction, misal 0.001 untuk 0.1%
+ */
+function getCexTradeFee(cexKey) {
+    try {
+        const key = String(cexKey || '').toUpperCase();
+        const cfg = (window.CONFIG_CEX || CONFIG_CEX)[key];
+        const fee = cfg && Number.isFinite(cfg.TRADE_FEE) ? cfg.TRADE_FEE : 0.001;
+        return fee;
+    } catch (_) { return 0.001; }
+}
+
+/**
+ * Menghitung multiplier fee trade berdasarkan CEX dan apakah pair adalah stablecoin.
+ * Aturan:
+ * - INDODAX: selalu 2x (IDR → USDT → KOIN atau sebaliknya = 2 transaksi)
+ * - CEX lain dengan USDT pair: 1x
+ * - CEX lain dengan non-USDT pair (BNT, BNB, dsb): 2x
+ * @param {string} cexKey - Nama CEX, case-insensitive
+ * @param {boolean} pairIsStable - True jika pair adalah USDT/USDC/DAI
+ * @returns {number} 1 atau 2
+ */
+function getCexFeeMultiplier(cexKey, pairIsStable) {
+    try {
+        const key = String(cexKey || '').toUpperCase();
+        const cfg = (window.CONFIG_CEX || CONFIG_CEX)[key];
+        // INDODAX: IDR pair → selalu 2 langkah transaksi → selalu 2x
+        if (cfg && cfg.PAIR_IS_IDR) return 2;
+        // CEX lain: 1x jika pair = stablecoin, 2x jika pair = non-stablecoin
+        return pairIsStable ? 1 : 2;
+    } catch (_) { return pairIsStable ? 1 : 2; }
+}
+
+try {
+    if (typeof window !== 'undefined') {
+        window.getCexTradeFee = window.getCexTradeFee || getCexTradeFee;
+        window.getCexFeeMultiplier = window.getCexFeeMultiplier || getCexFeeMultiplier;
+    }
+} catch (_) { }
 
 // CEX_SECRETS now empty - keys loaded from IndexedDB at runtime via getCEXCredentials()
 // Legacy merge kept for backward compatibility (will be no-op since CEX_SECRETS is empty)

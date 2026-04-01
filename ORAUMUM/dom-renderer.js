@@ -1428,11 +1428,15 @@ function DisplayPNL(data) {
       const baseModal = n(Modal);
       const baseFeeWD = n(FeeWD);
       const direction = String(trx || '').toLowerCase();
-      // Non-USDT pair = 2 transaksi CEX → 2x feeTrade
+      // ✅ REFACTORED: Per-CEX trade fee dari CONFIG_CEX.TRADE_FEE
+      // INDODAX: pair IDR → selalu 2x (IDR→USDT→KOIN atau sebaliknya)
+      // CEX lain: 1x jika pair USDT, 2x jika pair non-USDT
       const _pairIsStableMulti = direction === 'tokentopair'
         ? String(Name_out || '').toUpperCase() === 'USDT'
         : String(Name_in || '').toUpperCase() === 'USDT';
-      const baseFeeTrade = n(0.0014 * baseModal * (_pairIsStableMulti ? 1 : 2));
+      const _cexFeeRate = (typeof getCexTradeFee === 'function') ? getCexTradeFee(cex) : 0.001;
+      const _feeMulti = (typeof getCexFeeMultiplier === 'function') ? getCexFeeMultiplier(cex, _pairIsStableMulti) : (_pairIsStableMulti ? 1 : 2);
+      const baseFeeTrade = n(_cexFeeRate * baseModal * _feeMulti);
 
       // CEX prices for calculation
       const buyPairCEX = n(priceBuyPair_CEX);
@@ -1527,7 +1531,11 @@ function DisplayPNL(data) {
         // ✅ FIX: Calculate PNL dengan fee yang benar per arah
         // CEX to DEX (tokentopair): WD fee
         // DEX to CEX (pairtotoken): Transfer fee (gas)
-        const subFeeTransfer = direction === 'pairtotoken' ? (feeSwap * 0.5) : 0;
+        // ✅ REFACTORED: feeTransfer onchain 65000 gas units (bukan feeSwap*0.5)
+        const subFeeTransfer = direction === 'pairtotoken'
+          ? ((typeof getTransferFeeUSD === 'function') ? getTransferFeeUSD(nameChain) : (feeSwap * 0.5))
+          : 0;
+
         const subFeeWD = direction === 'tokentopair' ? baseFeeWD : 0;
 
         const subTotalFee = feeSwap + subFeeWD + subFeeTransfer + baseFeeTrade;
@@ -1675,8 +1683,10 @@ function DisplayPNL(data) {
         const bestSubRes = subResults[0]; // Provider terbaik (sudah di-sort)
         const bestFeeSwap = n(bestSubRes?.FeeSwap || bestSubRes?.fee || 0);
 
-        // ✅ FIX: Best provider fee calculation sesuai direction
-        const bestFeeTransfer = direction === 'pairtotoken' ? (bestFeeSwap * 0.5) : 0;
+        // ✅ REFACTORED: feeTransfer pakai gas onchain 65000 units (bukan estimasi feeSwap*0.5)
+        const bestFeeTransfer = direction === 'pairtotoken'
+          ? ((typeof getTransferFeeUSD === 'function') ? getTransferFeeUSD(nameChain) : (bestFeeSwap * 0.5))
+          : 0;
         const bestFeeWD = direction === 'tokentopair' ? baseFeeWD : 0;
         const bestTotalFee = bestFeeSwap + bestFeeWD + bestFeeTransfer + baseFeeTrade;
 
@@ -2265,11 +2275,16 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
 function calculateResult(baseId, tableBodyId, amount_out, FeeSwap, sc_input, sc_output, cex, Modal, amount_in, priceBuyToken_CEX, priceSellToken_CEX, priceBuyPair_CEX, priceSellPair_CEX, Name_in, Name_out, feeWD, dextype, nameChain, codeChain, trx, vol, DataDEX) {
   const NameX = Name_in + "_" + Name_out;
   const FeeWD = parseFloat(feeWD);
-  // Non-USDT pair = 2 transaksi CEX (beli TOKEN + jual PAIR ke USDT) → 2x FeeTrade
+  // ✅ REFACTORED: Per-CEX trade fee dari getCexTradeFee() + getCexFeeMultiplier()
+  // INDODAX selalu 2x karena pair IDR membutuhkan 2 langkah transaksi
+  const _cexFeeRate = (typeof window.getCexTradeFee === 'function') ? window.getCexTradeFee(cex) : 0.001;
   const _pairIsStable = (trx === 'TokentoPair')
     ? String(Name_out || '').toUpperCase() === 'USDT'
     : String(Name_in || '').toUpperCase() === 'USDT';
-  const FeeTrade = parseFloat(0.0014 * Modal * (_pairIsStable ? 1 : 2));
+  const _feeMultiplier = (typeof window.getCexFeeMultiplier === 'function')
+    ? window.getCexFeeMultiplier(cex, _pairIsStable)
+    : (_pairIsStable ? 1 : 2);
+  const FeeTrade = _cexFeeRate * Modal * _feeMultiplier;
 
   FeeSwap = parseFloat(FeeSwap) || 0;
   Modal = parseFloat(Modal) || 0;
@@ -2293,10 +2308,11 @@ function calculateResult(baseId, tableBodyId, amount_out, FeeSwap, sc_input, sc_
   const rateTokentoPair = (amount_in > 0) ? (amount_out / amount_in) : 0;
   const ratePairtoToken = (amount_out > 0) ? (amount_in / amount_out) : 0;
 
-  // ✅ FIX: Fee calculation berbeda per arah (sama dengan scanner.js)
-  // CEX to DEX (TokentoPair): withdraw fee dari CEX
-  // DEX to CEX (PairtoToken): transfer/deposit fee (gas) ke CEX wallet
-  const feeTransfer = (trx === "PairtoToken") ? (FeeSwap * 0.5) : 0;
+  // ✅ REFACTORED: feeTransfer pakai gas onchain 65000 units dari getTransferFeeUSD()
+  // Bukan estimasi feeSwap*0.5 yang tidak akurat
+  const feeTransfer = (trx === "PairtoToken")
+    ? ((typeof window.getTransferFeeUSD === 'function') ? window.getTransferFeeUSD(nameChain) : 0)
+    : 0;
 
   const totalModal = (trx === "TokentoPair")
     ? Modal + FeeSwap + FeeWD + FeeTrade

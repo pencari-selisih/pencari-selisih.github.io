@@ -297,6 +297,65 @@
         return FALLBACK_FEES[chainLower] || 0.05;
     }
 
+    /**
+     * Menghitung biaya transfer token ERC-20 onchain (DEX → CEX wallet).
+     * Berbeda dari swap fee — transfer biasa lebih murah (65000 gas vs 150k-300k gas).
+     *
+     * Sumber gas data: localStorage 'ALL_GAS_FEES' (diisi oleh feeGasGwei() via RPC/Blocknative).
+     * Gas limit: CONFIG_APP.APP.TRANSFER_GAS_LIMIT (default 65000).
+     *
+     * Formula: gasLimit × gwei / 1e9 × nativeTokenPrice
+     *
+     * @param {string} chainKey - Chain key (bsc, polygon, ethereum, arbitrum, base, dll)
+     * @returns {number} Biaya transfer dalam USD
+     */
+    function getTransferFeeUSD(chainKey) {
+        const chainLower = String(chainKey || '').toLowerCase();
+
+        // Solana: biaya flat sangat kecil (~$0.001), bukan model gas EVM
+        if (chainLower === 'solana') return 0.001;
+
+        // Ambil gas limit khusus transfer dari CONFIG_APP
+        const transferGasLimit = (
+            (typeof window !== 'undefined' && window.CONFIG_APP?.APP?.TRANSFER_GAS_LIMIT) ||
+            (typeof CONFIG_APP !== 'undefined' && CONFIG_APP?.APP?.TRANSFER_GAS_LIMIT) ||
+            65000
+        );
+
+        try {
+            const allGasData = getFromLocalStorage('ALL_GAS_FEES');
+            if (allGasData && Array.isArray(allGasData)) {
+                const gasInfo = allGasData.find(g => {
+                    const gChain    = String(g.chain    || '').toLowerCase();
+                    const gChainKey = String(g.chainKey || '').toLowerCase();
+                    if (gChain    === chainLower) return true;
+                    if (gChainKey === chainLower) return true;
+                    const cfgEntry = (window.CONFIG_CHAINS || CONFIG_CHAINS)[chainLower];
+                    if (cfgEntry && String(cfgEntry.Nama_Chain || '').toLowerCase() === gChain) return true;
+                    return false;
+                });
+
+                if (gasInfo && gasInfo.gwei && gasInfo.tokenPrice) {
+                    const fee = (parseFloat(gasInfo.gwei) * transferGasLimit / 1e9) * parseFloat(gasInfo.tokenPrice);
+                    if (Number.isFinite(fee) && fee > 0) {
+                        return fee;
+                    }
+                }
+            }
+        } catch (_) { }
+
+        // Fallback hardcoded jika ALL_GAS_FEES kosong atau chain tidak ditemukan
+        // Berdasarkan kondisi gas nyata dikalikan dengan transfer gas 65000
+        const FALLBACK_TRANSFER = {
+            ethereum:  0.20,   // ~5 gwei × 65k / 1e9 × $1800 = ~$0.58 (low gas)
+            bsc:       0.04,   // ~1 gwei × 65k / 1e9 × $600  = ~$0.04
+            polygon:   0.001,  // ~30 gwei × 65k / 1e9 × $0.40 = ~$0.001
+            arbitrum:  0.01,   // ~0.02 gwei × 65k / 1e9 × $1800 = ~$0.002
+            base:      0.001,  // ~0.002 gwei × 65k / 1e9 × $1800 = ~$0.0002
+        };
+        return FALLBACK_TRANSFER[chainLower] || 0.01;
+    }
+
     // =================================================================================
     // PRICE HELPERS (USD conversion for DEX display)
     // =================================================================================
@@ -373,6 +432,7 @@
         window.generateDexLink = generateDexLink;
         window.generateDexCellId = generateDexCellId;
         window.getFeeSwap = getFeeSwap;
+        window.getTransferFeeUSD = getTransferFeeUSD;
         window.getStableSymbols = getStableSymbols;
         window.getBaseTokenSymbol = getBaseTokenSymbol;
         window.getBaseTokenUSD = getBaseTokenUSD;
