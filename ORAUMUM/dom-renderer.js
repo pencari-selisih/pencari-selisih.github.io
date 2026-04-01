@@ -5,6 +5,46 @@
  * Header and body cells should be driven from the same DEX list so they always stay in sync.
  */
 
+/**
+ * Mengembalikan badge HTML berwarna khusus per MetaDex provider.
+ * - METAX   → [MT] orange MetaMask (#ec7506)
+ * - JUMPER/LIFI → [JM] ungu   (#7c3aed)
+ * - ONEKEY  → [KY] hijau  (#00b812)
+ * - DEX lain isMetaDex → [MT] abu-abu fallback
+ *
+ * @param {string} dexKey  - key DEX (misalnya 'metax', 'lifi', 'onekey')
+ * @param {string} [size]  - ukuran font badge, default '9px'
+ * @param {string} [style='solid'] - 'solid'|'glass' — glass untuk header card (bg transparan)
+ * @returns {string} HTML string badge atau ''
+ */
+function getMetaDexBadge(dexKey, size = '9px', style = 'solid') {
+  const key = String(dexKey || '').toLowerCase();
+  const cfg = (typeof window !== 'undefined' && window.CONFIG_DEXS) ? window.CONFIG_DEXS[key] : null;
+  if (!cfg || !cfg.isMetaDex) return '';
+
+  // Per-provider badge definition
+  const BADGES = {
+    metax:  { label: 'MT', color: '#ec7506' },  // MetaMask orange
+    lifi:   { label: 'JM', color: '#7c3aed' },  // Jumper purple
+    dzap:   { label: 'DZ', color: '#d9dc36' },  // DZAP yellow
+    rubic:  { label: 'RB', color: '#24cc59' },  // Rubic green
+    onekey: { label: 'KY', color: '#00b812' },  // OneKey green
+  };
+
+  const badge = BADGES[key] || { label: 'MT', color: '#888' };
+  const bg = style === 'glass'
+    ? 'rgba(255,255,255,0.22)'
+    : badge.color;
+  const textColor = '#fff';
+  const border = style === 'glass' ? `1px solid ${badge.color}` : 'none';
+
+  return `<span style="background:${bg};color:${textColor};border:${border};border-radius:3px;padding:0 3px;font-size:${size};font-weight:bold;vertical-align:middle;letter-spacing:0.3px;">${badge.label}</span>`;
+}
+
+// Expose globally so ui.js / main.js can call it too
+if (typeof window !== 'undefined') window.getMetaDexBadge = getMetaDexBadge;
+
+
 // Resolve currently active DEX list based on app mode and config; safe for global use
 function computeActiveDexList() {
   try {
@@ -1552,13 +1592,120 @@ function DisplayPNL(data) {
         // ⚠️ Dynamic border: hanya tampilkan border jika bukan kolom terakhir
         const borderRight = idx < (maxProviders - 1) ? 'border-right: 1px solid #dee2e6;' : '';
 
-        // Tooltips (format sama seperti single-DEX)
-        const tipBuy = direction === 'tokentopair'
-          ? `Buy ${Name_in} di ${upper(cex)} | ${fmtUSD(buyPrice)} USDT/${Name_in}`
-          : `Buy ${Name_out} di ${dexLabel} | ${fmtUSD(buyPrice)} USDT/${Name_out}`;
-        const tipSell = direction === 'tokentopair'
-          ? `Sell ${Name_in} ke ${Name_out} di ${dexLabel} | ${fmtUSD(sellPrice)} USDT/${Name_in}`
-          : `Sell ${Name_out} di ${upper(cex)} | ${fmtUSD(sellPrice)} USDT/${Name_out}`;
+        // ✅ Tooltip format IDENTIK dengan DEX reguler (single-DEX)
+        // ⬆ Buy link: arah & harga dalam IDR dan USDT (sama seperti tipBuy reguler)
+        // ⬇ Sell link: arah & harga + fee info (sama seperti tipSell reguler)
+
+        // Sumber fee — definisikan lebih awal agar bisa dipakai di seluruh tooltip
+        const subFeeRaw    = n(subRes.FeeSwap || subRes.fee);
+        const subFeeSrc    = String(subRes.feeSource || 'fallback').toLowerCase();
+        const subFeeSrcLbl = subFeeSrc === 'api'  ? '✅ dari API'
+                           : subFeeSrc === 'calc' ? 'dari kalkulasi gas'
+                           :                        '⚠️ estimasi fallback';
+
+        // ✅ Build titleLog IDENTIK PERSIS dengan format scanner.js untuk DEX reguler
+        // Semua field sama: Time, PROSES, STATUS DEX, Token IN/OUT, Modal, Beli/Jual, Fee, PNL, idCELL
+        const _toIDR = (v) => { try { return (typeof formatIDRfromUSDT === 'function') ? formatIDRfromUSDT(Number(v) || 0) : ''; } catch (_) { return ''; } };
+        const _nowStr = (new Date()).toLocaleTimeString();
+        const isKiri  = direction === 'tokentopair';
+
+        // Provider info untuk PROSES line
+        const _routeTool = String(subRes.routeTool || subRes.via || '').trim();
+        const _viaName = _routeTool.length > 0 ? _routeTool.toUpperCase() : providerName;
+
+        // Contract address dari data token (field sc_input/sc_output dari DisplayPNL data object)
+        const _scIn  = String(data?.sc_input  || data?.sc_in  || data?.tokenIn  || '').substring(0, 10);
+        const _scOut = String(data?.sc_output || data?.sc_out || data?.tokenOut || '').substring(0, 10);
+        const _tokenInAddr  = _scIn  ? `(${_scIn}...)` : '';
+        const _tokenOutAddr = _scOut ? `(${_scOut}...)` : '';
+
+        // Harga efektif DEX (USDT per token input)
+        const _effDexPerToken = isKiri
+          ? (amtIn > 0 ? (amtOut / amtIn) : 0)         // pair out / token in
+          : (amtOut > 0 ? (baseModal / amtOut) : 0);   // USDT spent / token received
+        const _totalValue = isKiri
+          ? (upper(Name_out) === 'USDT' ? amtOut : amtOut * sellPairCEX)
+          : amtOut * sellTokenCEX;
+        const _buyPriceCEX = isKiri ? buyTokenCEX : _effDexPerToken;
+        const _sellPriceCEX = isKiri ? _effDexPerToken : sellTokenCEX;
+        const _bruto = _totalValue - baseModal;
+        const _pnlPct = baseModal > 0 ? (_bruto / baseModal) * 100 : 0;
+        const _profit = _bruto - subTotalFee;
+
+        // Nama token di setiap arah
+        const _nameIn  = upper(Name_in);
+        const _nameOut = upper(Name_out);
+        const _ceName  = upper(cex);
+        const _dxName  = providerName;  // Nama DEX spesifik (OKX, MATCHA, KYBER, dll.)
+
+        // idCELL = idPrefix + baseId (sama seperti regular DEX di scanner.js)
+        const _idCell = String((idPrefix || '') + (baseId || ''));
+
+        // ── Header Block (identik dengan scanner.js) ──
+        const _prosesLine = isKiri
+          ? `PROSES : ${_ceName} => ${_dxName} (VIA ${_viaName})`
+          : `PROSES : ${_dxName} => ${_ceName} (VIA ${_viaName})`;
+
+        const _headerBlock = [
+          '======================================',
+          `Time: ${_nowStr}`,
+          _prosesLine,
+          'STATUS DEX : OK'
+        ].join('\n');
+
+        // ── Token info ──
+        const _tokenInLine  = isKiri
+          ? `    📥 Token IN  : ${_nameIn} ${_tokenInAddr}`
+          : `    📥 Token IN  : ${_nameIn} ${_tokenInAddr}`;
+        const _tokenOutLine = isKiri
+          ? `    📤 Token OUT : ${_nameOut} ${_tokenOutAddr}`
+          : `    📤 Token OUT : ${_nameOut} ${_tokenOutAddr}`;
+
+        // ── CEX buy/sell lines ──
+        const _buyLine = isKiri
+          ? `    🛒 Beli di ${_ceName} @ $${_buyPriceCEX.toFixed(6)} → ${amtIn.toFixed(6)} ${_nameIn}`
+          : `    🛒 Beli di ${_dxName} @ ~$${_effDexPerToken.toFixed(6)} / ${_nameOut}`;
+        const _buyIdrLine = isKiri
+          ? `    💱 Harga Beli (${_ceName}): $${_buyPriceCEX.toFixed(6)} USDT | ${_toIDR(_buyPriceCEX)}`
+          : `    💱 Harga Beli (${_dxName}): ~$${_effDexPerToken.toFixed(6)} USDT | ${_toIDR(_effDexPerToken)}`;
+        const _sellIdrLine = isKiri
+          ? `    💱 Harga Jual (${_dxName}): ~$${_effDexPerToken.toFixed(6)} USDT | ${_toIDR(_effDexPerToken)}`
+          : `    💱 Harga Jual (${_ceName}): $${_sellPriceCEX.toFixed(6)} USDT | ${_toIDR(_sellPriceCEX)}`;
+
+        // ── Fee breakdown (identik dengan scanner.js per arah) ──
+        const _feeBreakdown = isKiri
+          ? [
+              `    🏦 Fee WD (CEX): $${subFeeWD.toFixed(4)}`,
+              `    🛒 Fee Swap (DEX): $${subFeeRaw.toFixed(4)} (${subFeeSrcLbl})`,
+              `    💼 Fee Trade (CEX): $${baseFeeTrade.toFixed(4)}`,
+            ]
+          : [
+              `    🛒 Fee Swap (DEX): $${subFeeRaw.toFixed(4)} (${subFeeSrcLbl})`,
+              `    📤 Fee Transfer (Gas): $${subFeeTransfer.toFixed(4)}`,
+              `    💼 Fee Trade (CEX): $${baseFeeTrade.toFixed(4)}`,
+            ];
+
+        // ── Build full titleLog (SAMA PERSIS dengan scanner.js) ──
+        const divTitle = [
+          _headerBlock,
+          _tokenInLine,
+          _tokenOutLine,
+          `    🪙 Modal: $${baseModal.toFixed(2)}`,
+          _buyLine,
+          _buyIdrLine,
+          '',
+          `    💰 Swap di ${_dxName}:`,
+          `    - Harga Swap Efektif: ~$${_effDexPerToken.toFixed(6)} / ${_nameIn}`,
+          `    - Hasil: $${_totalValue.toFixed(6)}`,
+          _sellIdrLine,
+          '',
+          ..._feeBreakdown,
+          `    🧾 Total Fee: ~$${subTotalFee.toFixed(4)}`,
+          '',
+          `    📈 PNL: ${_bruto >= 0 ? '+' : ''}${_bruto.toFixed(2)} USDT (${_pnlPct.toFixed(2)}%)`,
+          `    🚀 PROFIT : ${_profit >= 0 ? '+' : ''}${_profit.toFixed(2)} USDT`,
+          `idCELL: ${_idCell}`,
+        ].filter(l => l !== null && l !== undefined).join('\n');
 
         // Warna PNL sama seperti single-DEX
         const pnlClass = subPnl >= 0 ? 'uk-text-success' : 'uk-text-danger';
@@ -1576,45 +1723,29 @@ function DisplayPNL(data) {
           ? `<a class="${_wdCls}" href="${metaWdUrl}" target="_blank" rel="noopener" title="FEE WITHDRAW">${_wdText}: ${subFeeWD.toFixed(4)}$</a>`
           : `<a class="${_dpCls}" href="${metaDpUrl}" target="_blank" rel="noopener">${_dpText}</a>`;
 
-        // ✅ NEW: Sumber fee untuk tooltip multi-DEX
-        const subFeeRaw   = n(subRes.FeeSwap || subRes.fee);
-        const subFeeSrc   = String(subRes.feeSource || 'fallback').toLowerCase();
-        const subFeeSrcLbl = subFeeSrc === 'api'  ? '✅ dari API'
-                           : subFeeSrc === 'calc' ? '🔧 dari kalkulasi gas'
-                           :                        '⚠️ estimasi fallback';
-        const feeTooltip = direction === 'tokentopair'
-          ? `Fee WD: $${subFeeWD.toFixed(4)}\nFee SW: $${feeSwap.toFixed(4)} (${subFeeSrcLbl})`
-          : `Fee SW: $${feeSwap.toFixed(4)} (${subFeeSrcLbl})\nFee Transfer (Gas): $${subFeeTransfer.toFixed(4)}`;
+        // Ikon sumber fee pendek untuk span SW
+        const subFeeSrcLblShort = subFeeSrc === 'api' ? '✅' : subFeeSrc === 'calc' ? '↗' : '⚠️';
 
-        // ✅ NEW: Tooltip lengkap untuk div utama sub-kolom (hover area)
-        const divTitle = [
-          `${providerName}`,
-          `Amount Out: ${amtOut.toFixed(6)}`,
-          `💸 Fee Swap: $${subFeeRaw.toFixed(4)} (${subFeeSrcLbl})`,
-          direction === 'tokentopair'
-            ? `Fee WD: $${subFeeWD.toFixed(4)}`
-            : `Fee Transfer: $${subFeeTransfer.toFixed(4)}`,
-          `Bruto: $${subBruto.toFixed(2)}`,
-          `Total Fee: $${subTotalFee.toFixed(2)}`,
-          `PNL: $${subPnl.toFixed(2)}`
-        ].join('\n');
+        // ✅ link ⬆/⬇ pakai divTitle penuh — IDENTIK dengan DEX reguler (tipBuy = tipSell = __titleLog)
+        const tipFull = divTitle;
 
-        // Struktur HTML sama persis seperti regular DEX cell (monitor-line, strong header, uk-text-primary wrapper)
+        // Struktur HTML sama persis seperti regular DEX cell
         return `
           <div class="multi-sub" style="flex: 1 1 110px; padding: 2px 3px; ${borderRight} text-align: center; vertical-align: middle; ${subBgStyle}"
                title="${divTitle}">
             <strong style="display:inline-block; margin:0; color: ${dexColor};">${displayName} ${modalLabel}</strong><br>
             <span class="uk-text-primary">
-              <a class="monitor-line uk-text-success dex-price-link" href="${buyLink}" target="_blank" rel="noopener" title="${tipBuy}">⬆ ${fmtUSD(buyPrice)}</a>
-              <a class="monitor-line uk-text-danger dex-price-link" href="${sellLink}" target="_blank" rel="noopener" title="${tipSell}">⬇ ${fmtUSD(sellPrice)}</a>
+              <a class="monitor-line uk-text-success dex-price-link" href="${buyLink}" target="_blank" rel="noopener" title="${tipFull}">⬆ ${fmtUSD(buyPrice)}</a>
+              <a class="monitor-line uk-text-danger dex-price-link" href="${sellLink}" target="_blank" rel="noopener" title="${tipFull}">⬇ ${fmtUSD(sellPrice)}</a>
               <span class="monitor-line">${feeLabel1}</span>
-              <span class="monitor-line uk-text-dark" title="${subFeeSrcLbl}">💸 SW: ${feeSwap.toFixed(4)}$</span>
+              <span class="monitor-line uk-text-dark" title="${divTitle}">💸 SW: ${feeSwap.toFixed(4)}$ ${subFeeSrcLblShort}</span>
               <span class="monitor-line uk-text-danger" title="BRUTO ~ TOTAL FEE">[${subBruto.toFixed(2)} ~ <b style="font-size: larger;">${subTotalFee.toFixed(2)}</b>]</span>
               <span class="monitor-line ${pnlClass}" title="PROFIT / LOSS" style="font-weight: bold;">💰 PNL: ${subPnl.toFixed(2)}</span>
             </span>
           </div>
         `;
       }).join('');
+
 
       // Build cell HTML — langsung sub-kolom tanpa header META-DEX (sama seperti DEX biasa)
       const cellHtml = `
@@ -1853,16 +1984,7 @@ function DisplayPNL(data) {
   const refCexBuy = n(displayPriceBuyToken);
   const refCexSell = n(displayPriceSellToken);
 
-  // 🔍 DEBUG: Log CEX prices used for calculation vs display
-  console.log('🎯 [DisplayPNL] Price Analysis:', {
-    dex: dextype,
-    direction: trx,
-    priceBuyToken_CEX_original: priceBuyToken_CEX,
-    priceSellToken_CEX_original: priceSellToken_CEX,
-    displayPriceBuyToken: displayPriceBuyToken,
-    displayPriceSellToken: displayPriceSellToken,
-    autoVolActive: !!(data.autoVolResult && data.maxModal)
-  });
+
 
   let dexUsdtPerToken;
   if (lower(trx) === 'tokentopair') {
@@ -1891,7 +2013,7 @@ function DisplayPNL(data) {
   const _feeSrcLabel = (() => {
     const src = String(feeSource || 'fallback').toLowerCase();
     if (src === 'api') return '✅ dari API';
-    if (src === 'calc') return '🔧 dari kalkulasi gas';
+    if (src === 'calc') return 'dari kalkulasi gas';
     return '⚠️ estimasi fallback';
   })();
   const _feeInfo = `💸 Fee Swap: $${_feeVal.toFixed(4)} (${_feeSrcLabel})`;
@@ -1916,20 +2038,7 @@ function DisplayPNL(data) {
     tipSell = `${Name_out} -> USDT | ${CEX} | ${fmtIDR(sellPrice)} | ${inv > 0 && isFinite(inv) ? inv.toFixed(6) : 'N/A'} ${Name_in}/${Name_out}`;
   }
 
-  // 🔍 DEBUG: Final buy/sell prices for display
-  console.log('💰 [DisplayPNL] Final Display Prices:', {
-    dex: dextype,
-    direction,
-    Name_in,
-    Name_out,
-    buyPrice,
-    sellPrice,
-    dexUsdtPerToken,
-    profitLoss: pnl,
-    totalValue: n(totalValue),
-    totalModal: n(totalModal),
-    anomaly: direction === 'pairtotoken' && sellPrice < buyPrice ? '⚠️ SELL < BUY (Should be LOSS!)' : direction === 'tokentopair' && buyPrice > sellPrice ? '⚠️ BUY > SELL (Should be LOSS!)' : 'OK'
-  });
+
 
   // Re-apply detailed title log only on price links when result is complete (not for errors)
   if (__titleLog && __titleLog.length > 0) {
@@ -2217,11 +2326,16 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
   // Item sinyal: kompak + border kanan (separator)
   // ✅ FIX: Round modal value properly (no floating point errors)
   const modalRounded = Number(modal) >= 100 ? Math.round(Number(modal)) : Number(modal).toFixed(2);
+
+  // ✅ Badge META-DEX: badge berwarna berbeda per provider
+  const metaBadge = getMetaDexBadge(dexLowerKey, '10px', 'solid');
+
+
   const sLink = `
     <div id="${signalItemId}" class="signal-item uk-flex uk-flex-middle uk-flex-nowrap uk-text-small uk-padding-remove-vertical" >
       <a href="#${idPrefix}${baseId}" class="uk-link-reset " style="text-decoration:none; font-size:12px; margin-top:2px; margin-left:4px;">
         <span class="${Number(PNL) > filterPNLValue ? 'signal-highlight' : ''}" style="color:${warnaCEX}; ${highlightStyle}; display:inline-block; font-weight:bolder;">
-          🔸 ${String(cex).slice(0, 3).toUpperCase()}X${volumeWarning}
+          🔸 ${String(cex).slice(0, 3).toUpperCase()}X${volumeWarning}${metaBadge}
           <span class="uk-text-muted">:${modalRounded}</span>
           <span class="${warnaTeksArah}"> ${NameToken}->${NamePair}</span>${chainPart}:
           <span class="uk-text-muted">${Number(PNL).toFixed(2)}$</span>
@@ -2340,28 +2454,7 @@ function calculateResult(baseId, tableBodyId, amount_out, FeeSwap, sc_input, sc_
   const profitLoss = totalValue - totalModal;
   const profitLossPercent = totalModal !== 0 ? (profitLoss / totalModal) * 100 : 0;
 
-  // 🔍 DEBUG: PNL Calculation Details
-  console.log('📊 [calculateResult] PNL Calculation:', {
-    dex: dextype,
-    direction: trx,
-    Name_in,
-    Name_out,
-    amount_in,
-    amount_out,
-    priceBuyToken_CEX,
-    priceSellToken_CEX,
-    priceBuyPair_CEX,
-    priceSellPair_CEX,
-    Modal,
-    totalFee,
-    totalModal,
-    totalValue,
-    profitLoss,
-    formula: trx === 'TokentoPair'
-      ? `totalValue = ${amount_out} × ${priceSellPair_CEX} = ${totalValue}`
-      : `totalValue = ${amount_out} × ${priceSellToken_CEX} = ${totalValue}`,
-    anomaly: profitLoss > 0 && trx === 'PairtoToken' && priceSellToken_CEX < priceBuyToken_CEX ? '⚠️ PROFIT but SELL < BUY!' : 'Normal'
-  });
+
 
   const linkDEX = generateDexLink(
     dextype,

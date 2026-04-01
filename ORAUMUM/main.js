@@ -1952,13 +1952,14 @@ async function deferredInit() {
                     // META-DEX applies to all tokens (per-chain), use total count
                     const cnt = flatForDex.length;
                     const checked = dexSel.includes(key);
+                    const _mb1 = (typeof window.getMetaDexBadge === 'function') ? window.getMetaDexBadge(key, '8px', 'solid') : `<span style="background:${col};color:#fff;padding:0 3px;border-radius:3px;font-size:8px;">MT</span>`;
                     $metaDexGrid.append($(`
                         <label class="fc-dex" data-val="${key}" data-color="${col}" for="${id}"
                                style="display:flex; align-items:center; gap:3px; padding:3px 8px; border-radius:3px; cursor:pointer;
                                       border:2px solid ${checked ? col : '#c4b5fd'}; background:${checked ? '#f5f3ff' : 'white'};">
                             <input type="checkbox" id="${id}" ${checked ? 'checked' : ''} style="width:11px; height:11px; margin:0;">
                             <span style="font-weight:600; font-size:10px; color:${col};">${(dexConfig.label || dx).toUpperCase()}</span>
-                            <span style="background:${col};color:#fff;padding:0 3px;border-radius:3px;font-size:8px;">META</span>
+                            ${_mb1}
                             <span style="font-size:9px; opacity:0.7; color:#555;">[${cnt}]</span>
                         </label>
                     `));
@@ -2338,13 +2339,14 @@ async function deferredInit() {
                     const checked = dexSel.includes(dx);
                     const col = (dexConfig.warna || dexConfig.WARNA) || '#7c3aed';
                     const id = `modal-sc-dex-${dx}`;
+                    const _mb2 = (typeof window.getMetaDexBadge === 'function') ? window.getMetaDexBadge(dx, '8px', 'solid') : `<span style="background:${col};color:#fff;padding:0 3px;border-radius:3px;font-size:8px;">MT</span>`;
                     $metaGrid.append($(`
                         <label class="sc-dex" data-val="${dx}" data-color="${col}" for="${id}"
                                style="display:flex; align-items:center; gap:3px; padding:3px 8px; border-radius:3px; cursor:pointer;
                                       border:2px solid ${checked ? col : '#c4b5fd'}; background:${checked ? '#f5f3ff' : 'white'};">
                             <input type="checkbox" id="${id}" ${checked ? 'checked' : ''} style="width:11px; height:11px; margin:0;">
                             <span style="font-weight:500; font-size:10px; color:${col};">${(dexConfig.label || dx).toUpperCase()}</span>
-                            <span style="background:${col};color:#fff;padding:0 3px;border-radius:3px;font-size:8px;">META</span>
+                            ${_mb2}
                             <span style="font-size:9px; opacity:0.7; color:#555;">[${cnt}]</span>
                         </label>
                     `));
@@ -5808,17 +5810,18 @@ $(document).ready(function () {
             });
 
             if (metaAggs.length > 0) {
-                $dex.append(`<div style="border-top:1px dashed #c084fc; margin:6px 0 4px; padding-top:4px;"><span style="font-size:10px; color:#7c3aed; font-weight:700;">⚡ META-DEX AGGREGATOR</span></div>`);
+                $dex.append(`<div style="border-top:1px dashed #c084fc; margin:6px 0 4px; padding-top:4px;"><span style="font-size:10px; color:#7c3aed; font-weight:700;">META-DEX AGGREGATOR</span></div>`);
                 metaAggs.forEach(aggKey => {
                     const aggCfg = window.CONFIG_DEXS[aggKey] || {};
                     const aggLabel = (aggCfg.label || aggKey).toUpperCase();
                     const aggColor = aggCfg.warna || '#7c3aed';
+                    const _mb3 = (typeof window.getMetaDexBadge === 'function') ? window.getMetaDexBadge(aggKey, '8px', 'solid') : '';
                     $dex.append(`
                         <div class="uk-flex uk-flex-middle sync-dex-row" data-dex="${aggKey}" style="gap:6px; padding: 4px; border-left: 3px solid ${aggColor}; background: ${aggColor}08;">
                             <label class="uk-margin-remove" style="display: flex; align-items: center; cursor: pointer;">
                                 <input type="checkbox" class="uk-checkbox sync-metadex-checkbox" data-dex="${aggKey}" style="margin-right: 6px;">
                             </label>
-                            <span class="uk-text-small uk-text-bold sync-dex-label" style="width:70px; color: ${aggColor};">${aggLabel}</span>
+                            <span class="uk-text-small uk-text-bold sync-dex-label" style="width:70px; color: ${aggColor};">${aggLabel} ${_mb3}</span>
                             <input type="number" class="uk-input uk-form-small sync-metadex-left" data-dex="${aggKey}" placeholder="Modal Kiri" value="100" style="flex: 1; border-color:${aggColor}55;">
                             <input type="number" class="uk-input uk-form-small sync-metadex-right" data-dex="${aggKey}" placeholder="Modal Kanan" value="100" style="flex: 1; border-color:${aggColor}55;">
                         </div>`);
@@ -6826,11 +6829,11 @@ $(document).on('click', '#histClearAll', async function () {
                         <div style="border-left:3px solid ${aggColor}; border-radius:4px;
                                     background:#fafafa; padding:4px 7px; margin-bottom:5px;">
                             <div class="uk-flex uk-flex-middle" style="gap:4px; margin-bottom:3px;">
-                                <span style="background:${aggColor};color:#fff;padding:0 4px;border-radius:3px;
-                                             font-size:8px;line-height:1.6;font-weight:700;">META</span>
+                                ${(typeof window.getMetaDexBadge === 'function') ? window.getMetaDexBadge(aggKey, '8px', 'solid') : `<span style="background:${aggColor};color:#fff;padding:0 4px;border-radius:3px;font-size:8px;line-height:1.6;font-weight:700;">META</span>`}
                                 <span style="color:${aggColor};font-weight:700;font-size:12px;">${aggLabel}</span>
                                 ${chainTag}
                             </div>
+
                             <div class="uk-flex uk-flex-middle" style="gap:4px; flex-wrap:nowrap;">
                                 <span style="color:#2563eb;font-size:10px;font-weight:600;white-space:nowrap;">KIRI</span>
                                 <input type="number" class="uk-input bulk-meta-left" data-agg="${aggKey}"
