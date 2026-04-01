@@ -610,7 +610,7 @@ function exportKoinForHybrid() {
     // 4. Build CSV rows
     // DEX yang pakai modal dari metax (bukan dari dataDexs masing-masing)
     const META_DEXES = ['metax', 'jumpx', 'krystal'];
-    const OWN_DEXES  = ['kyber', 'okx']; // pakai modal sendiri, tanpa pnl
+    const OWN_DEXES  = ['kyber', 'okx', 'lifidex', 'matcha', 'onekey']; // pakai modal sendiri dari dataDexs
     const ALL_DEXES  = [...META_DEXES, ...OWN_DEXES]; // urutan kolom
 
     const CSV_COLS = [
@@ -648,11 +648,12 @@ function exportKoinForHybrid() {
             if (META_DEXES.includes(key)) {
                 return [metaCtD, metaDtC, metaPnl];
             } else {
-                // kyber, okx: dari dataDexs sendiri, tanpa pnl
+                // kyber, okx, lifidex, matcha, onekey: dari dataDexs sendiri
                 const d = tokenDexData[key] || {};
                 const ctd = parseFloat(d.left) || 100;
                 const dtc = parseFloat(d.right) || 100;
-                return [ctd, dtc, ''];
+                const pnl = +(ctd * 0.002).toFixed(4); // minPnl = 0.2% modal
+                return [ctd, dtc, pnl];
             }
         });
 

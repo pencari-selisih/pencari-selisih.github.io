@@ -195,7 +195,7 @@ function setPageTitleForRun(running) {
         if (String(m.type || '').toLowerCase() !== 'single') return; // only affect per-chain pages
         if (running) {
             if (!window.__ORIG_TITLE) window.__ORIG_TITLE = document.title;
-            document.title = 'SCANNING..';
+            document.title = 'RUN SCAN..';
         } else {
             if (window.__ORIG_TITLE) { document.title = window.__ORIG_TITLE; }
             window.__ORIG_TITLE = null;
@@ -627,16 +627,17 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
         if (!isScanRunning && uiUpdateQueue.length === 0) return;
 
         const start = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-        // Increased budget from 8ms to 16ms to process more updates per frame
-        // This prevents queue backlog when scanning many rows
-        const budgetMs = 16; // aim to keep under one frame @60Hz
+        // REFACTORED: Budget 12ms agar browser punya lebih banyak waktu untuk paint
+        // Tradeoff: queue sedikit lebih lambat terkuras, tapi UI jauh lebih responsif dan "hidup"
+        const budgetMs = 12; // tighter budget for snappier rendering
         let processed = 0;
 
         // "Penyapuan keamanan": Finalisasi sel DEX yang melewati batas waktu (timeout)
         // tapi belum di-update statusnya. Ini mencegah sel terjebak di status "Checking".
         try {
             const nowTs = Date.now();
-            const cells = document.querySelectorAll('td[data-deadline]');
+            // REFACTORED: Skip cells yang sudah final untuk mengurangi DOM query overhead
+            const cells = document.querySelectorAll('td[data-deadline]:not([data-final="1"])');
             cells.forEach(cell => {
                 // Cek apakah deadline sudah lewat dan sel belum difinalisasi.
                 try {
@@ -1438,12 +1439,14 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                 // Masukkan hasil kalkulasi ke antrian pembaruan UI.
                                 // console.log(`[PUSH TO QUEUE] Pushing update to uiUpdateQueue`, { idCELL, isFallback, type: update.type });
                                 uiUpdateQueue.push(update);
-                                if (!isScanRunning) {
-                                    try {
+                                // REFACTORED: Selalu pastikan UI update loop aktif setiap ada item baru
+                                // Ini membuat hasil DEX langsung tampil tanpa menunggu frame berikutnya
+                                try {
+                                    if (!animationFrameId) {
                                         animationFrameId = requestAnimationFrame(processUiUpdates);
-                                    } catch (_) {
-                                        try { processUiUpdates(); } catch (_) { }
                                     }
+                                } catch (_) {
+                                    try { processUiUpdates(); } catch (_) { }
                                 }
                             } finally {
                                 markDexRequestEnd();
@@ -1992,9 +1995,12 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                                 }
                                             }
                                             uiUpdateQueue.push(update);
+                                            // REFACTORED: Trigger UI loop untuk render langsung
+                                            try { if (!animationFrameId) animationFrameId = requestAnimationFrame(processUiUpdates); } catch (_) { }
                                         }
                                     } catch (e) {
                                         uiUpdateQueue.push({ type: 'error', id: metaCellId, message: `META-DEX ${aggKey.toUpperCase()}: ${e.message}`, swapMessage: '' });
+                                        try { if (!animationFrameId) animationFrameId = requestAnimationFrame(processUiUpdates); } catch (_) { }
                                     } finally {
                                         markDexRequestEnd();
                                     }
@@ -2003,6 +2009,7 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     try {
                                         const msg = (err && err.pesanDEX) ? String(err.pesanDEX) : `Error Meta-DEX ${aggKey}`;
                                         uiUpdateQueue.push({ type: 'error', id: metaCellId, message: msg, swapMessage: '' });
+                                        try { if (!animationFrameId) animationFrameId = requestAnimationFrame(processUiUpdates); } catch (_) { }
                                     } catch (_) { }
                                     markDexRequestEnd();
                                 });
@@ -2012,8 +2019,9 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
             }
             // ===== END META-DEX SCAN LOOP =====
 
-            // Beri jeda antar token dalam satu grup.
-            await delay(jedaKoin);
+            // REFACTORED: Hapus await delay(jedaKoin) dari akhir processRequest.
+            // Jeda kini dilakukan via stagger per-token di processTokens,
+            // sehingga DEX fire-and-forget tidak terblokir oleh delay ini.
         } catch (error) {
             // console.error(`Kesalahan saat memproses ${token.symbol_in}_${token.symbol_out}:`, error);
         }
@@ -2092,10 +2100,15 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
             }
 
             // Proses token-token dalam satu grup secara paralel,
-            // dengan jeda kecil antar pemanggilan untuk menghindari rate-limit.
+            // REFACTORED: Stagger per-token agar DEX results streaming langsung tampil.
+            // Setiap token dalam batch diberi jeda proporsional berdasarkan index,
+            // sehingga CEX fetch dan DEX fire-and-forget tidak burst bersamaan.
             const jobs = groupTokens.map((token, tokenIndex) => (async () => {
                 if (!isScanRunning) return;
-                // OPTIMIZED: Hapus stagger delay (redundant, processRequest sudah ada jedaKoin delay)
+                // Stagger delay: token pertama langsung, sisanya diberi jeda proporsional
+                if (tokenIndex > 0) {
+                    await delay(jedaKoin * tokenIndex);
+                }
                 if (!isScanRunning) return;
                 try { await processRequest(token, tableBodyId); } catch (e) { console.error(`Err token ${token.symbol_in}_${token.symbol_out}`, e); }
                 // Update progress as each token finishes
@@ -2146,15 +2159,16 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
             }, 1000);
 
             // Tunggu semua request DEX (regular + META-DEX) benar-benar selesai.
-            // Timeout dinamis: hitung sisa waktu queue META-DEX + 20s buffer untuk request in-flight.
+            // REFACTORED: Kurangi buffer timeout karena safety sweeper sudah handle timeout cells.
+            // Ini membuat finalisasi scan lebih cepat dan responsif.
             const metaDexQueueRemainingMs = Math.max(0, ...Object.values(metaDexNextTime).map(t => t - Date.now()), 0);
-            const waitTimeoutMs = Math.max(30000, metaDexQueueRemainingMs + 20000);
+            const waitTimeoutMs = Math.max(10000, metaDexQueueRemainingMs + 5000);
             await waitForPendingDexRequests(waitTimeoutMs);
             clearInterval(metaWaitInterval);
         } else {
             // Tidak ada META-DEX pending, langsung tunggu sisa request in-flight biasa
             const metaDexQueueRemainingMs = Math.max(0, ...Object.values(metaDexNextTime).map(t => t - Date.now()), 0);
-            const waitTimeoutMs = Math.max(30000, metaDexQueueRemainingMs + 20000);
+            const waitTimeoutMs = Math.max(10000, metaDexQueueRemainingMs + 5000);
             await waitForPendingDexRequests(waitTimeoutMs);
         }
 

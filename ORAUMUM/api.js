@@ -136,7 +136,7 @@ async function feeGasGwei() {
         const baseFee = Number(block?.baseFeePerGas ?? await web3.eth.getGasPrice());
         const gwei = (baseFee / 1e9) * 2;
         const gasUSD = (gwei * chain.gasLimit * price) / 1e9;
-        return { chain: chain.Nama_Chain, key: chain.key || chain.symbol, symbol: chain.symbol, tokenPrice: price, gwei, gasUSD };
+        return { chain: String(chain.Nama_Chain || '').toLowerCase(), chainKey: name, key: chain.key || chain.symbol, symbol: chain.symbol, tokenPrice: price, gwei, gasUSD };
       } catch { return null; }
     }));
     // Keep previous label; readiness is updated by caller

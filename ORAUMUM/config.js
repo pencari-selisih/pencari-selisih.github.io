@@ -1049,15 +1049,19 @@ const CONFIG_DEXS = {
             `https://jumper.exchange/?fromChain=${chainCode}&fromToken=${tokenAddress}&toChain=${chainCode}&toToken=${pairAddress}`,
         fetchdex: {
             primary: {
-                tokentopair: 'temple',          // CEX→DEX: Temple API (LIFI proxy)
-                pairtotoken: 'c98-lifidex'      // DEX→CEX: C98 best-quote (isAuto:true, no backer)
+                tokentopair: 'c98-lifidex',        // CEX→DEX: C98 best-quote (isAuto:true, no backer filter)
+                pairtotoken: 'c98-lifidex'         // DEX→CEX: C98 best-quote (isAuto:true, no backer filter)
+            },
+            secondary: {
+                tokentopair: 'swoop-lifi',         // CEX→DEX: SWOOP filtered → LIFI aggregator (rotation)
+                pairtotoken: 'temple'              // DEX→CEX: Temple API (LIFI proxy)
             },
             alternative: {
-                tokentopair: 'onekey-lifidex',  // CEX→DEX: OneKey filtered → LiFi/SwapLifi provider
-                pairtotoken: 'onekey-lifidex'   // DEX→CEX: OneKey filtered → LiFi/SwapLifi provider
+                tokentopair: 'onekey-lifidex',      // CEX→DEX: OneKey filtered → LiFi/SwapLifi provider (fallback)
+                pairtotoken: 'onekey-lifidex'       // DEX→CEX: OneKey filtered → LiFi/SwapLifi provider (fallback)
             }
         },
-        allowFallback: true,   // ✅ Fallback ke LIFI filtered jika Temple gagal
+        allowFallback: true,   // ✅ Fallback ke alternative jika primary/secondary gagal
     },
     // ============ SOLANA DEXes ============
     jupiter: {

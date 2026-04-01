@@ -233,27 +233,59 @@
      * @returns {number} The estimated swap fee in USD.
      */
     function getFeeSwap(chainName) {
-        const allGasData = getFromLocalStorage("ALL_GAS_FEES");
-        if (!allGasData) return 0;
+        // Hardcoded minimum fallback fee (USD) per chain jika data gas tidak tersedia
+        // Nilai perkiraan konservatif agar tidak nol
+        const FALLBACK_FEES = {
+            ethereum:  2.50,
+            bsc:       0.05,
+            polygon:   0.02,
+            arbitrum:  0.15,
+            optimism:  0.10,
+            base:      0.05,
+            avalanche: 0.10,
+            solana:    0.001,
+            fantom:    0.01,
+            zksync:    0.10,
+            linea:     0.10,
+            scroll:    0.10,
+            mantle:    0.02,
+            opbnb:     0.005,
+            celo:      0.01,
+        };
 
-        // cari data gas untuk chain yang sesuai
-        const gasInfo = allGasData.find(g => g.chain.toLowerCase() === chainName.toLowerCase());
-        if (!gasInfo) {
-            // console.error(`❌ Gas data not found for chain: ${chainName}`);
-            return 0;
+        const chainLower = String(chainName || '').toLowerCase();
+
+        try {
+            const allGasData = getFromLocalStorage("ALL_GAS_FEES");
+            if (allGasData && Array.isArray(allGasData)) {
+                // Cari data gas: cocokkan via chain (Nama_Chain), chainKey (key config), atau Nama_Chain di config
+                const gasInfo = allGasData.find(g => {
+                    const gChain = String(g.chain || '').toLowerCase();
+                    const gChainKey = String(g.chainKey || '').toLowerCase();
+                    // 1. Cocokkan langsung field 'chain' (Nama_Chain lowercase)
+                    if (gChain === chainLower) return true;
+                    // 2. Cocokkan via field 'chainKey' (key dari CONFIG_CHAINS)
+                    if (gChainKey === chainLower) return true;
+                    // 3. Reverse: ambil Nama_Chain dari CONFIG_CHAINS lalu bandingkan
+                    const cfgEntry = CONFIG_CHAINS[chainLower];
+                    if (cfgEntry && String(cfgEntry.Nama_Chain || '').toLowerCase() === gChain) return true;
+                    return false;
+                });
+
+                if (gasInfo && gasInfo.gwei && gasInfo.tokenPrice) {
+                    // Ambil GASLIMIT dari CONFIG_CHAINS
+                    const chainConfig = CONFIG_CHAINS[chainLower];
+                    const gasLimit = parseFloat((chainConfig && chainConfig.GASLIMIT) || 250000);
+                    const feeSwap = ((parseFloat(gasInfo.gwei) * gasLimit) / Math.pow(10, 9)) * parseFloat(gasInfo.tokenPrice);
+                    if (Number.isFinite(feeSwap) && feeSwap > 0) return feeSwap;
+                }
+            }
+        } catch (e) {
+            // silent fallback
         }
 
-        // ambil GASLIMIT dari CONFIG_CHAINS
-        const chainConfig = CONFIG_CHAINS[chainName.toLowerCase()];
-        if (!chainConfig) {
-            // console.error(`❌ Chain config not found for: ${chainName}`);
-            return 0;
-        }
-
-        const gasLimit = parseFloat(chainConfig.GASLIMIT || 250000); // default kalau tidak ada
-        const feeSwap = ((parseFloat(gasInfo.gwei) * gasLimit) / Math.pow(10, 9)) * parseFloat(gasInfo.tokenPrice);
-
-        return feeSwap;
+        // Gunakan hardcoded fallback jika semua path gagal
+        return FALLBACK_FEES[chainLower] || 0.05;
     }
 
     // =================================================================================
