@@ -2,6 +2,7 @@
 // API  : GET https://swap.onekeycn.com/swap/v1/quote/events (SSE stream)
 // Chain: BSC, Ethereum, Polygon, Arbitrum, Base
 // Note : toAmount di response sudah human-readable (bukan wei)
+//        → push amount langsung, dec = null (skip fromWei), isHuman = true
 // Provider: SwapOKX(OKX), Swap1inch(1INCH), Swap0x(MATCHA) — skip SwapLifi
 
 const ONEKEY_META_NETWORK_MAP = {
@@ -91,8 +92,9 @@ function fetchDexQuotesOnekey(chainId, srcToken, destToken, amountWei, decOut, d
                             }
                         } catch (_) {}
 
-                        // dec = 0 karena OneKey toAmount sudah human-readable
-                        quotes.push({ amount: toAmountHuman, dec: 0, name: dexName, src: 'OK', feeSwapUsdt });
+                        // isHuman=true: toAmount sudah human-readable, dec=null agar
+                        // computeQuotePnl tidak memanggil fromWei (karena 0 bersifat falsy)
+                        quotes.push({ amount: toAmountHuman, dec: null, name: dexName, src: 'OK', feeSwapUsdt, isHuman: true });
                     }
 
                     // Cek apakah sudah cukup quotes

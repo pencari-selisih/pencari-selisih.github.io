@@ -14,7 +14,7 @@ function fetchDexQuotesMetax(chainId, srcToken, destToken, amountWei) {
         const url = `https://bridge.api.cx.metamask.io/getQuoteStream?${params}`;
         const quotes = []; let done = false;
         const es = new EventSource(url);
-        const timer = setTimeout(() => { if (!done) { done = true; es.close(); resolve(quotes); } }, CFG.sseTimeout);
+        const timer = setTimeout(() => { if (!done) { done = true; es.close(); resolve(quotes); } }, CFG.sseTimeout || CONFIG_DEX.metax?.timeout || 6000);
         es.addEventListener('quote', ev => {
             try {
                 quotes.push(JSON.parse(ev.data));

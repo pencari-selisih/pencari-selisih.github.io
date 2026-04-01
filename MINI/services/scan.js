@@ -7,7 +7,7 @@
 //   CTD: feetrade + feewd + feeswap
 //   DTC: feeswap + feetrade (tanpa feewd)
 function calcPnl(modal, pairAmt, bidPair, cexKey, feeWdUsdt = 0, isPairStable = false, direction = 'ctd', feeSwapUsdt = 0) {
-    const fee = APP_DEV_CONFIG.fees[cexKey] || 0.001;
+    const fee = CONFIG_CEX[cexKey]?.feeTrade || 0.001;
     const pairValue = pairAmt * bidPair;
     let cexFee1, cexFee2, wdFee;
     if (direction === 'ctd') {
@@ -40,7 +40,10 @@ function calcPnl(modal, pairAmt, bidPair, cexKey, feeWdUsdt = 0, isPairStable = 
 // Jika DEX tidak return (= 0): gunakan chainGasFallback dari eth_gasPrice × gasUnits × nativePrice
 // Jika chainGasFallback juga 0: feeSwap = 0 (tidak ada estimasi)
 function computeQuotePnl(parsed, destDec, bidPrice, modal, cexKey, askPrice, direction, feeWdUsdt = 0, isPairStable = false, chainGasFallback = 0) {
-    const recv = fromWei(parsed.amount + '', parsed.dec || destDec);
+    // isHuman=true atau dec===null → amount sudah human-readable, tidak perlu fromWei
+    const recv = (parsed.isHuman || parsed.dec === null)
+        ? parseFloat(parsed.amount)
+        : fromWei(parsed.amount + '', parsed.dec != null ? parsed.dec : destDec);
     const recvUSDT = recv * bidPrice;
     const feeSwapUsdt = parsed.feeSwapUsdt > 0 ? parsed.feeSwapUsdt : chainGasFallback;
     if (direction === 'ctd') {

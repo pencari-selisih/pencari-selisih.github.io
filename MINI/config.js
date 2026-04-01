@@ -17,20 +17,13 @@ const APP_DEV_CONFIG = {
 
   corsProxy: "https://vercel-proxycors.vercel.app/?url=",
 
-  // Biaya trading per CEX (0.001 = 0.1%)
-  fees: {
-    binance: 0.001,
-    gate: 0.0015,
-    mexc: 0.0015,
-    indodax: 0.002,
-  },
 
   defaultMinPnl: 1,
   defaultLevelCount: 2,    // jumlah level orderbook (1–4)
   defaultAutoLevel: true, // Auto Level CEX orderbook
 
   scanBatchSize: 5,       // jumlah koin per kelompok batch (paralel bertahap)
-  maxDexDisplay: 4,       // jumlah kolom DEX yang tampil di hasil scanning
+  maxDexDisplay: 6,       // jumlah kolom DEX yang tampil di hasil scanning
   offDexResultScan: ["OPENOCEAN", "MAYAN", "UNISWAP"],
 
   bungeeApiKey: "71XdjSawshaeie5DeH5b9avPjaoVtoOc2g5ZZx1d",
@@ -54,6 +47,7 @@ const CONFIG_CEX = {
     label: "Binance",
     ICON: "icons/cex/binance.png",
     WARNA: "#e0a50c",
+    feeTrade: 0.001,  // biaya trading (0.001 = 0.1%)
     timeout: 1500,   // ms — batas waktu fetch orderbook
     jeda: 200,       // ms — jeda minimum antar request
     ApiKey: "PoMTZjrgq2rUNQHpqvoOW0Ajq1iKytG3OZueMyvYwJmMaH175kuVi2QyB98Zocnb",
@@ -70,6 +64,7 @@ const CONFIG_CEX = {
     label: "Gate",
     ICON: "icons/cex/gate.png",
     WARNA: "#D5006D",
+    feeTrade: 0.002,  // biaya trading (0.002 = 0.2%)
     timeout: 2500,
     jeda: 300,
     ApiKey: "1dbe3d4c92a42de270692e65952574d0",
@@ -86,6 +81,7 @@ const CONFIG_CEX = {
     label: "MEXC",
     ICON: "icons/cex/mexc.png",
     WARNA: "#1448ce",
+    feeTrade: 0.0005, // biaya trading (0.0005 = 0.05%)
     timeout: 3000,
     jeda: 400,
     ApiKey: "mx0vglNkKpxcAAEbtk",
@@ -102,6 +98,7 @@ const CONFIG_CEX = {
     label: "Indodax",
     ICON: "icons/cex/indodax.png",
     WARNA: "#2eb5f2",
+    feeTrade: 0.003,  // biaya trading (0.003 = 0.3%)
     timeout: 3000,
     jeda: 500,
     ApiKey: "HRKOX8GL-KD9ANNF5-T7OKENAH-LHL5PBYQ-NW8GQICL",
@@ -201,8 +198,8 @@ const CONFIG_DEX = {
     hasCount: true,
     count: 2,
     enabled: true,
-    timeout: 6000,   // ms — SSE MetaDEX cenderung lebih lambat
-    jeda: 400,
+    timeout: 7000,   // ms — SSE MetaDEX cenderung lebih lambat
+    jeda: 1000,
     modalCtD: 100,
     modalDtC: 80,
   },
