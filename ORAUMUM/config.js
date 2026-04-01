@@ -266,7 +266,8 @@ const DEFAULT_RPC_SUGGESTIONS = {};
 
 const CONFIG_CHAINS = {
     bsc: {
-        Kode_Chain: 56, Nama_Chain: "bsc", Nama_Pendek: "bsc", URL_Chain: "https://bscscan.com", WARNA: "#f0af18", ICON: "assets/icons/chains/bsc.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_BSC.json', BaseFEEDEX: "BNBUSDT", GASLIMIT: 80000,
+        Kode_Chain: 56, Nama_Chain: "bsc", Nama_Pendek: "bsc", URL_Chain: "https://bscscan.com", WARNA: "#f0af18", ICON: "assets/icons/chains/bsc.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_BSC.json', BaseFEEDEX: "BNBUSDT", GASLIMIT: 250000, // real swap BEP-20 ~150k gas units
+        DEFAULT_RPC: 'https://rpc.llama-rpc.com/bsc?source=llamaswap', // DefiLlama — fallback jika user belum set RPC
         LINKS: {
             explorer: {
                 token: (address) => `https://bscscan.com/token/${address}`,
@@ -302,7 +303,8 @@ const CONFIG_CHAINS = {
         WARNA: "#cd72f4ff",
         DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_POLYGON.json',
         BaseFEEDEX: "MATICUSDT", // Corrected from POLUSDT
-        GASLIMIT: 80000,
+        GASLIMIT: 200000, // real swap MATIC/Polygon ~150k gas units
+        DEFAULT_RPC: 'https://rpc.llama-rpc.com/polygon?source=llamaswap', // DefiLlama
         DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "odos", "velora", "flytrade"],   // ✅ lifidex = standalone LIFI (via Temple API)
         LINKS: {
             explorer: {
@@ -330,7 +332,8 @@ const CONFIG_CHAINS = {
         }
     },
     arbitrum: {
-        Kode_Chain: 42161, Nama_Chain: "arbitrum", Nama_Pendek: "arb", URL_Chain: "https://arbiscan.io", WARNA: "#a6b0c3", ICON: "assets/icons/chains/arbitrum.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_ARBITRUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 100000,
+        Kode_Chain: 42161, Nama_Chain: "arbitrum", Nama_Pendek: "arb", URL_Chain: "https://arbiscan.io", WARNA: "#a6b0c3", ICON: "assets/icons/chains/arbitrum.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_ARBITRUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 200000, // L2 gas units jauh lebih besar (~500k-1M) tapi gwei sangat kecil (0.01-0.05)
+        DEFAULT_RPC: 'https://rpc.llama-rpc.com/arbitrum?source=llamaswap', // DefiLlama
         LINKS: {
             explorer: {
                 token: (address) => `https://arbiscan.io/token/${address}`,
@@ -357,7 +360,8 @@ const CONFIG_CHAINS = {
         },
     },
     ethereum: {
-        Kode_Chain: 1, Nama_Chain: "ethereum", Nama_Pendek: "erc", URL_Chain: "https://etherscan.io", WARNA: "#8098ee", ICON: "assets/icons/chains/ethereum.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_ETHEREUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 250000,
+        Kode_Chain: 1, Nama_Chain: "ethereum", Nama_Pendek: "erc", URL_Chain: "https://etherscan.io", WARNA: "#8098ee", ICON: "assets/icons/chains/ethereum.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_ETHEREUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 356190, // real swap ERC-20 via aggregator ~100k-150k gas units
+        DEFAULT_RPC: 'https://rpc.llama-rpc.com/ethereum?source=llamaswap', // DefiLlama
         LINKS: {
             explorer: {
                 token: (address) => `https://etherscan.io/token/${address}`,
@@ -387,7 +391,8 @@ const CONFIG_CHAINS = {
     },
 
     base: {
-        Kode_Chain: 8453, Nama_Chain: "base", Nama_Pendek: "base", URL_Chain: "https://basescan.org/", WARNA: "#1e46f9", ICON: "assets/icons/chains/base.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_BASE.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 100000,
+        Kode_Chain: 8453, Nama_Chain: "base", Nama_Pendek: "base", URL_Chain: "https://basescan.org/", WARNA: "#1e46f9", ICON: "assets/icons/chains/base.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_BASE.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 200000, // real swap Base ERC-20 ~150k gas units
+        DEFAULT_RPC: 'https://rpc.llama-rpc.com/base?source=llamaswap', // DefiLlama
         LINKS: {
             explorer: {
                 token: (address) => `https://basescan.org/token/${address}`,
@@ -416,6 +421,7 @@ const CONFIG_CHAINS = {
     },
     solana: {
         Kode_Chain: 501,
+        DEFAULT_RPC: 'https://api.mainnet-beta.solana.com', // Solana Foundation public RPC
         LIFI_CHAIN_ID: 1151111081099710, // LIFI uses different chain ID for Solana
         DZAP_CHAIN_ID: 7565164, // DZAP uses different chain ID for Solana
         MATCHA_CHAIN_ID: 1399811149, // Matcha/0x uses different chain ID for Solana

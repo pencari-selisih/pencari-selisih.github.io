@@ -1023,15 +1023,20 @@ function renderSettingsForm() {
         return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     };
 
-    // ✅ Default RPC values (from user specification)
-    const defaultRPCs = {
-        'arbitrum': 'https://arbitrum-one-rpc.publicnode.com',
-        'base': 'https://1rpc.io/base',
-        'bsc': 'https://bsc-dataseed1.binance.org',
-        'ethereum': 'https://eth.llamarpc.com',
-        'polygon': 'https://polygon-pokt.nodies.app',
-        'solana': 'https://api.mainnet-beta.solana.com'
-    };
+    // ✅ Default RPC values — dibaca dari CONFIG_CHAINS.DEFAULT_RPC (config.js)
+    // Tidak ada hardcode di sini. Edit DEFAULT_RPC di config.js untuk mengubah default.
+    const defaultRPCs = (function() {
+        try {
+            const chains = (typeof window !== 'undefined' && window.CONFIG_CHAINS) ? window.CONFIG_CHAINS : {};
+            const result = {};
+            Object.entries(chains).forEach(([key, cfg]) => {
+                if (cfg && typeof cfg.DEFAULT_RPC === 'string' && cfg.DEFAULT_RPC.trim()) {
+                    result[key.toLowerCase()] = cfg.DEFAULT_RPC.trim();
+                }
+            });
+            return result;
+        } catch (_) { return {}; }
+    })();
 
     // ✅ RENDER RPC SETTINGS - CEX-style with colored background
     let rpcHtml = '';

@@ -117,7 +117,14 @@ async function feeGasGwei() {
 
   const chainInfos = chains.map(name => {
     const data = getChainData(name);
-    return data ? { ...data, rpc: data.RPC, symbol: data.BaseFEEDEX.replace("USDT", ""), gasLimit: data.GASLIMIT || 21000 } : null;
+    if (!data) return null;
+    // RPC: ambil dari RPCManager (user settings) → DEFAULT_RPC di config → skip jika kosong
+    const rpc = data.RPC
+      || (window.CONFIG_CHAINS?.[name]?.DEFAULT_RPC)
+      || '';
+    // GASLIMIT: baca dari CONFIG_CHAINS langsung (bukan getChainData yang tidak expose GASLIMIT)
+    const gasLimit = (window.CONFIG_CHAINS?.[name]?.GASLIMIT) || data.GASLIMIT || 200000;
+    return rpc ? { ...data, rpc, symbol: data.BaseFEEDEX.replace('USDT', ''), gasLimit } : null;
   }).filter(c => c && c.rpc && c.symbol);
 
   const symbols = [...new Set(chainInfos.map(c => c.BaseFEEDEX.toUpperCase()))];
@@ -132,16 +139,38 @@ async function feeGasGwei() {
       if (!price) return null;
       try {
         const web3 = new Web3(new Web3.providers.HttpProvider(chain.rpc));
-        const block = await web3.eth.getBlock("pending");
-        const baseFee = Number(block?.baseFeePerGas ?? await web3.eth.getGasPrice());
-        const gwei = (baseFee / 1e9) * 2;
+        const block = await web3.eth.getBlock('pending');
+
+        // Deteksi EIP-1559: baseFeePerGas harus ada dan > 0 (BSC = 0 = legacy)
+        const baseFeeWei = block?.baseFeePerGas ? Number(block.baseFeePerGas) : 0;
+        const isEIP1559 = baseFeeWei > 0;
+
+        let gwei;
+        if (isEIP1559) {
+          // EIP-1559 chain (ETH, Polygon, Arbitrum, Base):
+          // baseFee + estimasi priority tip ~10%
+          gwei = (baseFeeWei / 1e9) * 1.1;
+        } else {
+          // Legacy chain (BSC): pakai eth_gasPrice langsung, TANPA multiplier
+          const gasPriceWei = Number(await web3.eth.getGasPrice());
+          gwei = gasPriceWei / 1e9;
+        }
+
         const gasUSD = (gwei * chain.gasLimit * price) / 1e9;
-        return { chain: String(chain.Nama_Chain || '').toLowerCase(), chainKey: name, key: chain.key || chain.symbol, symbol: chain.symbol, tokenPrice: price, gwei, gasUSD };
+        return {
+          chain: String(chain.Nama_Chain || '').toLowerCase(),
+          chainKey: name,
+          key: chain.key || chain.symbol,
+          symbol: chain.symbol,
+          tokenPrice: price,
+          gwei,
+          gasUSD,
+          isEIP1559
+        };
       } catch { return null; }
     }));
-    // Keep previous label; readiness is updated by caller
-    saveToLocalStorage("ALL_GAS_FEES", gasResults.filter(Boolean));
-  } catch (err) { console.error("Gagal ambil harga token gas:", err); }
+    saveToLocalStorage('ALL_GAS_FEES', gasResults.filter(Boolean));
+  } catch (err) { console.error('Gagal ambil harga token gas:', err); }
 }
 
 /**

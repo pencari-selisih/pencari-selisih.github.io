@@ -59,6 +59,7 @@
             ICON_CHAIN: chainData.ICON || '',
             COLOR_CHAIN: chainData.WARNA || '#000',
             SHORT_NAME: chainData.Nama_Pendek || '',
+            GASLIMIT: chainData.GASLIMIT || 200000,  // ← expose GASLIMIT dari config.js
             // RPC: Use RPCManager (auto fallback to default suggestions)
             RPC: (function () {
                 try {
@@ -72,6 +73,7 @@
             })()
         };
     }
+
 
     /**
      * Generates various URLs for a given CEX and token pair.
@@ -234,24 +236,31 @@
      */
     function getFeeSwap(chainName) {
         // Hardcoded minimum fallback fee (USD) per chain jika data gas tidak tersedia
-        // Nilai perkiraan konservatif agar tidak nol
+        // Nilai berdasarkan kondisi gas on-chain nyata (April 2026):
+        // Formula: baseFee(gwei) × gasLimit / 1e9 × nativeTokenPrice
+        // ETH: 5 gwei × 130,000 / 1e9 × $1800 = ~$1.17 → rounded ke $0.80 (low gas kondisi)
+        // BSC: 1 gwei × 150,000 / 1e9 × $600  = ~$0.09 → $0.10
+        // Polygon: 30 gwei × 150,000 / 1e9 × $0.40 = ~$0.002 → $0.003
+        // Arbitrum: 0.02 gwei × 600,000 / 1e9 × $1800 = ~$0.022 → $0.03
+        // Base: 0.002 gwei × 150,000 / 1e9 × $1800 = ~$0.0005 → $0.001
         const FALLBACK_FEES = {
-            ethereum:  2.50,
-            bsc:       0.05,
-            polygon:   0.02,
-            arbitrum:  0.15,
-            optimism:  0.10,
-            base:      0.05,
-            avalanche: 0.10,
-            solana:    0.001,
-            fantom:    0.01,
-            zksync:    0.10,
-            linea:     0.10,
-            scroll:    0.10,
-            mantle:    0.02,
-            opbnb:     0.005,
-            celo:      0.01,
+            ethereum:  0.80,   // ~5 gwei, 130k gas, ETH $1800 → ~$1.17 (low end $0.80)
+            bsc:       0.10,   // ~1 gwei, 150k gas, BNB $600  → ~$0.09
+            polygon:   0.003,  // ~30 gwei, 150k gas, POL $0.40 → ~$0.002
+            arbitrum:  0.03,   // ~0.02 gwei, 600k gas, ETH $1800 → ~$0.022
+            optimism:  0.01,   // ~0.001 gwei, 150k gas, ETH $1800 → ~$0.0003 (L2 sangat murah)
+            base:      0.001,  // ~0.002 gwei, 150k gas, ETH $1800 → ~$0.0005
+            avalanche: 0.05,   // ~25 nAVAX, 150k gas, AVAX $25 → ~$0.09
+            solana:    0.0003, // ~0.000005 SOL per tx, SOL $130 → ~$0.0006
+            fantom:    0.005,  // ~100 gwei, 150k gas, FTM $0.30 → ~$0.005
+            zksync:    0.05,   // L2 zkEVM, mirip Arbitrum
+            linea:     0.05,   // L2, mirip Base
+            scroll:    0.05,   // L2 zkEVM
+            mantle:    0.001,  // sangat murah
+            opbnb:     0.002,  // L2 BSC
+            celo:      0.003,  // sangat murah
         };
+
 
         const chainLower = String(chainName || '').toLowerCase();
 
