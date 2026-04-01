@@ -78,6 +78,36 @@ function getRateUSDT() {
 }
 
 /**
+ * Fetch gas price from Blocknative API as fallback when RPC is unavailable.
+ * No API key required (public endpoint). Uses confidence=70 for reliable estimation.
+ * @param {number|string} chainId - EVM chain ID (e.g., 56 for BSC, 1 for ETH)
+ * @param {number} [confidence=70] - Confidence level for price estimation
+ * @returns {Promise<{gwei: number, baseFeeGwei: number, source: string}|null>}
+ */
+async function fetchGasBlocknative(chainId, confidence = 70) {
+  try {
+    const res = await $.ajax({
+      url: `https://api.blocknative.com/gasprices/blockprices?chainid=${chainId}`,
+      method: 'GET',
+      timeout: 4000,
+      dataType: 'json'
+    });
+    const bp = res.blockPrices?.[0] || {};
+    const estimatedPrices = bp.estimatedPrices || [];
+    const est = estimatedPrices.find(p => p.confidence === confidence)
+              || estimatedPrices[0]
+              || {};
+    const gasGwei = parseFloat(est?.price ?? est?.maxFeePerGas ?? 0);
+    const baseFeeGwei = parseFloat(bp?.baseFeePerGas ?? 0);
+    if (!gasGwei || !isFinite(gasGwei)) return null;
+    console.log(`[Blocknative] chainId=${chainId} gas=${gasGwei} gwei (confidence=${confidence})`);
+    return { gwei: gasGwei, baseFeeGwei, source: 'blocknative' };
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
  * Fetch gas metrics (gwei and USD) for active chains and cache to 'ALL_GAS_FEES'.
  * Resolves chain list based on current app mode and filters.
  */
@@ -137,6 +167,7 @@ async function feeGasGwei() {
     const gasResults = await Promise.all(chainInfos.map(async (chain) => {
       const price = tokenPrices[chain.symbol.toUpperCase()];
       if (!price) return null;
+      const chainKey = String(chain.Kode_Chain || chain.key || chain.symbol || '').toLowerCase();
       try {
         const web3 = new Web3(new Web3.providers.HttpProvider(chain.rpc));
         const block = await web3.eth.getBlock('pending');
@@ -159,15 +190,45 @@ async function feeGasGwei() {
         const gasUSD = (gwei * chain.gasLimit * price) / 1e9;
         return {
           chain: String(chain.Nama_Chain || '').toLowerCase(),
-          chainKey: name,
+          chainKey,
           key: chain.key || chain.symbol,
           symbol: chain.symbol,
           tokenPrice: price,
           gwei,
           gasUSD,
-          isEIP1559
+          isEIP1559,
+          source: 'rpc'
         };
-      } catch { return null; }
+      } catch {
+        // ✅ FALLBACK: RPC gagal — coba Blocknative
+        try {
+          const chainId = chain.Kode_Chain || chain.chainId;
+          if (!chainId) return null;
+          const gasData = await fetchGasBlocknative(chainId);
+          if (!gasData) return null;
+
+          let gwei = gasData.gwei;
+
+          // BSC guard: Blocknative untuk BSC kadang tidak akurat (terlalu tinggi)
+          if (String(chainKey).toLowerCase() === 'bsc' && gwei > 0.5) {
+            console.warn(`[Blocknative] BSC gas override: ${gwei} -> 0.1 gwei (Blocknative BSC inaccurate)`);
+            gwei = 0.1;
+          }
+
+          const gasUSD = (gwei * chain.gasLimit * price) / 1e9;
+          return {
+            chain: String(chain.Nama_Chain || '').toLowerCase(),
+            chainKey,
+            key: chain.key || chain.symbol,
+            symbol: chain.symbol,
+            tokenPrice: price,
+            gwei,
+            gasUSD,
+            isEIP1559: gasData.baseFeeGwei > 0,
+            source: gasData.source
+          };
+        } catch { return null; }
+      }
     }));
     saveToLocalStorage('ALL_GAS_FEES', gasResults.filter(Boolean));
   } catch (err) { console.error('Gagal ambil harga token gas:', err); }

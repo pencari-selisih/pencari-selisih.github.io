@@ -2676,18 +2676,35 @@
               const amount_out = parseFloat(q.destTokenAmount) / Math.pow(10, destDecimals);
               if (!Number.isFinite(amount_out) || amount_out <= 0) continue;
 
-              // Fee MetaBridge (platform fee, bukan gas)
+              // Fee METAX: utamakan gas cost dari estimasi gas (bukan platform fee)
+              // Priority: gasEstimate dari response → getFeeSwap dari RPC → platform fee metabridge
               let FeeSwap = 0;
               try {
-                const mb = q.feeData?.metabridge;
-                if (mb && mb.amount) {
-                  const feeDecimals = Number(mb.asset?.decimals ?? 18);
-                  const feePriceUSD = parseFloat(mb.asset?.priceUSD ?? 0);
-                  FeeSwap = (parseFloat(mb.amount) / Math.pow(10, feeDecimals)) * feePriceUSD;
+                // 1️⃣ Coba ambil gas cost dari field gasMultiplier/gasEstimate
+                const gasEstUSD = parseFloat(
+                  q.feeData?.gas?.amount
+                    ? (parseFloat(q.feeData.gas.amount) / Math.pow(10, q.feeData.gas?.asset?.decimals ?? 18))
+                      * parseFloat(q.feeData.gas.asset?.priceUSD ?? 0)
+                    : 0
+                );
+                if (Number.isFinite(gasEstUSD) && gasEstUSD > 0 && gasEstUSD < 100) {
+                  FeeSwap = gasEstUSD;
                 }
               } catch (_) {}
-              // Fallback ke gas estimate jika fee tidak tersedia
+              // 2️⃣ Fallback ke RPC gas estimate (akurat, dari ALL_GAS_FEES)
               if (FeeSwap <= 0) FeeSwap = (typeof getFeeSwap === 'function') ? getFeeSwap(chainName) : 0;
+              // 3️⃣ Terakhir: pakai platform fee metabridge hanya jika semua gagal
+              if (FeeSwap <= 0) {
+                try {
+                  const mb = q.feeData?.metabridge;
+                  if (mb && mb.amount) {
+                    const feeDecimals = Number(mb.asset?.decimals ?? 18);
+                    const feePriceUSD = parseFloat(mb.asset?.priceUSD ?? 0);
+                    FeeSwap = (parseFloat(mb.amount) / Math.pow(10, feeDecimals)) * feePriceUSD;
+                  }
+                } catch (_) {}
+              }
+
 
               // Provider name dari bridgeId + step pertama
               let providerName = String(q.bridgeId || 'METAX').toUpperCase();
@@ -2837,11 +2854,11 @@
               // toAmount SUDAH human-readable dari OneKey API
               const amount_out = toAmount;
 
-              // Gas fee: gasLimit + gwei + tokenPrice dari ALL_GAS_FEES
+              // Gas fee: hitung dari gasLimit yg dilaporkan OneKey + gwei dari RPC
               let FeeSwap = getFeeSwap(chainName);
               try {
-                const gasUnits = parseFloat(item.gasLimit || 0);
-                if (gasUnits > 0) {
+                const gasUnitsRaw = parseFloat(item.gasLimit || 0);
+                if (gasUnitsRaw > 0) {
                   const allGasData = (typeof getFromLocalStorage === 'function')
                     ? getFromLocalStorage('ALL_GAS_FEES') : null;
                   if (allGasData) {
@@ -2849,6 +2866,12 @@
                       String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase()
                     );
                     if (gasInfo && gasInfo.gwei && gasInfo.tokenPrice) {
+                      // Cap gasUnits: OneKey API bisa return gasLimit sangat besar (multi-hop route)
+                      // Batasi maksimum 2× GASLIMIT dari config agar tidak inflate fee
+                      const chainCfg = (typeof root !== 'undefined' && root.CONFIG_CHAINS)
+                        ? root.CONFIG_CHAINS[String(chainName || '').toLowerCase()] : null;
+                      const maxGasAllowed = (chainCfg?.GASLIMIT || 300000) * 2;
+                      const gasUnits = Math.min(gasUnitsRaw, maxGasAllowed);
                       const feeUsd = (gasUnits * gasInfo.gwei * gasInfo.tokenPrice) / 1e9;
                       if (Number.isFinite(feeUsd) && feeUsd > 0) FeeSwap = feeUsd;
                     }

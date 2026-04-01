@@ -572,19 +572,8 @@ function hasValidSettings() {
             return false;
         }
 
-        const userRPCs = (s && typeof s.userRPCs === 'object') ? s.userRPCs : {};
-
-        // Check RPC ONLY for enabled chains
-        const missingRPC = enabledChains.some(chain => {
-            const rpc = userRPCs[chain];
-            return !rpc || typeof rpc !== 'string' || rpc.trim().length === 0;
-        });
-
-        if (missingRPC) {
-            console.warn('[SETTINGS] Missing RPC for enabled chains');
-            return false;
-        }
-
+        // ✅ RPC sudah tidak perlu dicek — sumber tunggal ada di CONFIG_CHAINS.DEFAULT_RPC (config.js)
+        // RPCManager.getRPC() akan otomatis mendapatkan RPC yang benar tanpa input dari user
         return true;
     } catch (_) { return false; }
 }
@@ -729,15 +718,13 @@ function setupCEXCheckboxHandlers() {
 
 /**
  * Setup handlers for per-chain checkboxes
- * Manages enabled/disabled state for chains and RPC inputs
+ * Manages enabled/disabled state for chains
+ * ✅ UPDATED: Tidak ada RPC input field — RPC diambil dari CONFIG_CHAINS.DEFAULT_RPC
  */
 function setupChainCheckboxHandlers() {
     $('.chain-enable-checkbox').off('change.chainEnable').on('change.chainEnable', function () {
         const chain = $(this).data('chain');
         const isChecked = $(this).is(':checked');
-
-        // Enable/disable RPC input field
-        $(`#rpc_${chain}`).prop('disabled', !isChecked);
 
         // Update enabled chains list
         let enabledChains = (typeof getEnabledChains === 'function') ? getEnabledChains() : [];
@@ -1000,17 +987,8 @@ function renderSettingsForm() {
         if (modalDexs[dex] !== undefined) $(this).val(modalDexs[dex]);
     });
 
-    // Generate RPC settings inputs with chain toggles and colors (compact horizontal layout)
-    const chainList = Object.keys(CONFIG_CHAINS || {}).sort();
-    // Get initial RPC values from database migrator (not hardcoded anymore)
-    const getInitialRPC = (chain) => {
-        if (window.RPCDatabaseMigrator && window.RPCDatabaseMigrator.INITIAL_RPC_VALUES) {
-            return window.RPCDatabaseMigrator.INITIAL_RPC_VALUES[chain] || '';
-        }
-        return '';
-    };
-
-    // Load enabled chains from storage (for initial toggle state only)
+    // ✅ UPDATED: Generate chain settings (toggle + wallet + RPC info readonly)
+    // RPC tidak lagi diinput user — diambil dari CONFIG_CHAINS.DEFAULT_RPC (config.js)
     const enabledChains = (typeof getEnabledChains === 'function') ? getEnabledChains() : [];
 
     // Helper function untuk hex to rgba (same as CEX)
@@ -1023,29 +1001,14 @@ function renderSettingsForm() {
         return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     };
 
-    // ✅ Default RPC values — dibaca dari CONFIG_CHAINS.DEFAULT_RPC (config.js)
-    // Tidak ada hardcode di sini. Edit DEFAULT_RPC di config.js untuk mengubah default.
-    const defaultRPCs = (function() {
-        try {
-            const chains = (typeof window !== 'undefined' && window.CONFIG_CHAINS) ? window.CONFIG_CHAINS : {};
-            const result = {};
-            Object.entries(chains).forEach(([key, cfg]) => {
-                if (cfg && typeof cfg.DEFAULT_RPC === 'string' && cfg.DEFAULT_RPC.trim()) {
-                    result[key.toLowerCase()] = cfg.DEFAULT_RPC.trim();
-                }
-            });
-            return result;
-        } catch (_) { return {}; }
-    })();
-
-    // ✅ RENDER RPC SETTINGS - CEX-style with colored background
+    // ✅ RENDER CHAIN SETTINGS - Toggle + Wallet + RPC readonly info
     let rpcHtml = '';
     Object.keys(CONFIG_CHAINS || {}).forEach(chain => {
         const chainLabel = CONFIG_CHAINS[chain]?.Nama_Chain || chain.toUpperCase();
-        const chainShortLabel = CONFIG_CHAINS[chain]?.Nama_Pendek || chain.toUpperCase();
         const chainColor = CONFIG_CHAINS[chain]?.WARNA || '#666';
         const chainIcon = CONFIG_CHAINS[chain]?.ICON || '';
-        const defaultRpc = defaultRPCs[chain.toLowerCase()] || CONFIG_CHAINS[chain]?.RPC?.[0] || '';
+        // Baca RPC langsung dari CONFIG_CHAINS.DEFAULT_RPC (bukan input user)
+        const activeRpc = CONFIG_CHAINS[chain]?.DEFAULT_RPC || '';
         const isEnabled = enabledChains.includes(chain);
 
         rpcHtml += `
@@ -1064,15 +1027,11 @@ function renderSettingsForm() {
                         ${chainLabel.toUpperCase()}
                     </span>
                 </div>
-                
-                <!-- RPC Input -->
-                <input type="text" 
-                       class="uk-input uk-form-small rpc-input"
-                       data-chain="${chain}"
-                       id="rpc_${chain}"
-                       placeholder="${defaultRpc}"
-                       style="margin-bottom: 3px; font-size: 0.78rem;">
-                <div class="rpc-default-label">Default: <span style="color: #0052ff;">${defaultRpc || 'N/A'}</span></div>
+
+                <!-- RPC Info (readonly) — tidak bisa diubah user -->
+                <div class="rpc-default-label" style="margin-bottom: 3px; font-size: 0.72rem; opacity: 0.8;">
+                    🔗 RPC: <span style="color: #0052ff; word-break: break-all;">${activeRpc || 'N/A'}</span>
+                </div>
                 
                 <!-- Wallet Input -->
                 <input type="text"
@@ -1087,20 +1046,8 @@ function renderSettingsForm() {
 
     $('#rpc-settings-group').html(rpcHtml);
 
-    // ✅ Load user RPCs and Wallets from settings
-    const userRPCs = appSettings.userRPCs || {};
+    // ✅ Load wallet addresses from settings (RPC tidak perlu dimuat karena dari config.js)
     const userWallets = appSettings.userWallets || {};
-
-    $('.rpc-input').each(function () {
-        const chain = $(this).data('chain');
-        if (userRPCs[chain]) {
-            $(this).val(userRPCs[chain]);
-        } else {
-            // Auto-fill with default RPC
-            const defaultRpc = defaultRPCs[chain.toLowerCase()];
-            if (defaultRpc) $(this).val(defaultRpc);
-        }
-    });
 
     $('.wallet-input').each(function () {
         const chain = $(this).data('chain');
@@ -1122,6 +1069,17 @@ function bootApp() {
         if (s && typeof s === 'object' && s.JedaCexs) {
             delete s.JedaCexs;
             saveToLocalStorage('SETTING_SCANNER', s);
+        }
+    } catch (_) { }
+
+    // ✅ ONE-TIME MIGRATION: Hapus userRPCs legacy dari localStorage
+    // RPC sekarang diambil dari CONFIG_CHAINS.DEFAULT_RPC (config.js) — tidak perlu disimpan user
+    try {
+        const s = getFromLocalStorage('SETTING_SCANNER', {});
+        if (s && typeof s === 'object' && s.userRPCs) {
+            delete s.userRPCs;
+            saveToLocalStorage('SETTING_SCANNER', s);
+            console.log('[Migration] ✅ userRPCs legacy data removed from localStorage — RPC now from CONFIG_CHAINS.DEFAULT_RPC');
         }
     } catch (_) { }
 

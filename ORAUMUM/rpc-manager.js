@@ -1,143 +1,80 @@
 // =================================================================================
-// RPC MANAGER - Simplified RPC Getter from SETTING_SCANNER
+// RPC MANAGER - Single Source of Truth: CONFIG_CHAINS.DEFAULT_RPC
 // =================================================================================
-// Purpose: Provide centralized access to user-configured RPC endpoints
-//
-// New Architecture:
-// - RPCs are stored in SETTING_SCANNER.userRPCs (1 per chain)
-// - No migration logic, no fallback system
-// - Simple getter function for all application parts
-//
+// RPC tidak lagi dikonfigurasi oleh user.
+// Sumber kebenaran tunggal ada di config.js → CONFIG_CHAINS[chain].DEFAULT_RPC
+// User tidak perlu dan tidak bisa mengubah RPC dari form settings.
 // =================================================================================
 
 (function() {
     'use strict';
 
-    // ====================
-    // MAIN RPC GETTER
-    // ====================
-
     /**
-     * Get RPC URL for a specific chain (with automatic fallback to defaults)
-     * @param {string} chainKey - Chain identifier (e.g., 'bsc', 'polygon', 'ethereum')
-     * @returns {string|null} RPC URL or null if not found
+     * Get RPC URL for a chain — langsung dari CONFIG_CHAINS.DEFAULT_RPC (config.js)
+     * @param {string} chainKey - Chain identifier (e.g., 'bsc', 'ethereum')
+     * @returns {string|null}
      */
     function getRPC(chainKey) {
         try {
-            // Normalize chain key to lowercase
             const chainLower = String(chainKey || '').toLowerCase();
+            if (!chainLower) return null;
 
-            if (!chainLower) {
-                console.error('[RPC Manager] Chain key is required');
-                return null;
+            const cfg = (typeof window !== 'undefined' && window.CONFIG_CHAINS)
+                ? window.CONFIG_CHAINS[chainLower]
+                : null;
+
+            if (cfg && typeof cfg.DEFAULT_RPC === 'string' && cfg.DEFAULT_RPC.trim()) {
+                return cfg.DEFAULT_RPC.trim();
             }
 
-            // Get settings from storage
-            const settings = (typeof getFromLocalStorage === 'function')
-                ? getFromLocalStorage('SETTING_SCANNER', {})
-                : {};
-
-            // Try to get user-configured RPC first
-            if (settings.userRPCs && typeof settings.userRPCs === 'object') {
-                const userRpc = settings.userRPCs[chainLower];
-                if (userRpc) {
-                    return userRpc;
-                }
-            }
-
-            // AUTO FALLBACK: Try to get from database migrator (initial values)
-            if (typeof window !== 'undefined' && window.RPCDatabaseMigrator) {
-                const initialRPC = window.RPCDatabaseMigrator.getRPCFromDatabase(chainLower);
-                if (initialRPC) {
-                    // Only show warning once per session to avoid spam
-                    if (!getRPC._warnedChains) getRPC._warnedChains = new Set();
-                    if (!getRPC._warnedChains.has(chainLower)) {
-                        console.warn(`[RPC Manager] Using initial RPC for ${chainKey} (not yet saved in database)`);
-                        getRPC._warnedChains.add(chainLower);
-                    }
-                    return initialRPC;
-                }
-            }
-
-            // No RPC available at all
-            console.error(`[RPC Manager] No RPC available for chain: ${chainKey}`);
-            console.error(`[RPC Manager] Please configure RPC in Settings or ensure rpc-database-migrator.js is loaded`);
+            console.error(`[RPC Manager] No DEFAULT_RPC found in CONFIG_CHAINS for chain: ${chainKey}`);
             return null;
-
-        } catch (error) {
-            console.error('[RPC Manager] Error getting RPC:', error);
+        } catch (e) {
+            console.error('[RPC Manager] Error in getRPC:', e);
             return null;
         }
     }
 
     /**
-     * Get all configured RPCs
-     * @returns {Object} Map of chainKey -> RPC URL
+     * Get all RPCs — baca semua DEFAULT_RPC dari CONFIG_CHAINS
+     * @returns {Object} { chainKey: rpcUrl }
      */
     function getAllRPCs() {
         try {
-            const settings = (typeof getFromLocalStorage === 'function')
-                ? getFromLocalStorage('SETTING_SCANNER', {})
-                : {};
-
-            return settings.userRPCs || {};
-        } catch (error) {
-            console.error('[RPC Manager] Error getting all RPCs:', error);
+            const chains = (window.CONFIG_CHAINS || {});
+            const result = {};
+            Object.entries(chains).forEach(([key, cfg]) => {
+                if (cfg && typeof cfg.DEFAULT_RPC === 'string' && cfg.DEFAULT_RPC.trim()) {
+                    result[key.toLowerCase()] = cfg.DEFAULT_RPC.trim();
+                }
+            });
+            return result;
+        } catch (e) {
             return {};
         }
     }
 
     /**
      * Check if RPC is configured for a chain
-     * @param {string} chainKey - Chain identifier
+     * @param {string} chainKey
      * @returns {boolean}
      */
     function hasRPC(chainKey) {
-        const rpc = getRPC(chainKey);
-        return rpc !== null && rpc !== '';
+        return !!getRPC(chainKey);
     }
 
-    /**
-     * Get RPC with fallback to default suggestion
-     * @param {string} chainKey - Chain identifier
-     * @returns {string|null}
-     */
-    function getRPCWithFallback(chainKey) {
-        const rpc = getRPC(chainKey);
-
-        if (rpc) {
-            return rpc;
-        }
-
-        // Fallback to database migrator initial values
-        if (typeof window !== 'undefined' && window.RPCDatabaseMigrator) {
-            const chainLower = String(chainKey || '').toLowerCase();
-            const initialRPC = window.RPCDatabaseMigrator.getRPCFromDatabase(chainLower);
-            if (initialRPC) {
-                console.warn(`[RPC Manager] Using initial RPC for ${chainKey} (not configured in settings)`);
-                return initialRPC;
-            }
-        }
-
-        return null;
-    }
+    // Alias untuk kompatibilitas backward
+    const getRPCWithFallback = getRPC;
 
     // ====================
     // EXPORT PUBLIC API
     // ====================
+    const RPCManager = { getRPC, getAllRPCs, hasRPC, getRPCWithFallback };
 
-    const RPCManager = {
-        getRPC,
-        getAllRPCs,
-        hasRPC,
-        getRPCWithFallback
-    };
-
-    // Expose to window
     if (typeof window !== 'undefined') {
         window.RPCManager = RPCManager;
     }
 
-    console.log('[RPC Manager] ✅ Simplified RPC Manager initialized');
+    console.log('[RPC Manager] ✅ Initialized — RPC source: CONFIG_CHAINS.DEFAULT_RPC (config.js)');
 
 })();
