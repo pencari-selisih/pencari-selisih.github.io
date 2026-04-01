@@ -1223,7 +1223,8 @@ function DisplayPNL(data) {
     cexInfo,
     rates,
     isFallback, fallbackSource,  // REFACTORED: Tambahkan info sumber alternatif
-    subResults, isMultiDex  // NEW: untuk SWING/KAMINO/RANGO/RUBIC multi-DEX aggregators
+    subResults, isMultiDex,  // NEW: untuk SWING/KAMINO/RANGO/RUBIC multi-DEX aggregators
+    feeSource  // ✅ NEW: Fee data origin from API response ('api'|'calc'|'fallback')
   } = data;
 
   const elementId = String(idPrefix || '') + String(baseId || '');
@@ -1566,20 +1567,40 @@ function DisplayPNL(data) {
         const feeLabel1 = direction === 'tokentopair'
           ? `<a class="${_wdCls}" href="${metaWdUrl}" target="_blank" rel="noopener" title="FEE WITHDRAW">${_wdText}: ${subFeeWD.toFixed(4)}$</a>`
           : `<a class="${_dpCls}" href="${metaDpUrl}" target="_blank" rel="noopener">${_dpText}</a>`;
+
+        // ✅ NEW: Sumber fee untuk tooltip multi-DEX
+        const subFeeRaw   = n(subRes.FeeSwap || subRes.fee);
+        const subFeeSrc   = String(subRes.feeSource || 'fallback').toLowerCase();
+        const subFeeSrcLbl = subFeeSrc === 'api'  ? '✅ dari API'
+                           : subFeeSrc === 'calc' ? '🔧 dari kalkulasi gas'
+                           :                        '⚠️ estimasi fallback';
         const feeTooltip = direction === 'tokentopair'
-          ? `Fee WD: $${subFeeWD.toFixed(4)}\nFee SW: $${feeSwap.toFixed(4)}`
-          : `Fee SW: $${feeSwap.toFixed(4)}\nFee Transfer (Gas): $${subFeeTransfer.toFixed(4)}`;
+          ? `Fee WD: $${subFeeWD.toFixed(4)}\nFee SW: $${feeSwap.toFixed(4)} (${subFeeSrcLbl})`
+          : `Fee SW: $${feeSwap.toFixed(4)} (${subFeeSrcLbl})\nFee Transfer (Gas): $${subFeeTransfer.toFixed(4)}`;
+
+        // ✅ NEW: Tooltip lengkap untuk div utama sub-kolom (hover area)
+        const divTitle = [
+          `${providerName}`,
+          `Amount Out: ${amtOut.toFixed(6)}`,
+          `💸 Fee Swap: $${subFeeRaw.toFixed(4)} (${subFeeSrcLbl})`,
+          direction === 'tokentopair'
+            ? `Fee WD: $${subFeeWD.toFixed(4)}`
+            : `Fee Transfer: $${subFeeTransfer.toFixed(4)}`,
+          `Bruto: $${subBruto.toFixed(2)}`,
+          `Total Fee: $${subTotalFee.toFixed(2)}`,
+          `PNL: $${subPnl.toFixed(2)}`
+        ].join('\n');
 
         // Struktur HTML sama persis seperti regular DEX cell (monitor-line, strong header, uk-text-primary wrapper)
         return `
           <div class="multi-sub" style="flex: 1 1 110px; padding: 2px 3px; ${borderRight} text-align: center; vertical-align: middle; ${subBgStyle}"
-               title="${providerName}\nAmount Out: ${amtOut.toFixed(6)}\n${feeTooltip}\nBruto: $${subBruto.toFixed(2)}\nTotal Fee: $${subTotalFee.toFixed(2)}\nPNL: $${subPnl.toFixed(2)}">
+               title="${divTitle}">
             <strong style="display:inline-block; margin:0; color: ${dexColor};">${displayName} ${modalLabel}</strong><br>
             <span class="uk-text-primary">
               <a class="monitor-line uk-text-success dex-price-link" href="${buyLink}" target="_blank" rel="noopener" title="${tipBuy}">⬆ ${fmtUSD(buyPrice)}</a>
               <a class="monitor-line uk-text-danger dex-price-link" href="${sellLink}" target="_blank" rel="noopener" title="${tipSell}">⬇ ${fmtUSD(sellPrice)}</a>
               <span class="monitor-line">${feeLabel1}</span>
-              <span class="monitor-line uk-text-dark">💸 SW: ${feeSwap.toFixed(4)}$</span>
+              <span class="monitor-line uk-text-dark" title="${subFeeSrcLbl}">💸 SW: ${feeSwap.toFixed(4)}$</span>
               <span class="monitor-line uk-text-danger" title="BRUTO ~ TOTAL FEE">[${subBruto.toFixed(2)} ~ <b style="font-size: larger;">${subTotalFee.toFixed(2)}</b>]</span>
               <span class="monitor-line ${pnlClass}" title="PROFIT / LOSS" style="font-weight: bold;">💰 PNL: ${subPnl.toFixed(2)}</span>
             </span>
@@ -1855,6 +1876,16 @@ function DisplayPNL(data) {
   // REFACTORED: Tambahkan info sumber alternatif ke label DEX
   const dexLabel = isFallback && fallbackSource ? `${DEX} via ${fallbackSource}` : DEX;
 
+  // ✅ NEW: Fee info label for tooltip — tampilkan nilai fee dan sumbernya
+  const _feeVal = n(FeeSwap);
+  const _feeSrcLabel = (() => {
+    const src = String(feeSource || 'fallback').toLowerCase();
+    if (src === 'api') return '✅ dari API';
+    if (src === 'calc') return '🔧 dari kalkulasi gas';
+    return '⚠️ estimasi fallback';
+  })();
+  const _feeInfo = `💸 Fee Swap: $${_feeVal.toFixed(4)} (${_feeSrcLabel})`;
+
   if (direction === 'tokentopair') {
     buyPrice = refCexBuy;
     sellPrice = n(dexUsdtPerToken);
@@ -1863,14 +1894,14 @@ function DisplayPNL(data) {
 
     tipBuy = `USDT -> ${Name_in} | ${CEX} | ${fmtIDR(buyPrice)} | ${fmtUSD(buyPrice)} USDT/${Name_in}`;
     const inv = sellPrice > 0 ? (1 / sellPrice) : 0;
-    tipSell = `${Name_in} -> ${Name_out} | ${dexLabel} | ${fmtIDR(sellPrice)} | ${inv > 0 && isFinite(inv) ? inv.toFixed(6) : 'N/A'} ${Name_in}/${Name_out}`;
+    tipSell = `${Name_in} -> ${Name_out} | ${dexLabel} | ${fmtIDR(sellPrice)} | ${inv > 0 && isFinite(inv) ? inv.toFixed(6) : 'N/A'} ${Name_in}/${Name_out}\n${_feeInfo}`;
   } else {
     buyPrice = n(dexUsdtPerToken);
     sellPrice = refCexSell;
     buyLink = linkDEX || '#';
     sellLink = cexLinks.trade;      // PAIR
 
-    tipBuy = `${Name_in} -> ${Name_out} | ${dexLabel} | ${fmtIDR(buyPrice)} | ${fmtUSD(buyPrice)} USDT/${Name_in}`;
+    tipBuy = `${Name_in} -> ${Name_out} | ${dexLabel} | ${fmtIDR(buyPrice)} | ${fmtUSD(buyPrice)} USDT/${Name_in}\n${_feeInfo}`;
     const inv = sellPrice > 0 ? (1 / sellPrice) : 0;
     tipSell = `${Name_out} -> USDT | ${CEX} | ${fmtIDR(sellPrice)} | ${inv > 0 && isFinite(inv) ? inv.toFixed(6) : 'N/A'} ${Name_in}/${Name_out}`;
   }
@@ -2402,6 +2433,10 @@ function calculateResult(baseId, tableBodyId, amount_out, FeeSwap, sc_input, sc_
   // ✅ FIX: Extract dexTitle from DataDEX (provider name from strategy response)
   const dexTitle = DataDEX && DataDEX.dexTitle ? String(DataDEX.dexTitle) : null;
 
+  // ✅ NEW: Extract fee source label from DataDEX for tooltip display
+  // feeSource: 'api' = dari response API langsung, 'calc' = kalkulasi gas units, 'fallback' = estimasi hardcoded
+  const feeSource = DataDEX && DataDEX.feeSource ? String(DataDEX.feeSource) : 'fallback';
+
   return {
     type: 'update',
     idPrefix: idPrefix,
@@ -2415,7 +2450,8 @@ function calculateResult(baseId, tableBodyId, amount_out, FeeSwap, sc_input, sc_
     nameChain, codeChain, trx, profitLossPercent, vol,
     isFallback, fallbackSource,  // REFACTORED: Tambahkan info sumber alternatif
     subResults, isMultiDex,  // NEW: untuk DZAP multi-DEX
-    dexTitle  // ✅ NEW: Provider name from strategy response (LIFI, SWOOP, etc)
+    dexTitle,  // ✅ NEW: Provider name from strategy response (LIFI, SWOOP, etc)
+    feeSource  // ✅ NEW: Fee data origin label for tooltip annotation
   };
 }
 

@@ -137,44 +137,9 @@
             console.log('[Settings Save] Saved enabled chains to storage');
         }
 
-        // Collect user RPC settings (NEW: simplified structure using database)
-        let userRPCs = {};
-        // Get initial values from database migrator (not hardcoded anymore)
-        const getInitialRPC = (chain) => {
-            if (window.RPCDatabaseMigrator && window.RPCDatabaseMigrator.INITIAL_RPC_VALUES) {
-                return window.RPCDatabaseMigrator.INITIAL_RPC_VALUES[chain] || '';
-            }
-            return '';
-        };
-
-        $('.rpc-input').each(function () {
-            const chain = $(this).data('chain');
-            const rpc = $(this).val().trim();
-
-            // ✅ HANYA collect RPC untuk enabled chains
-            if (enabledChains.includes(chain)) {
-                // Simpan RPC yang diinput user, atau gunakan initial value dari migrator jika kosong
-                if (rpc) {
-                    userRPCs[chain] = rpc;
-                } else {
-                    const initialRPC = getInitialRPC(chain);
-                    if (initialRPC) {
-                        userRPCs[chain] = initialRPC;
-                    }
-                }
-            }
-        });
-
-        // ✅ VALIDATION: pastikan semua ENABLED chains punya RPC
-        const missingRPCs = enabledChains.filter(chain => !userRPCs[chain]);
-        if (missingRPCs.length > 0) {
-            UIkit.notification({
-                message: `⚠️ RPC untuk chain berikut harus diisi: ${missingRPCs.map(c => c.toUpperCase()).join(', ')}`,
-                status: 'danger',
-                timeout: 5000
-            });
-            return;
-        }
+        // ✅ RPC tidak dikumpulkan dari form — sumber tunggal ada di CONFIG_CHAINS.DEFAULT_RPC
+        // RPCManager.getRPC(chainKey) akan otomatis membaca DEFAULT_RPC dari config.js
+        console.log('[Settings Save] RPC source: CONFIG_CHAINS.DEFAULT_RPC (no user input needed)');
 
         // ✅ Collect wallet addresses for each chain with VALIDATION
         let userWallets = {};
@@ -295,12 +260,21 @@
 
         if (validationError) return; // Stop saving if validation fails
 
+        // ✅ ONE-TIME CLEANUP: Hapus userRPCs lama dari localStorage (tidak dipakai lagi)
+        try {
+            const existingSettings = getFromLocalStorage('SETTING_SCANNER', {});
+            if (existingSettings && existingSettings.userRPCs) {
+                delete existingSettings.userRPCs;
+                saveToLocalStorage('SETTING_SCANNER', existingSettings);
+                console.log('[Settings] ✅ Cleaned up legacy userRPCs from localStorage');
+            }
+        } catch (_) { }
+
         const settingData = {
             nickname, jedaTimeGroup, jedaKoin, walletMeta,
             scanPerKoin: parseInt(scanPerKoin, 10),
             JedaDexs,
             metaDex,      // ✅ META-DEX per-aggregator settings
-            userRPCs,
             userWallets
         };
 

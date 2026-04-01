@@ -3,7 +3,7 @@ const CONFIG_APP = {
         NAME: "PENCARI-SELISIH",
         // NAME: "WATCHMARKET",
         // NAME: "APP PRIVATE",
-        VERSION: "2026.03.33",
+        VERSION: "2026.04.01",
         SCAN_LIMIT: true,
         AUTORUN: false,
         AUTO_VOLUME: false,  // cek volume otomatis untuk filter dan alert
@@ -31,13 +31,13 @@ const CONFIG_APP = {
         // Daftar aggregator META-DEX yang tersedia.
         // Setiap aggregator mengembalikan BANYAK quote dari berbagai DEX sekaligus.
         aggregators: {
-          //  lifi: { enabled: true, evmOnly: false, jedaDex: 600, label: 'JUMPER' },       // EVM + Solana multi-route
+           // lifi: { enabled: true, evmOnly: false, jedaDex: 600, label: 'JUMPER' },       // EVM + Solana multi-route
             // dzap: { enabled: true, evmOnly: false, jedaDex: 500, label: 'DZAP' },       // EVM + Solana multi-route
             // rubic: { enabled: true, evmOnly: false, jedaDex: 500, label: 'Rubic' },     // EVM + Solana multi-quote
             // rango: { enabled: true, evmOnly: false, jedaDex: 500, label: 'RANGO' },       // EVM + Solana multi-quote
             //rocketx: { enabled: true, evmOnly: false, jedaDex: 600, label: 'ROCKET' },    // EVM + Solana multi-quote
             metax: { enabled: true, evmOnly: true, jedaDex: 800, label: 'METAX' },       // EVM only (no Solana support)
-          //  onekey: { enabled: true, evmOnly: true, jedaDex: 800, label: 'ONEKEY' },       // EVM only — SSE streaming (OKX, 1inch, 0x)
+           // onekey: { enabled: true, evmOnly: true, jedaDex: 800, label: 'ONEKEY' },       // EVM only — SSE streaming (OKX, 1inch, 0x)
         },
 
         // Chain yang didukung semua META-DEX aggregators (EVM + Solana)
@@ -266,7 +266,8 @@ const DEFAULT_RPC_SUGGESTIONS = {};
 
 const CONFIG_CHAINS = {
     bsc: {
-        Kode_Chain: 56, Nama_Chain: "bsc", Nama_Pendek: "bsc", URL_Chain: "https://bscscan.com", WARNA: "#f0af18", ICON: "assets/icons/chains/bsc.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_BSC.json', BaseFEEDEX: "BNBUSDT", GASLIMIT: 80000,
+        Kode_Chain: 56, Nama_Chain: "bsc", Nama_Pendek: "bsc", URL_Chain: "https://bscscan.com", WARNA: "#f0af18", ICON: "assets/icons/chains/bsc.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_BSC.json', BaseFEEDEX: "BNBUSDT", GASLIMIT: 300000, // real swap BEP-20 ~150k gas units
+        DEFAULT_RPC: 'https://rpc.llama-rpc.com/bsc?source=llamaswap', // DefiLlama — fallback jika user belum set RPC
         LINKS: {
             explorer: {
                 token: (address) => `https://bscscan.com/token/${address}`,
@@ -302,7 +303,8 @@ const CONFIG_CHAINS = {
         WARNA: "#cd72f4ff",
         DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_POLYGON.json',
         BaseFEEDEX: "MATICUSDT", // Corrected from POLUSDT
-        GASLIMIT: 80000,
+        GASLIMIT: 250000, // real swap MATIC/Polygon ~150k gas units
+        DEFAULT_RPC: 'https://rpc.llama-rpc.com/polygon?source=llamaswap', // DefiLlama
         DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "odos", "velora", "flytrade"],   // ✅ lifidex = standalone LIFI (via Temple API)
         LINKS: {
             explorer: {
@@ -330,7 +332,8 @@ const CONFIG_CHAINS = {
         }
     },
     arbitrum: {
-        Kode_Chain: 42161, Nama_Chain: "arbitrum", Nama_Pendek: "arb", URL_Chain: "https://arbiscan.io", WARNA: "#a6b0c3", ICON: "assets/icons/chains/arbitrum.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_ARBITRUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 100000,
+        Kode_Chain: 42161, Nama_Chain: "arbitrum", Nama_Pendek: "arb", URL_Chain: "https://arbiscan.io", WARNA: "#a6b0c3", ICON: "assets/icons/chains/arbitrum.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_ARBITRUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 250000, // L2 gas units jauh lebih besar (~500k-1M) tapi gwei sangat kecil (0.01-0.05)
+        DEFAULT_RPC: 'https://rpc.llama-rpc.com/arbitrum?source=llamaswap', // DefiLlama
         LINKS: {
             explorer: {
                 token: (address) => `https://arbiscan.io/token/${address}`,
@@ -357,7 +360,8 @@ const CONFIG_CHAINS = {
         },
     },
     ethereum: {
-        Kode_Chain: 1, Nama_Chain: "ethereum", Nama_Pendek: "erc", URL_Chain: "https://etherscan.io", WARNA: "#8098ee", ICON: "assets/icons/chains/ethereum.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_ETHEREUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 250000,
+        Kode_Chain: 1, Nama_Chain: "ethereum", Nama_Pendek: "erc", URL_Chain: "https://etherscan.io", WARNA: "#8098ee", ICON: "assets/icons/chains/ethereum.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_ETHEREUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 356190, // real swap ERC-20 via aggregator ~100k-150k gas units
+        DEFAULT_RPC: 'https://rpc.llama-rpc.com/ethereum?source=llamaswap', // DefiLlama
         LINKS: {
             explorer: {
                 token: (address) => `https://etherscan.io/token/${address}`,
@@ -387,7 +391,8 @@ const CONFIG_CHAINS = {
     },
 
     base: {
-        Kode_Chain: 8453, Nama_Chain: "base", Nama_Pendek: "base", URL_Chain: "https://basescan.org/", WARNA: "#1e46f9", ICON: "assets/icons/chains/base.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_BASE.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 100000,
+        Kode_Chain: 8453, Nama_Chain: "base", Nama_Pendek: "base", URL_Chain: "https://basescan.org/", WARNA: "#1e46f9", ICON: "assets/icons/chains/base.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_BASE.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 250000, // real swap Base ERC-20 ~150k gas units
+        DEFAULT_RPC: 'https://rpc.llama-rpc.com/base?source=llamaswap', // DefiLlama
         LINKS: {
             explorer: {
                 token: (address) => `https://basescan.org/token/${address}`,
@@ -409,13 +414,14 @@ const CONFIG_CHAINS = {
             OKX: { address: '', chainCEX: 'Base' },
         },
         PAIRDEXS: {
-            "ETH": { symbolPair: 'ETH', scAddressPair: '0x4200000000000000000000000000000000000006', desPair: '18' },
+            "ETH": { symbolPair: 'ETH', scAddressPair: '0x4250000000000000000000000000000000000006', desPair: '18' },
             "USDC": { symbolPair: 'USDC', scAddressPair: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', desPair: '6' },
             "NON": { symbolPair: "NON", scAddressPair: "0x", desPair: "18" }
         }
     },
     solana: {
         Kode_Chain: 501,
+        DEFAULT_RPC: 'https://api.mainnet-beta.solana.com', // Solana Foundation public RPC
         LIFI_CHAIN_ID: 1151111081099710, // LIFI uses different chain ID for Solana
         DZAP_CHAIN_ID: 7565164, // DZAP uses different chain ID for Solana
         MATCHA_CHAIN_ID: 1399811149, // Matcha/0x uses different chain ID for Solana
@@ -1049,15 +1055,19 @@ const CONFIG_DEXS = {
             `https://jumper.exchange/?fromChain=${chainCode}&fromToken=${tokenAddress}&toChain=${chainCode}&toToken=${pairAddress}`,
         fetchdex: {
             primary: {
-                tokentopair: 'temple',          // CEX→DEX: Temple API (LIFI proxy)
-                pairtotoken: 'c98-lifidex'      // DEX→CEX: C98 best-quote (isAuto:true, no backer)
+                tokentopair: 'c98-lifidex',        // CEX→DEX: C98 best-quote (isAuto:true, no backer filter)
+                pairtotoken: 'c98-lifidex'         // DEX→CEX: C98 best-quote (isAuto:true, no backer filter)
+            },
+            secondary: {
+                tokentopair: 'swoop-lifi',         // CEX→DEX: SWOOP filtered → LIFI aggregator (rotation)
+                pairtotoken: 'temple'              // DEX→CEX: Temple API (LIFI proxy)
             },
             alternative: {
-                tokentopair: 'onekey-lifidex',  // CEX→DEX: OneKey filtered → LiFi/SwapLifi provider
-                pairtotoken: 'onekey-lifidex'   // DEX→CEX: OneKey filtered → LiFi/SwapLifi provider
+                tokentopair: 'onekey-lifidex',      // CEX→DEX: OneKey filtered → LiFi/SwapLifi provider (fallback)
+                pairtotoken: 'onekey-lifidex'       // DEX→CEX: OneKey filtered → LiFi/SwapLifi provider (fallback)
             }
         },
-        allowFallback: true,   // ✅ Fallback ke LIFI filtered jika Temple gagal
+        allowFallback: true,   // ✅ Fallback ke alternative jika primary/secondary gagal
     },
     // ============ SOLANA DEXes ============
     jupiter: {
