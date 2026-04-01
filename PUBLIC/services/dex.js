@@ -66,6 +66,9 @@
   }
 
   // Helper: Calculate gas fee in USD with custom gas price override
+  // ✅ FIXED: gasLimit dari API selalu di-cap dengan GASLIMIT di config.js
+  // gasLimit ≠ gasPrice: gasLimit = unit gas max yang diizinkan (config), gasPrice = harga per unit (RPC/gwei)
+  // Fee = gasLimit × gasPrice(gwei) / 1e9 × nativeTokenPrice
   function calculateGasFeeUSD(chainName, gasEstimate, gasPriceGwei) {
     try {
       // Get gas price data from localStorage
@@ -82,12 +85,18 @@
 
       if (!gasInfo || !gasInfo.tokenPrice) return 0;
 
-      // Get chain config for gas limit
+      // Get chain config for gas limit (sumber kebenaran / source of truth)
       const chainConfig = (typeof root.CONFIG_CHAINS !== 'undefined')
         ? root.CONFIG_CHAINS[String(chainName || '').toLowerCase()]
         : null;
 
-      const gasLimit = gasEstimate || (chainConfig ? chainConfig.GASLIMIT : 80000);
+      const configGasLimit = (chainConfig && chainConfig.GASLIMIT) ? chainConfig.GASLIMIT : 80000;
+
+      // ✅ SELALU cap dengan configGasLimit: gunakan Math.min()
+      // Jika gasEstimate dari API > configGasLimit → paksa pakai configGasLimit
+      // Jika gasEstimate tidak ada (0/null) → langsung pakai configGasLimit
+      const rawGasLimit = gasEstimate || configGasLimit;
+      const gasLimit = Math.min(rawGasLimit, configGasLimit);
 
       // Calculate fee: gasLimit * gasPriceGwei * tokenPrice / 1e9
       const feeUSD = (gasLimit * gasPriceGwei * gasInfo.tokenPrice) / 1e9;
@@ -127,6 +136,31 @@
       return { FeeSwap: calcUsd, feeSource: 'calc' };
     }
     return { FeeSwap: getFeeSwap(chainName), feeSource: 'fallback' };
+  }
+
+  /**
+   * Helper: Cap gas units dari API response agar tidak melebihi GASLIMIT config.js.
+   * API kadang mengembalikan gasLimit yang sangat besar (terutama multi-hop route),
+   * sehingga fee bisa ter-inflate secara tidak realistis.
+   *
+   * @param {number} gasUnitsRaw   - Gas units mentah dari API response
+   * @param {string} chainName     - Nama chain (misal 'bsc', 'ethereum')
+   * @returns {number} gasUnits yang sudah di-cap dengan GASLIMIT dari config
+   */
+  function capGasUnits(gasUnitsRaw, chainName) {
+    try {
+      const chainCfg = (typeof root !== 'undefined' && root.CONFIG_CHAINS)
+        ? root.CONFIG_CHAINS[String(chainName || '').toLowerCase()]
+        : null;
+      const configGasLimit = chainCfg?.GASLIMIT;
+      // Jika config GASLIMIT tersedia DAN gasUnits dari API lebih besar → cap
+      if (configGasLimit && configGasLimit > 0 && gasUnitsRaw > configGasLimit) {
+        return configGasLimit;
+      }
+      return gasUnitsRaw;
+    } catch (_) {
+      return gasUnitsRaw;
+    }
   }
 
   // ============================================================================
@@ -206,9 +240,14 @@
       },
       parseResponse: (response, { des_output, chainName }) => {
         if (!response?.data?.routeSummary) throw new Error("Invalid KyberSwap response structure");
+        // ⚠️ CATATAN: Kyber API mengembalikan field gasUsd dan gas (units) yang SANGAT BESAR
+        // (contoh: gas: "743993" untuk swap BSC) karena mencakup multi-source routing internal.
+        // Menggunakan gasUsd dari API akan inflate FeeSwap secara tidak realistis.
+        // → Gunakan getFeeSwap(chainName) saja: GASLIMIT config × gasPrice RPC (lebih akurat)
         return {
           amount_out: response.data.routeSummary.amountOut / Math.pow(10, des_output),
-          FeeSwap: parseFloat(response.data.routeSummary.gasUsd) || getFeeSwap(chainName),
+          FeeSwap: getFeeSwap(chainName),
+          feeSource: 'fallback',
           dexTitle: 'KYBER',
           routeTool: 'KYBER'  // Official KyberSwap API
         };
@@ -681,9 +720,10 @@
             _mDirectUsd = parseFloat(response.fees.gasFee.amount || 0) || 0;
           }
           if (!(_mDirectUsd > 0) && response.transaction?.gas && response.transaction?.gasPrice) {
-            const gasLimit    = parseFloat(response.transaction.gas);
+            const gasLimitRaw = parseFloat(response.transaction.gas);
             const gasPriceWei = parseFloat(response.transaction.gasPrice);
-            if (gasLimit > 0 && gasPriceWei > 0) {
+            if (gasLimitRaw > 0 && gasPriceWei > 0) {
+              const gasLimit = capGasUnits(gasLimitRaw, chainName); // ✅ cap dengan GASLIMIT config
               const allGasData = (typeof getFromLocalStorage === 'function') ? getFromLocalStorage('ALL_GAS_FEES') : null;
               if (allGasData) {
                 const gasInfo = allGasData.find(g => String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase());
@@ -866,8 +906,9 @@
 
         let _oCalcUsd = 0;
         try {
-          const gasUnits = parseFloat(data.estimateGasFee || 0);
-          if (gasUnits > 0) {
+          const gasUnitsRaw = parseFloat(data.estimateGasFee || 0);
+          if (gasUnitsRaw > 0) {
+            const gasUnits = capGasUnits(gasUnitsRaw, chainName); // ✅ cap dengan GASLIMIT config
             const allGasData = (typeof getFromLocalStorage === 'function') ? getFromLocalStorage("ALL_GAS_FEES") : null;
             if (allGasData) {
               const gasInfo = allGasData.find(g => String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase());
@@ -901,9 +942,10 @@
 
         let _sCalcUsd = 0;
         try {
-          const gasUnits = parseFloat(response.gasSpent || 0);
+          const gasUnitsRaw = parseFloat(response.gasSpent || 0);
           const gasPriceWei = parseFloat(response.tx?.gasPrice || 0);
-          if (gasUnits > 0 && gasPriceWei > 0) {
+          if (gasUnitsRaw > 0 && gasPriceWei > 0) {
+            const gasUnits = capGasUnits(gasUnitsRaw, chainName); // ✅ cap dengan GASLIMIT config
             const allGasData = (typeof getFromLocalStorage === 'function') ? getFromLocalStorage("ALL_GAS_FEES") : null;
             if (allGasData) {
               const gasInfo = allGasData.find(g => String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase());
@@ -946,8 +988,9 @@
           _ftDirectUsd = parseFloat(response?.gasCostUSD || response?.gasEstimateUSD || response?.gasFeeUsd || response?.feeUsd || response?.gas?.usdValue || 0) || 0;
           if (!(_ftDirectUsd > 0 && _ftDirectUsd < 100)) _ftDirectUsd = 0;
           if (!(_ftDirectUsd > 0)) {
-            const gasUnits = parseFloat(response?.estimatedGas || response?.gasCost || response?.gasEstimate || 0) || 0;
-            if (gasUnits > 0) {
+            const gasUnitsRaw = parseFloat(response?.estimatedGas || response?.gasCost || response?.gasEstimate || 0) || 0;
+            if (gasUnitsRaw > 0) {
+              const gasUnits = capGasUnits(gasUnitsRaw, chainName); // ✅ cap dengan GASLIMIT config
               const allGasData = (typeof getFromLocalStorage === 'function') ? getFromLocalStorage('ALL_GAS_FEES') : null;
               if (allGasData) {
                 const gasInfo = allGasData.find(g => String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase());
@@ -1275,8 +1318,9 @@
           _swDirectUsd = parseFloat(response?.gasCostUsd || response?.gasUsdAmount || response?.gasEstimateUSD || response?.gasFeeUsd || response?.feeUsd || response?.gas?.usdValue || 0) || 0;
           if (!(_swDirectUsd > 0 && _swDirectUsd < 100)) _swDirectUsd = 0;
           if (!(_swDirectUsd > 0)) {
-            const gasUnits = parseFloat(response?.estimatedGas || response?.gasCost || response?.gasLimit || 0) || 0;
-            if (gasUnits > 0) {
+            const gasUnitsRaw = parseFloat(response?.estimatedGas || response?.gasCost || response?.gasLimit || 0) || 0;
+            if (gasUnitsRaw > 0) {
+              const gasUnits = capGasUnits(gasUnitsRaw, chainName); // ✅ cap dengan GASLIMIT config
               const allGasData = (typeof getFromLocalStorage === 'function') ? getFromLocalStorage('ALL_GAS_FEES') : null;
               if (allGasData) {
                 const gasInfo = allGasData.find(g => String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase());
@@ -1401,8 +1445,9 @@
         if (!match) throw new Error(`Krystal-${dexTitle}: Platform "${platformName}" not found`);
         const amount_out = parseFloat(match.amount) / Math.pow(10, des_output);
         let _kCalcUsd = 0;
-        const gasUnits = parseFloat(match.estimatedGas || match.estGasConsumed || 0);
-        if (gasUnits > 0) {
+        const gasUnitsRaw = parseFloat(match.estimatedGas || match.estGasConsumed || 0);
+        if (gasUnitsRaw > 0) {
+          const gasUnits = capGasUnits(gasUnitsRaw, chainName); // ✅ cap dengan GASLIMIT config
           const allGasData = (typeof getFromLocalStorage === 'function') ? getFromLocalStorage('ALL_GAS_FEES') : null;
           if (allGasData) {
             const gasInfo = allGasData.find(g => String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase());
@@ -2679,6 +2724,7 @@
               // Fee METAX: utamakan gas cost dari estimasi gas (bukan platform fee)
               // Priority: gasEstimate dari response → getFeeSwap dari RPC → platform fee metabridge
               let FeeSwap = 0;
+              let feeSource = 'fallback';
               try {
                 // 1️⃣ Coba ambil gas cost dari field gasMultiplier/gasEstimate
                 const gasEstUSD = parseFloat(
@@ -2689,10 +2735,11 @@
                 );
                 if (Number.isFinite(gasEstUSD) && gasEstUSD > 0 && gasEstUSD < 100) {
                   FeeSwap = gasEstUSD;
+                  feeSource = 'api';
                 }
               } catch (_) {}
               // 2️⃣ Fallback ke RPC gas estimate (akurat, dari ALL_GAS_FEES)
-              if (FeeSwap <= 0) FeeSwap = (typeof getFeeSwap === 'function') ? getFeeSwap(chainName) : 0;
+              if (FeeSwap <= 0) { FeeSwap = (typeof getFeeSwap === 'function') ? getFeeSwap(chainName) : 0; feeSource = 'fallback'; }
               // 3️⃣ Terakhir: pakai platform fee metabridge hanya jika semua gagal
               if (FeeSwap <= 0) {
                 try {
@@ -2701,6 +2748,7 @@
                     const feeDecimals = Number(mb.asset?.decimals ?? 18);
                     const feePriceUSD = parseFloat(mb.asset?.priceUSD ?? 0);
                     FeeSwap = (parseFloat(mb.amount) / Math.pow(10, feeDecimals)) * feePriceUSD;
+                    if (FeeSwap > 0) feeSource = 'calc';
                   }
                 } catch (_) {}
               }
@@ -2714,7 +2762,7 @@
                 if (proto) providerName = String(proto).toUpperCase();
               } catch (_) {}
 
-              subResults.push({ amount_out, FeeSwap, dexTitle: providerName });
+              subResults.push({ amount_out, FeeSwap, feeSource, dexTitle: providerName });
             } catch (_) { continue; }
           }
 
@@ -2856,6 +2904,7 @@
 
               // Gas fee: hitung dari gasLimit yg dilaporkan OneKey + gwei dari RPC
               let FeeSwap = getFeeSwap(chainName);
+              let feeSource = 'fallback';
               try {
                 const gasUnitsRaw = parseFloat(item.gasLimit || 0);
                 if (gasUnitsRaw > 0) {
@@ -2866,14 +2915,10 @@
                       String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase()
                     );
                     if (gasInfo && gasInfo.gwei && gasInfo.tokenPrice) {
-                      // Cap gasUnits: OneKey API bisa return gasLimit sangat besar (multi-hop route)
-                      // Batasi maksimum 2× GASLIMIT dari config agar tidak inflate fee
-                      const chainCfg = (typeof root !== 'undefined' && root.CONFIG_CHAINS)
-                        ? root.CONFIG_CHAINS[String(chainName || '').toLowerCase()] : null;
-                      const maxGasAllowed = (chainCfg?.GASLIMIT || 300000) * 2;
-                      const gasUnits = Math.min(gasUnitsRaw, maxGasAllowed);
+                      // ✅ Gunakan capGasUnits() — cap dengan 1×GASLIMIT config (konsisten dengan semua DEX lain)
+                      const gasUnits = capGasUnits(gasUnitsRaw, chainName);
                       const feeUsd = (gasUnits * gasInfo.gwei * gasInfo.tokenPrice) / 1e9;
-                      if (Number.isFinite(feeUsd) && feeUsd > 0) FeeSwap = feeUsd;
+                      if (Number.isFinite(feeUsd) && feeUsd > 0) { FeeSwap = feeUsd; feeSource = 'calc'; }
                     }
                   }
                 }
@@ -2882,7 +2927,7 @@
               const providerKey = String(item.info?.provider || '').toLowerCase();
               const dexTitle    = PROVIDER_MAP[providerKey] || String(item.info?.providerName || providerKey).toUpperCase();
 
-              subResults.push({ amount_out, FeeSwap, dexTitle });
+              subResults.push({ amount_out, FeeSwap, feeSource, dexTitle });
             } catch (_) { continue; }
           }
 
@@ -3028,9 +3073,10 @@
             const amount_out = toAmount;
 
             let FeeSwap = getFeeSwap(chainName);
+            let feeSource = 'fallback';
             try {
-              const gasUnits = parseFloat(bestQuote.gasLimit || 0);
-              if (gasUnits > 0) {
+              const gasUnitsRaw = parseFloat(bestQuote.gasLimit || 0);
+              if (gasUnitsRaw > 0) {
                 const allGasData = (typeof getFromLocalStorage === 'function')
                   ? getFromLocalStorage('ALL_GAS_FEES') : null;
                 if (allGasData) {
@@ -3038,8 +3084,10 @@
                     String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase()
                   );
                   if (gasInfo && gasInfo.gwei && gasInfo.tokenPrice) {
+                    // ✅ Gunakan capGasUnits() — cap dengan 1×GASLIMIT config
+                    const gasUnits = capGasUnits(gasUnitsRaw, chainName);
                     const feeUsd = (gasUnits * gasInfo.gwei * gasInfo.tokenPrice) / 1e9;
-                    if (Number.isFinite(feeUsd) && feeUsd > 0) FeeSwap = feeUsd;
+                    if (Number.isFinite(feeUsd) && feeUsd > 0) { FeeSwap = feeUsd; feeSource = 'calc'; }
                   }
                 }
               }
@@ -3050,6 +3098,7 @@
             resolve({
               amount_out,
               FeeSwap,
+              feeSource,
               dexTitle,
               isMultiDex:  false,
               routeTool:   `ONEKEY-${dexTitle}`

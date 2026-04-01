@@ -254,11 +254,14 @@ function RenderCardSignal() {
         left.className = 'uk-flex uk-flex-middle';
         left.style.gap = '8px';
 
-        // ✅ META-DEX badge: Mark aggregators that are isMetaDex
+        // ✅ META-DEX badge: badge berwarna berbeda per provider (glass style untuk header berwarna)
         const isMetaDexCard = !!(window.CONFIG_DEXS && window.CONFIG_DEXS[dexLower] && window.CONFIG_DEXS[dexLower].isMetaDex);
         const metaBadge = isMetaDexCard
-            ? '<span style="background:rgba(255,255,255,0.25);color:#fff;padding:0 4px;border-radius:3px;font-size:9px;font-weight:bold;margin-left:4px;">META</span>'
+            ? (typeof window.getMetaDexBadge === 'function'
+                ? window.getMetaDexBadge(dexLower, '9px', 'glass')
+                : '<span style="background:rgba(255,255,255,0.25);color:#fff;padding:0 4px;border-radius:3px;font-size:9px;font-weight:bold;margin-left:4px;">MT</span>')
             : '';
+
         const dexDisplayLabel = (window.CONFIG_DEXS?.[dexLower]?.label ? String(window.CONFIG_DEXS[dexLower].label).toUpperCase() : String(dex).toUpperCase());
         left.innerHTML = `<span class="uk-text-bold" style="color:#fff!important; font-size:14px;">${dexDisplayLabel}${metaBadge}</span>`;
 
@@ -724,7 +727,8 @@ function buildDexCheckboxForKoin(token = {}) {
                 const leftVal = stored.left ?? 100;
                 const rightVal = stored.right ?? 100;
 
-                metaContainer.append(`<div class="uk-flex uk-flex-middle uk-margin-small"><label class="uk-margin-small-right" style="min-width:95px;"><input type="checkbox" class="uk-checkbox metadex-edit-checkbox" id="metadex-${safeId}" value="${aggKey.toLowerCase()}" ${isChecked ? 'checked' : ''}> <b style="color:${aggColor};">${aggLabel}</b></label><div class="uk-flex uk-flex-middle" style="gap:6px;"><input type="number" class="uk-input uk-form-xxsmall metadex-left" id="metadex-${safeId}-left" placeholder="KIRI" value="${leftVal}" style="width:82px;border-color:${aggColor}55;"><input type="number" class="uk-input uk-form-xxsmall metadex-right" id="metadex-${safeId}-right" placeholder="KANAN" value="${rightVal}" style="width:82px;border-color:${aggColor}55;"></div></div>`);
+        metaContainer.append(`<div class="uk-flex uk-flex-middle uk-margin-small"><label class="uk-margin-small-right" style="min-width:95px;"><input type="checkbox" class="uk-checkbox metadex-edit-checkbox" id="metadex-${safeId}" value="${aggKey.toLowerCase()}" ${isChecked ? 'checked' : ''}> <b style="color:${aggColor};">${aggLabel}</b>${(typeof window.getMetaDexBadge === 'function' ? ' ' + window.getMetaDexBadge(aggKey, '8px', 'solid') : '')}</label><div class="uk-flex uk-flex-middle" style="gap:6px;"><input type="number" class="uk-input uk-form-xxsmall metadex-left" id="metadex-${safeId}-left" placeholder="KIRI" value="${leftVal}" style="width:82px;border-color:${aggColor}55;"><input type="number" class="uk-input uk-form-xxsmall metadex-right" id="metadex-${safeId}-right" placeholder="KANAN" value="${rightVal}" style="width:82px;border-color:${aggColor}55;"></div></div>`);
+
             });
         } else {
             metaColumn.hide();

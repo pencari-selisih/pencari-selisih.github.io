@@ -1263,21 +1263,29 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     const amtIn = Number(isKiri ? amount_in_token : amount_in_pair) || 0;
                                     const outAmt = Number(finalDexRes.amount_out) || 0;
                                     const feeSwap = Number(finalDexRes.FeeSwap || 0);
+                                    // ✅ NEW: Extract feeSource dari DEX response untuk label di tooltip
+                                    const feeSrc = String(finalDexRes.feeSource || 'fallback').toLowerCase();
+                                    const feeSrcLbl = feeSrc === 'api'  ? '✅ dari API'
+                                                    : feeSrc === 'calc' ? 'dari kalkulasi gas'
+                                                    :                     '⚠️ estimasi fallback';
+
 
                                     // ✅ FIX: Fee calculation berbeda per arah
                                     // CEX to DEX (isKiri=true): withdraw fee dari CEX
                                     // DEX to CEX (isKiri=false): transfer/deposit fee ke CEX wallet (gas fee)
                                     const feeWD = isKiri ? Number(DataCEX.feeWDToken || 0) : 0;
 
-                                    // ✅ FIX: Untuk DEX to CEX, tambahkan gas transfer fee
-                                    // Estimate: transfer gas ~50% dari swap gas (karena transfer lebih simple)
-                                    const feeTransfer = !isKiri ? (feeSwap * 0.5) : 0;
+                                    // ✅ REFACTORED: Gas transfer onchain 65000 units (bukan feeSwap*0.5)
+                                    const feeTransfer = !isKiri
+                                        ? ((typeof getTransferFeeUSD === 'function') ? getTransferFeeUSD(token.chain) : 0)
+                                        : 0;
 
-                                    // Non-USDT pair = 2 transaksi CEX (beli TOKEN + jual PAIR ke USDT) → 2x feeTrade
-                                    const _pairIsStable = isKiri
-                                        ? nameOut === 'USDT'
-                                        : nameIn === 'USDT';
-                                    const feeTrade = 0.0014 * modal * (_pairIsStable ? 1 : 2);
+                                    // ✅ REFACTORED: Per-CEX fee dari getCexTradeFee() + getCexFeeMultiplier()
+                                    // INDODAX: pair IDR → selalu 2x (IDR→USDT→KOIN)
+                                    const _logPairIsStable = isKiri ? (nameOut === 'USDT') : (nameIn === 'USDT');
+                                    const _logFeeRate = (typeof getCexTradeFee === 'function') ? getCexTradeFee(token.cex) : 0.001;
+                                    const _logFeeMulti = (typeof getCexFeeMultiplier === 'function') ? getCexFeeMultiplier(token.cex, _logPairIsStable) : (_logPairIsStable ? 1 : 2);
+                                    const feeTrade = _logFeeRate * modal * _logFeeMulti;
 
                                     // Harga efektif DEX (USDT/token)
                                     let effDexPerToken = 0;
@@ -1313,54 +1321,30 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     const nowStr = (new Date()).toLocaleTimeString();
                                     const viaName = (function () {
                                         try {
-                                            // ✅ FIX: Always check routeTool first (for provider transparency)
+                                            // Check routeTool first (for provider transparency)
                                             const routeTool = String(finalDexRes?.routeTool || '').trim();
-
-                                            // ✅ DEBUG: Log routeTool untuk transparansi
-                                            console.log(`[SCANNER VIA] DEX: ${dx}, routeTool: "${routeTool}", dexTitle: "${finalDexRes?.dexTitle}"`);
-
                                             if (routeTool && routeTool.length > 0) {
                                                 // Extract provider name after "via" keyword
                                                 // "FLYTRADE via LIFI" → "LIFI"
-                                                // "MATCHA via SWOOP" → "SWOOP"
-                                                // "MATCHA via 1DELTA" → "1DELTA"
-                                                // "ODOS-V3" → "ODOS-V3" (no "via" found, use as-is)
-                                                // "MATCHA" → "MATCHA" (official API, no aggregator)
+                                                // "MATCHA" → "MATCHA" (no "via", use as-is)
                                                 const viaMatch = routeTool.match(/via\s+(.+)/i);
                                                 if (viaMatch && viaMatch[1]) {
-                                                    // ✅ Has "via" keyword - extract provider name after "via"
-                                                    const provider = viaMatch[1].trim().toUpperCase();
-                                                    console.log(`[SCANNER VIA] Extracted provider from "${routeTool}": "${provider}"`);
-                                                    return provider;
+                                                    return viaMatch[1].trim().toUpperCase();
                                                 } else {
-                                                    // ✅ No "via" keyword - routeTool is the provider itself
-                                                    // This handles cases like "ODOS-V3", "MATCHA", "KYBER", etc.
-                                                    const provider = routeTool.toUpperCase();
-                                                    console.log(`[SCANNER VIA] No 'via' found, using routeTool as provider: "${provider}"`);
-                                                    return provider;
+                                                    return routeTool.toUpperCase();
                                                 }
                                             }
                                             // Fallback compatibility: Check isFallback flag
-                                            if (isFallback === true) {
-                                                console.log(`[SCANNER VIA] isFallback=true, returning SWOOP`);
-                                                return 'SWOOP';  // Legacy fallback indicator
-                                            }
+                                            if (isFallback === true) return 'SWOOP';
                                         } catch (err) {
                                             console.error(`[SCANNER VIA] Error extracting routeTool:`, err);
                                         }
-                                        // ✅ Last resort fallback: use DEX name
-                                        console.log(`[SCANNER VIA] No routeTool found, using DEX name: ${dx}`);
                                         return dx;  // Default: show DEX name if no routeTool
                                     })();
-                                    // ✅ DEBUG: Log final viaName value
-                                    console.log(`[SCANNER VIA] Final viaName for tooltip: "${viaName}"`);
 
                                     const prosesLine = isKiri
                                         ? `PROSES : ${ce} => ${dx} (VIA ${viaName})`
                                         : `PROSES : ${dx} => ${ce} (VIA ${viaName})`;
-
-                                    // ✅ DEBUG: Log prosesLine
-                                    console.log(`[SCANNER VIA] prosesLine: "${prosesLine}"`);
 
                                     // REFACTORED: Jika fallback berhasil, statusnya TETAP "OK"
                                     // Tidak perlu menampilkan error dari primary DEX karena sudah berhasil via fallback
@@ -1399,14 +1383,15 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     })();
 
                                     // ✅ FIX: Fee breakdown berbeda per arah
+                                    // ✅ NEW: Sertakan feeSource label di baris Fee Swap agar identik dengan MetaDex tooltip
                                     const feeBreakdown = isKiri
                                         ? [
                                             `    🏦 Fee WD (CEX): $${feeWD.toFixed(4)}`,
-                                            `    🛒 Fee Swap (DEX): $${feeSwap.toFixed(4)}`,
+                                            `    🛒 Fee Swap (DEX): $${feeSwap.toFixed(4)} (${feeSrcLbl})`,
                                             `    💼 Fee Trade (CEX): $${feeTrade.toFixed(4)}`,
                                         ]
                                         : [
-                                            `    🛒 Fee Swap (DEX): $${feeSwap.toFixed(4)}`,
+                                            `    🛒 Fee Swap (DEX): $${feeSwap.toFixed(4)} (${feeSrcLbl})`,
                                             `    📤 Fee Transfer (Gas): $${feeTransfer.toFixed(4)}`,
                                             `    💼 Fee Trade (CEX): $${feeTrade.toFixed(4)}`,
                                         ];
