@@ -2144,10 +2144,8 @@ function DisplayPNL(data) {
   const netClass = (pnl >= 0.02) ? 'uk-text-success' : 'uk-text-danger';
   const bracket = `[${bruto.toFixed(2)} ~ <b style="font-size: larger;">${feeAll.toFixed(2)}</b>]`;
 
-  // ✅ FIXED: Pisahkan profit indication (background) dari highlight (border)
-  // Background hijau muncul kapanpun PNL > 0 (profit)
-  // Border hitam tebal muncul jika profit melewati filter threshold
-  const hasProfit = pnl > 0;  // Background color indicator
+  // ✅ FIXED: Background hijau hanya muncul jika profit melewati threshold filter (shouldHighlight)
+  // Background hijau TIDAK muncul hanya karena pnl > 0 (menghindari kolom hijau kosong)
   const shouldHighlight = isHighlight;  // Border highlight (filter + volume check)
   const chainColorHexHL = getChainColorHexByName(nameChain);
   const modeNowHL = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
@@ -2158,17 +2156,12 @@ function DisplayPNL(data) {
     ? multiLightGreen
     : (isDarkMode() ? '#87db0bff' : '#ddf0b7ff');
 
-  // Apply background color when there's ANY profit (PNL > 0)
-  // Apply highlight class and border when profit exceeds filter threshold
+  // Apply highlight class dan background hanya jika profit melewati filter threshold
   if (shouldHighlight) {
     try { $mainCell.addClass('dex-cell-highlight'); } catch (_) { }
-  } else { try { $mainCell.removeClass('dex-cell-highlight'); } catch (_) { } }
-
-  // Background color shows when PNL > 0, border shows when passing filter
-  if (hasProfit) {
-    const borderStyle = shouldHighlight ? '' : '';
-    $mainCell.attr('style', `background-color:${hlBg}!important;font-weight:bolder!important;vertical-align:middle!important;text-align:center!important;${borderStyle}`);
+    $mainCell.attr('style', `background-color:${hlBg}!important;font-weight:bolder!important;vertical-align:middle!important;text-align:center!important;`);
   } else {
+    try { $mainCell.removeClass('dex-cell-highlight'); } catch (_) { }
     $mainCell.attr('style', 'text-align:center;vertical-align:middle;');
   }
 
@@ -2327,6 +2320,14 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
   // ✅ FIX: Round modal value properly (no floating point errors)
   const modalRounded = Number(modal) >= 100 ? Math.round(Number(modal)) : Number(modal).toFixed(2);
 
+  // ✅ FIX BUG: dexLowerKey harus dideklarasikan SEBELUM dipakai di metaBadge
+  const dexAliasMap = {
+    '0x': 'matcha',
+    'matcha': 'matcha'
+  };
+  const normalizedDex = String(DEXPLUS).toLowerCase();
+  const dexLowerKey = dexAliasMap[normalizedDex] || normalizedDex;
+
   // ✅ Badge META-DEX: badge berwarna berbeda per provider
   const metaBadge = getMetaDexBadge(dexLowerKey, '10px', 'solid');
 
@@ -2342,15 +2343,6 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
         </span>
       </a>
     </div>`;
-
-  // ✅ FIX: Alias mapping untuk menangani variasi nama DEX (0x <-> matcha)
-  const dexAliasMap = {
-    '0x': 'matcha',
-    'matcha': 'matcha'
-  };
-
-  const normalizedDex = String(DEXPLUS).toLowerCase();
-  const dexLowerKey = dexAliasMap[normalizedDex] || normalizedDex;
   const $container = $("#sinyal" + dexLowerKey);
   const existingSignal = document.getElementById(signalItemId);
 
