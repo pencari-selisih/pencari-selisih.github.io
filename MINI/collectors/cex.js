@@ -68,6 +68,19 @@ async function fetchChainGasEstimateUsdt(chainId) {
     } catch { return 0; }
 }
 
+// ─── Chain Transfer Fee in USD (feeSend DTC) ──
+// Biaya kirim ERC-20 token ke alamat deposit CEX setelah DEX swap selesai (arah DTC).
+// Dihitung sebagai rasio dari swapFee berdasarkan TRANSFER_GAS_UNITS (65k) vs GAS_UNITS.
+// Tidak butuh RPC call tambahan — cukup pakai hasil fetchChainGasEstimateUsdt yg sudah cached.
+function computeChainTransferFeeUsdt(chainId, swapFeeUsdt) {
+    if (!swapFeeUsdt) return 0;
+    const chainCfg = Object.values(CONFIG_CHAINS).find(c => c.Kode_Chain === Number(chainId));
+    if (!chainCfg) return 0;
+    const gasUnits      = chainCfg.GAS_UNITS || 250_000;
+    const transferUnits = chainCfg.TRANSFER_GAS_UNITS || 65_000;
+    return swapFeeUsdt * (transferUnits / gasUnits);
+}
+
 async function fetchOrderbook(cexKey, symbol) {
     const cacheKey = `ob:${cexKey}:${symbol}`;
     return cacheWrap(cacheKey, 1200, async () => {

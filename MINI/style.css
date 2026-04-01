@@ -974,6 +974,66 @@ body {
   text-transform: uppercase;
 }
 
+/* ── Error column background — seluruh sel dalam kolom DEX yang gagal ── */
+/* Berlaku untuk semua baris data (CEX, DEX price, FEE, PNL) — BUKAN header tabel */
+/* Semua tipe error (timeout, limit, noroute) pakai background ABU-ABU yang SAMA */
+
+.mc-err-col,
+.mc-err-noroute,
+.mc-err-timeout,
+.mc-err-limit {
+  background: rgba(128, 128, 140, 0.13) !important;
+  color: rgba(110, 110, 125, 0.70) !important;
+}
+
+/* ── Teks label error di baris DEX price (mc-err-sm) — warna teks dibedakan, background tetap abu ── */
+
+/* NO ROUTE / NO QUOTE → teks merah */
+.mc-err-sm.mc-err-noroute,
+.mc-err-sm.mc-err-col {
+  background: rgba(128, 128, 140, 0.13) !important;
+  color: rgba(200, 55, 55, 0.85) !important;
+  font-weight: 700 !important;
+}
+
+/* TIMEOUT → teks amber/oranye */
+.mc-err-sm.mc-err-timeout {
+  background: rgba(128, 128, 140, 0.13) !important;
+  color: rgba(200, 110, 0, 0.90) !important;
+  font-weight: 700 !important;
+}
+
+/* LIMIT (429) → teks merah gelap */
+.mc-err-sm.mc-err-limit {
+  background: rgba(128, 128, 140, 0.13) !important;
+  color: rgba(200, 40, 40, 0.90) !important;
+  font-weight: 700 !important;
+}
+
+/* ── Header kolom error — warna teks sesuai tipe, background ikut sub-hdr (hijau/merah) ── */
+/* CATATAN: background header TIDAK DIUBAH — sudah diatur oleh .ctd-table .mon-sub-hdr */
+.mon-dex-hdr-err-noroute {
+  color: rgba(255, 255, 255, 0.45) !important;
+  font-size: 11px !important;
+  letter-spacing: 0 !important;
+  font-style: italic;
+}
+
+.mon-dex-hdr-err-timeout {
+  color: rgba(255, 220, 80, 0.95) !important;
+  font-size: 11px !important;
+  letter-spacing: 0 !important;
+  font-style: italic;
+  text-shadow: 0 0 4px rgba(245, 166, 35, 0.50);
+}
+
+.mon-dex-hdr-err-limit {
+  color: rgba(255, 140, 140, 0.95) !important;
+  font-size: 11px !important;
+  letter-spacing: 0 !important;
+  font-style: italic;
+}
+
 .mon-lbl-hdr {
   text-align: left;
   width: 100px;
@@ -1169,33 +1229,15 @@ body {
   text-overflow: ellipsis;
 }
 
-/* ── Background sticky column per arah (beli=hijau, jual=merah) ── */
-/* CTD: CEX = beli (hijau), DEX = jual (merah) */
-.ctd-table .mon-row-cex .mon-lbl-side {
-  background: color-mix(in srgb, var(--mon-ctd) 14%, #fff);
+/* ── Background kolom label (index 0, sticky) sesuai arah tabel ── */
+/* CTD (CEX→DEX): seluruh label column = hijau */
+.ctd-table .mon-lbl-side {
+  background: color-mix(in srgb, var(--mon-ctd) 12%, #fff);
 }
 
-.ctd-table .mon-row-dex .mon-lbl-side {
-  background: color-mix(in srgb, var(--mon-dtc) 14%, #fff);
-}
-
-.ctd-table .mon-row-recv .mon-lbl-side,
-.ctd-table .mon-row-pnl .mon-lbl-side {
-  background: #f0f2f5;
-}
-
-/* DTC: DEX = beli (hijau), CEX = jual (merah) */
-.dtc-table .mon-row-dex .mon-lbl-side {
-  background: color-mix(in srgb, var(--mon-ctd) 14%, #fff);
-}
-
-.dtc-table .mon-row-cex .mon-lbl-side {
-  background: color-mix(in srgb, var(--mon-dtc) 14%, #fff);
-}
-
-.dtc-table .mon-row-recv .mon-lbl-side,
-.dtc-table .mon-row-pnl .mon-lbl-side {
-  background: #f0f2f5;
+/* DTC (DEX→CEX): seluruh label column = merah */
+.dtc-table .mon-lbl-side {
+  background: color-mix(in srgb, var(--mon-dtc) 12%, #fff);
 }
 
 .lbl-pair {
@@ -4758,6 +4800,14 @@ body.is-scanning .scan-sort-group {
   color: rgb(107 102 102);
   font-style: italic;
   letter-spacing: 0.5px;
+}
+
+/* Badge W? dan D? individual dalam kondisi status belum diketahui */
+.wdp-na-single {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(120, 110, 110, 0.85);
+  letter-spacing: 0.3px;
 }
 
 .wdp-unsupported {

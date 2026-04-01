@@ -9,7 +9,7 @@
 // ============================================================
 const APP_DEV_CONFIG = {
   appName: "MINI SCANNER",
-  appVersion: "03.31",
+  appVersion: "04.01",
 
   telegramBotToken: "8053447166:AAH7YYbyZ4eBoPX31D8H3bCYdzEeIaiG4JU",
   telegramGroupId: "-5271018516",
@@ -23,7 +23,7 @@ const APP_DEV_CONFIG = {
   defaultAutoLevel: true, // Auto Level CEX orderbook
 
   scanBatchSize: 5,       // jumlah koin per kelompok batch (paralel bertahap)
-  maxDexDisplay: 6,       // jumlah kolom DEX yang tampil di hasil scanning
+  maxDexDisplay: 5,       // jumlah kolom DEX yang tampil di hasil scanning
   offDexResultScan: ["OPENOCEAN", "MAYAN", "UNISWAP"],
 
   bungeeApiKey: "71XdjSawshaeie5DeH5b9avPjaoVtoOc2g5ZZx1d",
@@ -253,7 +253,8 @@ const CONFIG_CHAINS = {
   bsc: {
     Kode_Chain: 56,
     RPC: 'https://rpc.llama-rpc.com/bsc?source=llamaswap',
-    GAS_UNITS: 200_000,
+    GAS_UNITS: 250_000,
+    TRANSFER_GAS_UNITS: 65_000,   // gas units untuk transfer ERC-20 ke deposit CEX (DTC feeSend)
     USDT_SC: '0x55d398326f99059fF775485246999027B3197955',
     USDT_DEC: 18,
     label: "BSC",
@@ -276,7 +277,8 @@ const CONFIG_CHAINS = {
   ethereum: {
     Kode_Chain: 1,
     RPC: 'https://rpc.llama-rpc.com/ethereum?source=llamaswap',
-    GAS_UNITS: 300_000,
+    GAS_UNITS: 365_190,
+    TRANSFER_GAS_UNITS: 65_000,
     USDT_SC: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
     USDT_DEC: 6,
     label: "Ethereum",
@@ -300,6 +302,7 @@ const CONFIG_CHAINS = {
     Kode_Chain: 137,
     RPC: 'https://rpc.llama-rpc.com/polygon?source=llamaswap',
     GAS_UNITS: 200_000,
+    TRANSFER_GAS_UNITS: 65_000,
     USDT_SC: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
     USDT_DEC: 6,
     label: "Polygon",
@@ -322,7 +325,8 @@ const CONFIG_CHAINS = {
   arbitrum: {
     Kode_Chain: 42161,
     RPC: 'https://rpc.llama-rpc.com/arbitrum?source=llamaswap',
-    GAS_UNITS: 700_000,
+    GAS_UNITS: 200_000,
+    TRANSFER_GAS_UNITS: 65_000,
     USDT_SC: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
     USDT_DEC: 6,
     label: "Arbitrum",
@@ -345,7 +349,8 @@ const CONFIG_CHAINS = {
   base: {
     Kode_Chain: 8453,
     RPC: 'https://rpc.llama-rpc.com/base?source=llamaswap',
-    GAS_UNITS: 300_000,
+    GAS_UNITS: 200_000,
+    TRANSFER_GAS_UNITS: 65_000,
     USDT_SC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
     USDT_DEC: 6,
     label: "Base",

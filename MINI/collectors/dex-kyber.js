@@ -35,18 +35,9 @@ async function fetchDexQuotesKyber(chainKey, srcToken, destToken, amountWei, dec
                 /kyber/i.test(r.platform || r.exchange || r.name || '')
             );
             if (!match?.amount) return [];
-            // Gas fee: estimatedGas * gwei * tokenPrice / 1e9
-            let feeSwapUsdt = 0;
-            try {
-                const gasUnits = parseFloat(match.estimatedGas || match.estGasConsumed || 0);
-                if (gasUnits > 0) {
-                    const gasData = dbGet('scp_gasFees', []);
-                    const gasInfo = gasData.find(g => String(g.chain || '').toLowerCase() === chainKey);
-                    if (gasInfo?.gwei && gasInfo?.tokenPrice) {
-                        feeSwapUsdt = (gasUnits * gasInfo.gwei * gasInfo.tokenPrice) / 1e9;
-                    }
-                }
-            } catch (_) {}
+            // Gas fee: biarkan feeSwapUsdt = 0 → computeQuotePnl akan pakai chainGasFallback
+            // dari eth_gasPrice × GAS_UNITS × nativePrice via RPC (lebih akurat dari scp_gasFees)
+            const feeSwapUsdt = 0;
             const dec = match.decimals ?? match.destDecimals ?? decOut;
             const name = (match.platform || 'KYBER').toUpperCase();
             const res = [{ amount: parseFloat(match.amount), dec, name, src: 'KB', feeSwapUsdt }];

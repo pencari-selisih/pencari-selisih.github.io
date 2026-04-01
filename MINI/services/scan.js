@@ -1,25 +1,28 @@
 // ─── PnL Calculator ──────────────────────────
-// feeWdUsdt  : biaya withdrawal dari CEX dalam USDT
-// feeSwapUsdt: biaya swap DEX dalam USDT — diambil dari respons DEX (gasCostUSD / gasUsd)
+// feeWdUsdt   : biaya WD dari CEX (CTD) atau fee send on-chain ke deposit CEX (DTC)
+// feeSwapUsdt : biaya swap DEX — diambil dari respons DEX (gasCostUSD / gasUsd)
 // isPairStable: true jika PAIR adalah stablecoin → tidak perlu trade ke-2 di CEX
-// direction  : 'ctd' = CEX→DEX, 'dtc' = DEX→CEX
+// direction   : 'ctd' = CEX→DEX, 'dtc' = DEX→CEX
 // Fee rules:
-//   CTD: feetrade + feewd + feeswap
-//   DTC: feeswap + feetrade (tanpa feewd)
+//   CTD: feewd + feetrade_cex + feeswap   (feetrade 2x jika pair non-stable, 1x jika stable)
+//   DTC: feeswap + feetrade_cex + feesend  (feesend = gas transfer ERC-20 ke deposit CEX)
+//   Indodax: feeTrade selalu 2x karena pasangan adalah IDR (non-USDT)
 function calcPnl(modal, pairAmt, bidPair, cexKey, feeWdUsdt = 0, isPairStable = false, direction = 'ctd', feeSwapUsdt = 0) {
     const fee = CONFIG_CEX[cexKey]?.feeTrade || 0.001;
     const pairValue = pairAmt * bidPair;
     let cexFee1, cexFee2, wdFee;
     if (direction === 'ctd') {
         // CTD: BELI TOKEN di CEX (fee1) → WD token → swap DEX → (JUAL PAIR di CEX jika pair bukan stable, fee2)
+        // Indodax: pair = IDR → non-stable → selalu 2x fee
         cexFee1 = modal * fee;
         cexFee2 = isPairStable ? 0 : pairValue * fee;
         wdFee = feeWdUsdt || 0;
     } else {
         // DTC: swap DEX → JUAL TOKEN di CEX (fee2), tidak perlu WD dari CEX
+        // feeWdUsdt di sini dipakai sebagai feeSend (gas transfer on-chain ke deposit CEX)
         cexFee1 = isPairStable ? 0 : modal * fee;
         cexFee2 = pairValue * fee;
-        wdFee = 0;
+        wdFee = feeWdUsdt || 0;   // feeSend — menggantikan 0 sebelumnya
     }
     const feeSwap = feeSwapUsdt || 0;
     const pnlKotor = pairValue - modal;
@@ -38,22 +41,35 @@ function calcPnl(modal, pairAmt, bidPair, cexKey, feeWdUsdt = 0, isPairStable = 
 // Kyber : routeSummary.gasUsd
 // OKX   : estimateGasFee wei * nativePrice
 // Jika DEX tidak return (= 0): gunakan chainGasFallback dari eth_gasPrice × gasUnits × nativePrice
-// Jika chainGasFallback juga 0: feeSwap = 0 (tidak ada estimasi)
-function computeQuotePnl(parsed, destDec, bidPrice, modal, cexKey, askPrice, direction, feeWdUsdt = 0, isPairStable = false, chainGasFallback = 0) {
+// Jika chainGasFallback juga 0: feeSwap = 0
+//
+// feeSend (DTC): gas transfer ERC-20 ke deposit CEX
+// = chainGasEstimate × (TRANSFER_GAS_UNITS / GAS_UNITS) — via computeChainTransferFeeUsdt()
+function computeQuotePnl(parsed, destDec, bidPrice, modal, cexKey, askPrice, direction, feeWdUsdt = 0, isPairStable = false, chainGasFallback = 0, chainTransferFallback = 0) {
     // isHuman=true atau dec===null → amount sudah human-readable, tidak perlu fromWei
     const recv = (parsed.isHuman || parsed.dec === null)
         ? parseFloat(parsed.amount)
         : fromWei(parsed.amount + '', parsed.dec != null ? parsed.dec : destDec);
     const recvUSDT = recv * bidPrice;
-    const feeSwapUsdt = parsed.feeSwapUsdt > 0 ? parsed.feeSwapUsdt : chainGasFallback;
+    // feeSwap: ambil dari DEX jika tersedia, fallback ke chainGasFallback jika DEX return 0.
+    // CAP: jika DEX melaporkan gas lebih besar dari GAS_UNITS di config (chainGasFallback),
+    // gunakan chainGasFallback sebagai batas atas — DEX API sering overestimate gas limit.
+    const _dexFeeRaw = parsed.feeSwapUsdt > 0 ? parsed.feeSwapUsdt : chainGasFallback;
+    const feeSwapUsdt = (chainGasFallback > 0 && _dexFeeRaw > chainGasFallback)
+        ? chainGasFallback   // cap ke GAS_UNITS config
+        : _dexFeeRaw;
     if (direction === 'ctd') {
         const tokensIn = askPrice > 0 ? modal / askPrice : 0;
         const effPrice = tokensIn > 0 ? recvUSDT / tokensIn : 0;
         const { pnl, pnlKotor, cexFee1, cexFee2, wdFee, feeSwap, totalFee } = calcPnl(modal, recv, bidPrice, cexKey, feeWdUsdt, isPairStable, 'ctd', feeSwapUsdt);
         return { name: parsed.name, src: parsed.src, recvUSDT, effPrice, pnl, pnlKotor, cexFee1, cexFee2, wdFee, feeSwap, totalFee };
     } else {
+        // feeSend = gas transfer ERC-20 token ke deposit CEX
+        // Selalu pakai chainTransferFallback (precomputed dari eth_gasPrice × TRANSFER_GAS_UNITS per chain)
+        // Lebih akurat karena pakai gas price chain yang sama dengan DEX swap
+        const feeSendUsdt = chainTransferFallback;
         const effPrice = recv > 0 ? modal / recv : 0;
-        const { pnl, pnlKotor, cexFee1, cexFee2, wdFee, feeSwap, totalFee } = calcPnl(modal, recv, bidPrice, cexKey, feeWdUsdt, isPairStable, 'dtc', feeSwapUsdt);
+        const { pnl, pnlKotor, cexFee1, cexFee2, wdFee, feeSwap, totalFee } = calcPnl(modal, recv, bidPrice, cexKey, feeSendUsdt, isPairStable, 'dtc', feeSwapUsdt);
         return { name: parsed.name, src: parsed.src, recvUSDT, effPrice, pnl, pnlKotor, cexFee1, cexFee2, wdFee, feeSwap, totalFee };
     }
 }
@@ -291,8 +307,9 @@ async function scanToken(tok) {
     // REST (kyber, okx, dll): resolve dalam < 2 detik → kolom terisi lebih cepat
     const _SSE_KEYS        = new Set(['metax', 'onekey']);
     const _enabledKeys     = Object.keys(CONFIG_DEX).filter(k => isDexEnabled(k));
-    const tokMinPnl        = (isFinite(tok.minPnl) && tok.minPnl !== null) ? tok.minPnl : 1;
+    const tokMinPnl        = 0; // sinyal muncul jika pnlBersih > 0 (tidak ada min threshold)
     const chainGasFee      = _chainGasEstimateUsdt[chainId] || 0;
+    const chainTransferFee = _chainTransferFeeUsdt[chainId] || 0;
 
     // Normalisasi nama DEX dan filter offlist
     const _normDexName = nm => {
@@ -325,7 +342,8 @@ async function scanToken(tok) {
     const _dexPHtml   = (txt, dexName, dir) => { const url = typeof _getDexUrl === 'function' ? _getDexUrl(dexName, tok, dir) : ''; return url ? `<a href="${url}" target="_blank" rel="noopener" class="dex-price-link">${txt}</a>` : txt; };
 
     // buildMissingLabels: isi slot kosong dengan nama DEX + status error
-    function _buildMissing(allData, rawData) {
+    // dir: 'ctd' | 'dtc' — untuk lookup error per arah
+    function _buildMissing(allData, rawData, dir) {
         const labels = [];
         _enabledKeys.forEach(k => {
             const cfg = CONFIG_DEX[k];
@@ -333,7 +351,19 @@ async function scanToken(tok) {
             const expected = cfg.hasCount ? (CFG.dex?.[k]?.count || cfg.count) : 1;
             const raw = rawData[k] || [];
             for (let i = existing; i < expected; i++) {
-                labels.push({ name: cfg.label, error: raw.length === 0 ? 'NO QUOTE' : 'NO ROUTE' });
+                // Cek error type dari _dexErrMap: TIMEOUT > LIMIT > NO ROUTE > NO QUOTE
+                const errType = _dexErrMap[`${k}:${dir}`] || _dexErrMap[k] || '';
+                let errLabel, errCls;
+                if (errType === 'TIMEOUT') {
+                    errLabel = '⏱ TIMEOUT';  errCls = 'timeout';
+                } else if (errType === 'LIMIT') {
+                    errLabel = '⛔ LIMIT';    errCls = 'limit';
+                } else if (raw.length > 0) {
+                    errLabel = '✖ NO ROUTE'; errCls = 'noroute';
+                } else {
+                    errLabel = '✖ NO QUOTE'; errCls = 'noroute';
+                }
+                labels.push({ name: cfg.label, error: errLabel, errCls });
             }
         });
         return labels;
@@ -346,8 +376,8 @@ async function scanToken(tok) {
         _runDtC.sort((a, b) => b.pnl - a.pnl);
         const ctdData = _runCtD.slice(0, n);
         const dtcData = _runDtC.slice(0, n);
-        const missingCtD = blockCtD ? [] : _buildMissing(_runCtD, _dexRaw);
-        const missingDtC = _buildMissing(_runDtC, _dexRaw);
+        const missingCtD = blockCtD ? [] : _buildMissing(_runCtD, _dexRaw, 'ctd');
+        const missingDtC = _buildMissing(_runDtC, _dexRaw, 'dtc');
 
         // ── Fill CEX harga di semua kolom (sekali, tidak berubah) ──
         const ctdSt = els?.ctdStatus; if (!blockCtD && ctdSt) ctdSt.textContent = '';
@@ -365,18 +395,24 @@ async function scanToken(tok) {
             for (let i = 1; i < n; i++) { const d = els?.ctdDex[i]; if (d) { d.textContent = '—'; d.className = 'mon-dex-cell mc-muted'; } }
             for (let i = 0; i < n; i++) { const f = els?.ctdFee[i]; if (f) { f.textContent = '—'; f.className = 'mon-dex-cell mc-muted'; } const p = els?.ctdPnl[i]; if (p) { p.textContent = '—'; p.className = 'mon-dex-cell mc-muted'; } }
         } else if (!ctdData.length) {
-            const reason = diagCtD || 'TIDAK ADA LP / DEX';
-            const h0 = els?.ctdHdr[0]; if (h0) { h0.textContent = reason; h0.className = 'mon-dex-hdr mon-dex-hdr-err'; }
-            for (let i = 1; i < n; i++) { const h = els?.ctdHdr[i]; if (h) { h.textContent = '—'; h.className = 'mon-dex-hdr'; } }
-            const hint = diagCtD === 'MODAL BESAR' ? '↓ Kecilkan Modal' : diagCtD === 'AMOUNT NOL' ? '↓ Cek Harga CEX' : '↓ KOIN TIDAK ADA DI DEX / LP';
-            const d0 = els?.ctdDex[0]; if (d0) { d0.textContent = hint; d0.className = 'mon-dex-cell mc-err'; }
-            for (let i = 1; i < n; i++) { const d = els?.ctdDex[i]; if (d) { d.textContent = '—'; d.className = 'mon-dex-cell mc-muted'; } }
+            // Tidak ada harga CEX (AMOUNT NOL) atau tidak ada LP → semua kolom DEX abu-abu
+            const isNoCex = diagCtD === 'AMOUNT NOL';
+            const hint = isNoCex ? '⚠ Cek Harga CEX' : diagCtD === 'MODAL BESAR' ? '↓ Kecilkan Modal' : '✖ Tidak Ada LP/DEX';
+            // Satu loop untuk semua n kolom: header + semua baris data → mc-err-col (abu-abu)
+            for (let i = 0; i < n; i++) {
+                const h = els?.ctdHdr[i]; const c = els?.ctdCex[i]; const d = els?.ctdDex[i]; const f = els?.ctdFee[i]; const p = els?.ctdPnl[i];
+                if (h) { h.textContent = i === 0 ? (isNoCex ? '⚠ NO CEX' : diagCtD || 'NO LP') : '—'; h.className = 'mon-dex-hdr mon-dex-hdr-muted'; }
+                if (c) { c.textContent = '-'; c.className = 'mon-dex-cell mc-err-col'; }
+                if (d) { d.textContent = i === 0 ? hint : '-'; d.className = 'mon-dex-cell mc-err-col' + (i === 0 ? ' mc-err-sm' : ''); }
+                if (f) { f.textContent = '-'; f.className = 'mon-dex-cell mc-err-col'; }
+                if (p) { p.textContent = '-'; p.className = 'mon-dex-cell mc-err-col'; }
+            }
         } else {
             ctdData.forEach((r, i) => {
                 r.hdrIdx = i;
                 const hdrEl = els?.ctdHdr[i] || card.querySelector(`.mon-dex-hdr[data-dir="ctd"][data-ctd-hdr="${i}"]`);
                 const cexEl = els?.ctdCex[i]; const dexEl = els?.ctdDex[i]; const feeEl = els?.ctdFee[i]; const pnlEl = els?.ctdPnl[i];
-                const isSignal = r.pnl >= (r.dexMinPnl ?? tokMinPnl); const sigCls = isSignal ? ' col-signal' : '';
+                const isSignal = r.pnl > 0; const sigCls = isSignal ? ' col-signal' : '';
                 const _sc = Object.values(CONFIG_DEX).find(c => c.src === r.src);
                 const nm = _sc && !_sc.hasCount ? _sc.label : (r.name || '').slice(0, 6).toUpperCase();
                 const tag = _sc && _sc.hasCount ? `<span class="src-tag" style="background:${_sc.color};color:#fff;font-size:6px">${_sc.badge}</span>` : '';
@@ -386,16 +422,18 @@ async function scanToken(tok) {
                 if (cexEl) { cexEl.innerHTML = _cexPHtml(`↑ ${fmtCompact(dispAskCtD)}$`, _tradeUrl); cexEl.className = 'mon-dex-cell mc-ask' + sigCls; }
                 if (dexEl) { dexEl.innerHTML = _dexPHtml(`↓ ${fmtCompact(r.effPrice)}$`, r.name, 'ctd'); dexEl.className = 'mon-dex-cell mc-bid' + sigCls; }
                 if (feeEl) { feeEl.textContent = _fmtFeeCell(r.wdFee, r.cexFee1 + r.cexFee2, r.feeSwap || 0); feeEl.className = 'mon-dex-cell mc-recv' + sigCls; }
-                if (pnlEl) { const cls = r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg'; pnlEl.textContent = `${fmtPnl(r.pnl)}$`; pnlEl.className = `mon-dex-cell mc-pnl ${cls}` + sigCls; pnlEl.title = `${r.name || 'DEX'}\nMin PNL: $${(r.dexMinPnl ?? tokMinPnl).toFixed(2)}\nPNL: ${fmtPnl(r.pnl)}$`; }
+                if (pnlEl) { const cls = r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg'; pnlEl.textContent = `${fmtPnl(r.pnl)}$`; pnlEl.className = `mon-dex-cell mc-pnl ${cls}` + sigCls; pnlEl.title = `${r.name || 'DEX'}\nFEE ALL: -$${(r.totalFee || 0).toFixed(2)}\nPNL: ${fmtPnl(r.pnl)}$`; }
             });
             for (let i = ctdData.length; i < n; i++) {
                 const lbl = missingCtD[i - ctdData.length];
                 const h = els?.ctdHdr[i]; const c = els?.ctdCex[i]; const d = els?.ctdDex[i]; const f = els?.ctdFee[i]; const p = els?.ctdPnl[i];
-                if (h) { h.textContent = lbl ? lbl.name : '—'; h.className = lbl ? 'mon-dex-hdr mon-dex-hdr-muted' : 'mon-dex-hdr'; }
-                if (c) { c.textContent = '-'; c.className = 'mon-dex-cell mc-muted'; }
-                if (d) { d.textContent = lbl ? lbl.error : '-'; d.className = lbl ? 'mon-dex-cell mc-err-sm' : 'mon-dex-cell mc-muted'; }
-                if (f) { f.textContent = '-'; f.className = 'mon-dex-cell mc-muted'; }
-                if (p) { p.textContent = '-'; p.className = 'mon-dex-cell mc-muted'; }
+                const errCls  = lbl ? `mc-err-${lbl.errCls}` : 'mc-muted';
+                const hdrCls  = lbl ? `mon-dex-hdr mon-dex-hdr-err-${lbl.errCls}` : 'mon-dex-hdr';
+                if (h) { h.textContent = lbl ? lbl.name : '—'; h.className = hdrCls; }
+                if (c) { c.textContent = '-'; c.className = `mon-dex-cell ${errCls}`; }
+                if (d) { d.textContent = lbl ? lbl.error : '-'; d.className = `mon-dex-cell mc-err-sm ${errCls}`; }
+                if (f) { f.textContent = '-'; f.className = `mon-dex-cell ${errCls}`; }
+                if (p) { p.textContent = '-'; p.className = `mon-dex-cell ${errCls}`; }
             }
         }
 
@@ -407,18 +445,23 @@ async function scanToken(tok) {
             for (let i = 1; i < n; i++) { const d = els?.dtcDex[i]; if (d) { d.textContent = '—'; d.className = 'mon-dex-cell mc-muted'; } }
             for (let i = 0; i < n; i++) { const f = els?.dtcFee[i]; if (f) { f.textContent = '—'; f.className = 'mon-dex-cell mc-muted'; } const p = els?.dtcPnl[i]; if (p) { p.textContent = '—'; p.className = 'mon-dex-cell mc-muted'; } }
         } else if (!dtcData.length) {
-            const reason = diagDtC || '';
-            const h0 = els?.dtcHdr[0]; if (h0) { h0.textContent = reason; h0.className = 'mon-dex-hdr mon-dex-hdr-err'; }
-            for (let i = 1; i < n; i++) { const h = els?.dtcHdr[i]; if (h) { h.textContent = '—'; h.className = 'mon-dex-hdr'; } }
-            const hint = diagDtC === 'MODAL BESAR' ? '↓ Kecilkan Modal' : diagDtC === 'AMOUNT NOL' ? '↓ Cek Harga CEX' : '↓ KOIN TIDAK ADA DI DEX / LP';
-            const d0 = els?.dtcDex[0]; if (d0) { d0.textContent = hint; d0.className = 'mon-dex-cell mc-err'; }
-            for (let i = 1; i < n; i++) { const d = els?.dtcDex[i]; if (d) { d.textContent = '—'; d.className = 'mon-dex-cell mc-muted'; } }
+            // Tidak ada harga CEX (AMOUNT NOL) atau tidak ada LP → semua kolom DEX abu-abu
+            const isNoCex = diagDtC === 'AMOUNT NOL';
+            const hint = isNoCex ? '⚠ Cek Harga CEX' : diagDtC === 'MODAL BESAR' ? '↓ Kecilkan Modal' : '✖ Tidak Ada LP/DEX';
+            for (let i = 0; i < n; i++) {
+                const h = els?.dtcHdr[i]; const c = els?.dtcCex[i]; const d = els?.dtcDex[i]; const f = els?.dtcFee[i]; const p = els?.dtcPnl[i];
+                if (h) { h.textContent = i === 0 ? (isNoCex ? '⚠ NO CEX' : diagDtC || 'NO LP') : '—'; h.className = 'mon-dex-hdr mon-dex-hdr-muted'; }
+                if (c) { c.textContent = '-'; c.className = 'mon-dex-cell mc-err-col'; }
+                if (d) { d.textContent = i === 0 ? hint : '-'; d.className = 'mon-dex-cell mc-err-col' + (i === 0 ? ' mc-err-sm' : ''); }
+                if (f) { f.textContent = '-'; f.className = 'mon-dex-cell mc-err-col'; }
+                if (p) { p.textContent = '-'; p.className = 'mon-dex-cell mc-err-col'; }
+            }
         } else {
             dtcData.forEach((r, i) => {
                 r.hdrIdx = i;
                 const hdrEl = els?.dtcHdr[i] || card.querySelector(`.mon-dex-hdr[data-dir="dtc"][data-dtc-hdr="${i}"]`);
                 const cexEl = els?.dtcCex[i]; const dexEl = els?.dtcDex[i]; const feeEl = els?.dtcFee[i]; const pnlEl = els?.dtcPnl[i];
-                const isSignal = r.pnl >= (r.dexMinPnl ?? tokMinPnl); const sigCls = isSignal ? ' col-signal' : '';
+                const isSignal = r.pnl > 0; const sigCls = isSignal ? ' col-signal' : '';
                 const _sc = Object.values(CONFIG_DEX).find(c => c.src === r.src);
                 const nm = _sc && !_sc.hasCount ? _sc.label : (r.name || '').slice(0, 6).toUpperCase();
                 const tag = _sc && _sc.hasCount ? `<span class="src-tag" style="background:${_sc.color};color:#fff;font-size:6px">${_sc.badge}</span>` : '';
@@ -433,11 +476,13 @@ async function scanToken(tok) {
             for (let i = dtcData.length; i < n; i++) {
                 const lbl = missingDtC[i - dtcData.length];
                 const h = els?.dtcHdr[i]; const c = els?.dtcCex[i]; const d = els?.dtcDex[i]; const f = els?.dtcFee[i]; const p = els?.dtcPnl[i];
-                if (h) { h.textContent = lbl ? lbl.name : '—'; h.className = lbl ? 'mon-dex-hdr mon-dex-hdr-muted' : 'mon-dex-hdr'; }
-                if (c) { c.textContent = '-'; c.className = 'mon-dex-cell mc-muted'; }
-                if (d) { d.textContent = lbl ? lbl.error : '-'; d.className = lbl ? 'mon-dex-cell mc-err-sm' : 'mon-dex-cell mc-muted'; }
-                if (f) { f.textContent = '-'; f.className = 'mon-dex-cell mc-muted'; }
-                if (p) { p.textContent = '-'; p.className = 'mon-dex-cell mc-muted'; }
+                const errCls  = lbl ? `mc-err-${lbl.errCls}` : 'mc-muted';
+                const hdrCls  = lbl ? `mon-dex-hdr mon-dex-hdr-err-${lbl.errCls}` : 'mon-dex-hdr';
+                if (h) { h.textContent = lbl ? lbl.name : '—'; h.className = hdrCls; }
+                if (c) { c.textContent = '-'; c.className = `mon-dex-cell ${errCls}`; }
+                if (d) { d.textContent = lbl ? lbl.error : '-'; d.className = `mon-dex-cell mc-err-sm ${errCls}`; }
+                if (f) { f.textContent = '-'; f.className = `mon-dex-cell ${errCls}`; }
+                if (p) { p.textContent = '-'; p.className = `mon-dex-cell ${errCls}`; }
             }
         }
     }
@@ -450,19 +495,19 @@ async function scanToken(tok) {
         if (dir === 'ctd' && !blockCtD) {
             rawResults.forEach(q => {
                 const p = parser(q); if (!p) return;
-                const r = computeQuotePnl(p, pairDec, bidPair, dxCtD[dk].modal, tok.cex, dxCtD[dk].price, 'ctd', feeWdCtD, isPairStable, chainGasFee);
+                const r = computeQuotePnl(p, pairDec, bidPair, dxCtD[dk].modal, tok.cex, dxCtD[dk].price, 'ctd', feeWdCtD, isPairStable, chainGasFee, 0);
                 r.dexModalCtD = tok.dexModals?.[dk]?.ctd || tok.modalCtD || CFG.dex?.[dk]?.modalCtD;
                 r.modalFull   = dxCtD[dk].full; r.modalActual = Math.round(dxCtD[dk].modal);
-                r.dexMinPnl   = tok.dexModals?.[dk]?.pnl ?? tokMinPnl ?? CFG.dex?.[dk]?.minPnl ?? 1;
+                r.dexMinPnl   = 0; // tidak ada min threshold — sinyal murni pnlBersih > 0
                 _runCtD.push(r);
             });
         } else if (dir === 'dtc' && !blockDtC) {
             rawResults.forEach(q => {
                 const p = parser(q); if (!p) return;
-                const r = computeQuotePnl(p, tok.decToken, dxDtC[dk].price, dxDtC[dk].modal, tok.cex, dxCtD[dk].price, 'dtc', 0, isPairStable, chainGasFee);
+                const r = computeQuotePnl(p, tok.decToken, dxDtC[dk].price, dxDtC[dk].modal, tok.cex, dxCtD[dk].price, 'dtc', 0, isPairStable, chainGasFee, chainTransferFee);
                 r.dexModalDtC = tok.dexModals?.[dk]?.dtc || tok.modalDtC || CFG.dex?.[dk]?.modalDtC;
                 r.modalFull   = dxDtC[dk].full; r.modalActual = Math.round(dxDtC[dk].modal);
-                r.dexMinPnl   = tok.dexModals?.[dk]?.pnl ?? tokMinPnl ?? CFG.dex?.[dk]?.minPnl ?? 1;
+                r.dexMinPnl   = 0;
                 _runDtC.push(r);
             });
         }
@@ -487,15 +532,26 @@ async function scanToken(tok) {
     // Timeout per-call dari CONFIG_DEX[k].timeout (AbortController).
     // Jeda per-DEX (CONFIG_DEX[k].jeda) diaplikasikan setelah kedua call selesai.
 
-    // Helper: bungkus satu fetch DEX dengan AbortController timeout
-    function _callDex(key, fn) {
+    // ── DEX error map: track TIMEOUT / LIMIT per key:dir ────────────────────────
+    const _dexErrMap = {}; // e.g. { 'kyber:ctd': 'TIMEOUT', 'okx:dtc': 'LIMIT' }
+
+    // Helper: bungkus satu fetch DEX dengan timeout tracking
+    function _callDex(key, dir, fn) {
         const timeoutMs = CONFIG_DEX[key]?.timeout || 8000;
-        const ctrl      = new AbortController();
-        const tid       = setTimeout(() => ctrl.abort(), timeoutMs);
-        // fn() tidak menerima signal — DEX collectors pakai fetchWithRetry internal.
-        // Kita race fn() vs timeout promise untuk cap waktu maksimal.
-        const timeoutP  = new Promise(res => setTimeout(() => res([]), timeoutMs));
-        return Promise.race([fn(), timeoutP]).finally(() => clearTimeout(tid));
+        let resolved = false;
+        const fnP = fn().then(r => { resolved = true; return r; }).catch(e => {
+            // Deteksi 429 rate limit dari error message
+            const msg = String(e?.message || e || '');
+            if (msg.includes('429') || msg.includes('rate limit') || msg.toLowerCase().includes('too many')) {
+                _dexErrMap[`${key}:${dir}`] = 'LIMIT';
+            }
+            return [];
+        });
+        const timeoutP = new Promise(res => setTimeout(() => {
+            if (!resolved) _dexErrMap[`${key}:${dir}`] = 'TIMEOUT';
+            res([]);
+        }, timeoutMs));
+        return Promise.race([fnP, timeoutP]);
     }
 
     // Susun semua promise: per DEX key, CTD + DTC serentak, lalu jeda
@@ -504,9 +560,11 @@ async function scanToken(tok) {
         if (!fm) return;
         const jedaMs = CONFIG_DEX[k]?.jeda || 0;
         const [rCtD, rDtC] = await Promise.all([
-            _callDex(k, fm.ctd).catch(() => []),
-            _callDex(k, fm.dtc).catch(() => []),
+            _callDex(k, 'ctd', fm.ctd).catch(() => []),
+            _callDex(k, 'dtc', fm.dtc).catch(() => []),
         ]);
+        if (!rCtD.length && !_dexErrMap[`${k}:ctd`]) _dexErrMap[`${k}:ctd`] = null; // no error just empty
+        if (!rDtC.length && !_dexErrMap[`${k}:dtc`]) _dexErrMap[`${k}:dtc`] = null;
         _onDexResult(k, 'ctd', rCtD);
         _onDexResult(k, 'dtc', rDtC);
         if (jedaMs > 0) await sleep(jedaMs);
@@ -521,15 +579,15 @@ async function scanToken(tok) {
     const bestCtD = (!blockCtD && _ctdFinal.length) ? _ctdFinal[0].pnl : -999;
     const bestDtC = (!blockDtC && _dtcFinal.length) ? _dtcFinal[0].pnl : -999;
     const best    = Math.max(bestCtD, bestDtC);
-    const ctdProfit = !blockCtD ? _ctdFinal.filter(r => r.pnl >= (r.dexMinPnl ?? tokMinPnl)) : [];
-    const dtcProfit = !blockDtC ? _dtcFinal.filter(r => r.pnl >= (r.dexMinPnl ?? tokMinPnl)) : [];
+    const ctdProfit = !blockCtD ? _ctdFinal.filter(r => r.pnl > 0) : [];
+    const dtcProfit = !blockDtC ? _dtcFinal.filter(r => r.pnl > 0) : [];
     updateSignalChips(tok, ctdProfit, 'CTD');
     updateSignalChips(tok, dtcProfit, 'DTC');
-    const bestMinPnl = _ctdFinal[0] ? (_ctdFinal[0].dexMinPnl ?? tokMinPnl) : (_dtcFinal[0] ? (_dtcFinal[0].dexMinPnl ?? tokMinPnl) : tokMinPnl);
-    if (best >= bestMinPnl) {
+    const bestMinPnl = 0; // sinyal muncul jika pnlBersih > 0
+    if (best > 0) {
         card.classList.add('has-signal');
-        const ctdSignals = _ctdFinal.filter(r => r.pnl >= (r.dexMinPnl ?? tokMinPnl));
-        const dtcSignals = _dtcFinal.filter(r => r.pnl >= (r.dexMinPnl ?? tokMinPnl));
+        const ctdSignals = _ctdFinal.filter(r => r.pnl > 0);
+        const dtcSignals = _dtcFinal.filter(r => r.pnl > 0);
         sendTelegram(tok, best, { ctdSignals, dtcSignals, modalCtD: _refModalCtD, modalDtC: _refModalDtC, buyPriceCtD: dispAskCtD, sellPriceDtC: dispBidDtC });
     } else {
         card.classList.remove('has-signal');
@@ -748,6 +806,8 @@ let _scanRound = 0;
 let _lastScanTokenKey = null; // cache key: cegah rebuild monitor cards jika urutan tidak berubah
 // Gas estimate per chainId dalam USD — diisi sekali saat start scan
 let _chainGasEstimateUsdt = {};
+// Transfer fee per chainId dalam USD — feeSend DTC (gas ERC-20 transfer ke deposit CEX)
+let _chainTransferFeeUsdt = {};
 
 // ─── Scan Timer ──────────────────────────────
 let _scanTimerStart = 0;
@@ -815,9 +875,12 @@ async function runScan() {
 
     // Fetch gas price sekali di awal scan untuk semua chain yang aktif
     _chainGasEstimateUsdt = {};
+    _chainTransferFeeUsdt = {};
     const activeChainIds = [...new Set(getFilteredTokens().map(t => CONFIG_CHAINS[t.chain]?.Kode_Chain).filter(Boolean))];
     await Promise.all(activeChainIds.map(async id => {
         _chainGasEstimateUsdt[id] = await fetchChainGasEstimateUsdt(id);
+        // Transfer fee = ratio dari swap fee berdasarkan TRANSFER_GAS_UNITS (65k) vs GAS_UNITS
+        _chainTransferFeeUsdt[id] = computeChainTransferFeeUsdt(id, _chainGasEstimateUsdt[id]);
     }));
 
     const BATCH_SIZE = APP_DEV_CONFIG.scanBatchSize || 4;

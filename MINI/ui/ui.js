@@ -439,10 +439,28 @@ function _saveUserInfo() {
 function saveSettings() { _saveUserInfo(); _autoSaveFields(); }
 
 // ─── DEX Settings (toggle on/off per DEX di tab Settings) ────
+
+// Hitung total slot DEX aktif saat ini (tanpa key tertentu, opsional)
+function _calcUsedSlots(excludeKey) {
+    const d = CFG.dex || {};
+    const MAX = APP_DEV_CONFIG.maxDexDisplay || 6;
+    let total = 0;
+    Object.entries(CONFIG_DEX).forEach(([key, cfg]) => {
+        if (!cfg.enabled) return;
+        if (key === excludeKey) return;
+        if (d[key]?.active === false) return;
+        total += cfg.hasCount ? (d[key]?.count || cfg.count) : 1;
+    });
+    return { used: total, max: MAX, remaining: Math.max(0, MAX - total) };
+}
+
 function renderDexSettings() {
     const container = document.getElementById('dexSettingsContainer');
     if (!container) return;
     container.innerHTML = '';
+
+    const MAX = APP_DEV_CONFIG.maxDexDisplay || 6;
+
     Object.entries(CONFIG_DEX).forEach(([key, cfg]) => {
         if (!cfg.enabled) return;
         const isActive = CFG.dex?.[key]?.active !== false;
@@ -453,9 +471,12 @@ function renderDexSettings() {
         let countHtml = '';
         if (cfg.hasCount) {
             const count = CFG.dex[key]?.count || cfg.count;
+            // Max route untuk MetaDEX ini = sisa slot jika key exclude dirinya sendiri
+            const slots = _calcUsedSlots(key);
+            const maxRoute = isActive ? Math.max(1, slots.remaining) : cfg.count;
             countHtml = `<span class="dex-count-lbl">Route</span>
-                <input class="settings-input dex-count-inp" id="setQuote_${key}" type="number" min="1" max="5"
-                    value="${count}" ${isActive ? '' : 'disabled'}>`;
+                <input class="settings-input dex-count-inp" id="setQuote_${key}" type="number" min="1" max="${maxRoute}"
+                    value="${Math.min(count, maxRoute)}" ${isActive ? '' : 'disabled'}>`;
         }
 
         div.innerHTML = `
@@ -470,22 +491,58 @@ function renderDexSettings() {
 
         if (cfg.hasCount) {
             div.querySelector('.dex-count-inp').addEventListener('change', function () {
-                const v = Math.min(5, Math.max(1, parseInt(this.value) || cfg.count));
+                // Ambil max ulang saat user mengubah (state mungkin berubah)
+                const slots = _calcUsedSlots(key);
+                const maxAllowed = Math.max(1, slots.remaining);
+                const v = Math.min(maxAllowed, Math.max(1, parseInt(this.value) || cfg.count));
                 this.value = v;
                 if (!CFG.dex[key]) CFG.dex[key] = {};
                 CFG.dex[key].count = v;
                 _syncLegacyDexCounts();
                 _persistCFG();
-                showToast(`✓ ${cfg.label} Route: ${v}`);
+                // Re-render agar input lain juga update max-nya
+                renderDexSettings();
+                showToast(`✓ ${cfg.label} Route: ${v} (slot terpakai: ${slots.used + v}/${MAX})`);
             });
         }
     });
+
+    // Tampilkan info total slot di bawah list
+    const total = totalQuoteCount();
+    let infoEl = document.getElementById('dexSlotInfo');
+    if (!infoEl) {
+        infoEl = document.createElement('div');
+        infoEl.id = 'dexSlotInfo';
+        infoEl.style.cssText = 'font-size:11px;color:var(--muted);margin-top:8px;text-align:right;padding-right:4px;';
+        container.after(infoEl);
+    }
+    const slotCls = total >= MAX ? 'color:#f87171' : 'color:var(--accent)';
+    infoEl.innerHTML = `Kolom DEX tampil: <b style="${slotCls}">${total}</b> / <b>${MAX}</b>`;
 }
 
 function toggleDexSetting(key) {
     if (!CFG.dex) CFG.dex = {};
     if (!CFG.dex[key]) CFG.dex[key] = { active: true, modalCtD: 100, modalDtC: 80 };
-    CFG.dex[key].active = !CFG.dex[key].active;
+
+    const willActivate = !CFG.dex[key].active;
+    const MAX = APP_DEV_CONFIG.maxDexDisplay || 6;
+
+    if (willActivate) {
+        // Cek apakah masih ada slot tersisa sebelum aktifkan
+        const slots = _calcUsedSlots(key);
+        if (slots.remaining <= 0) {
+            showToast(`⚠ Slot penuh (${MAX}/${MAX}) — nonaktifkan DEX lain dulu`);
+            return;
+        }
+        // Untuk MetaDEX: clamp count agar tidak melebihi sisa slot
+        const cfg = CONFIG_DEX[key];
+        if (cfg?.hasCount && CFG.dex[key]?.count > slots.remaining) {
+            CFG.dex[key].count = slots.remaining;
+            showToast(`✓ Route ${cfg.label} dikurangi ke ${slots.remaining} (slot tersisa)`);
+        }
+    }
+
+    CFG.dex[key].active = willActivate;
     _syncLegacyDexCounts();
     _persistCFG();
     renderDexSettings();
@@ -495,6 +552,7 @@ function toggleDexSetting(key) {
     const def = DEX_LIST.find(d => d.key === key);
     showToast(`${def?.label || key.toUpperCase()}: ${CFG.dex[key].active ? '✅ Aktif' : '❌ Nonaktif'}`);
 }
+
 
 // ─── Onboarding ──────────────────────────────
 function checkOnboarding() {
@@ -1242,20 +1300,46 @@ function _buildWdBadgeHtml(cex, ticker, pairTicker, chain) {
 }
 
 // WD/DP status icons: [WD_icon][DP_icon]
-// WD=withdraw, DP=deposit — ✅ terbuka, ⛔ ditutup, ? belum ada data
+// WD=withdraw, DP=deposit — terbuka, ditutup, ? belum ada data
 // ticker (optional): jika ada, badge dijadikan link ke halaman WD/DP CEX
 function _wdpIcons(status, walletFetched, cexKey, ticker) {
-    // Indodax: API tidak menyediakan status WD/DP asli → selalu ??
-    if (cexKey === 'indodax') return '<span class="wdp-ic-inner wdp-na">??</span>';
-    if (!status) return walletFetched
-        ? '<span class="wdp-ic-inner wdp-unsupported"><span class="wdp-fail">WX</span> <span class="wdp-fail">DX</span></span>'
-        : '<span class="wdp-ic-inner wdp-na">??</span>';
+    const coin   = (ticker || '').toUpperCase();
+    const cexLbl = CONFIG_CEX[cexKey]?.label || cexKey;
+    const wdUrl  = ticker ? _getCexWithdrawUrl(cexKey, ticker) : '';
+    const dpUrl  = ticker ? _getCexDepositUrl(cexKey, ticker) : '';
+
+    // Helper: buat W? atau D? dengan link aktif jika tersedia
+    function _qBadge(label, url, titleStr) {
+        const sp = `<span class="wdp-na-single">${label}</span>`;
+        return url
+            ? `<a href="${url}" target="_blank" rel="noopener" class="wdp-link" title="${titleStr}" onclick="event.stopPropagation()">${sp}</a>`
+            : sp;
+    }
+
+    // Indodax: API tidak menyediakan status WD/DP asli → W? D? dengan link
+    if (cexKey === 'indodax') {
+        const wB = _qBadge('W?', wdUrl, `Withdraw ${coin} di ${cexLbl}`);
+        const dB = _qBadge('D?', dpUrl, `Deposit ${coin} di ${cexLbl}`);
+        return `<span class="wdp-ic-inner wdp-na">${wB} ${dB}</span>`;
+    }
+
+    if (!status) {
+        if (walletFetched) {
+            // Token tidak didukung di chain ini → WX DX tetap dengan link
+            const wdSpan = `<span class="wdp-fail">WX</span>`;
+            const dpSpan = `<span class="wdp-fail">DX</span>`;
+            const wdHtml = wdUrl ? `<a href="${wdUrl}" target="_blank" rel="noopener" class="wdp-link" title="Withdraw ${coin} di ${cexLbl}" onclick="event.stopPropagation()">${wdSpan}</a>` : wdSpan;
+            const dpHtml = dpUrl ? `<a href="${dpUrl}" target="_blank" rel="noopener" class="wdp-link" title="Deposit ${coin} di ${cexLbl}" onclick="event.stopPropagation()">${dpSpan}</a>` : dpSpan;
+            return `<span class="wdp-ic-inner wdp-unsupported">${wdHtml} ${dpHtml}</span>`;
+        }
+        // Belum di-fetch → W? D? dengan link aktif
+        const wB = _qBadge('W?', wdUrl, `Withdraw ${coin} di ${cexLbl}`);
+        const dB = _qBadge('D?', dpUrl, `Deposit ${coin} di ${cexLbl}`);
+        return `<span class="wdp-ic-inner wdp-na">${wB} ${dB}</span>`;
+    }
+
     const wdOk = status.withdrawEnable;
     const dpOk = status.depositEnable;
-    const cexLbl = CONFIG_CEX[cexKey]?.label || cexKey;
-    const coin = (ticker || '').toUpperCase();
-    const wdUrl = ticker ? _getCexWithdrawUrl(cexKey, ticker) : '';
-    const dpUrl = ticker ? _getCexDepositUrl(cexKey, ticker) : '';
     const wdSpan = `<span class="${wdOk ? 'wdp-ok' : 'wdp-fail'}">${wdOk ? 'WD' : 'WX'}</span>`;
     const dpSpan = `<span class="${dpOk ? 'wdp-ok' : 'wdp-fail'}">${dpOk ? 'DP' : 'DX'}</span>`;
     const wdHtml = wdUrl ? `<a href="${wdUrl}" target="_blank" rel="noopener" class="wdp-link" title="Withdraw ${coin} di ${cexLbl}" onclick="event.stopPropagation()">${wdSpan}</a>` : wdSpan;
@@ -1723,7 +1807,7 @@ function showObTooltip(el) {
     const pairSym = tok ? (tok.tickerPair || tok.ticker) : '?';
     const dexName = el.dataset.dexName || el.textContent.trim() || '?';
     // Fee detail dari dataset header element (per kolom DEX)
-    const _feeWdLabel = dir === 'ctd' ? tokenSym : pairSym;
+    const _feeWdLabel = dir === 'ctd' ? `WD ${tokenSym}` : `Send (on-chain)`;
     const _modalSet    = parseFloat(el.dataset.modalSet) || 0;
     const _modalActual = el.dataset.modalActual !== '' && el.dataset.modalActual != null ? parseFloat(el.dataset.modalActual) : null;
     const _modalInsuf  = _modalSet > 0 && _modalActual != null && _modalActual < _modalSet;
