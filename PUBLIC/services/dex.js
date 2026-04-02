@@ -422,7 +422,7 @@
               proportion: 1
             }],
             userAddr: wallet,
-            slippageLimitPercent: 0.3,
+            slippageLimitPercent: parseFloat(getSlippageValue()),  // ✅ USER-CONFIGURABLE
             referralCode: 0,
             sourceBlacklist: [],        // Optional: exclude specific sources
             sourceWhitelist: [],        // Optional: only use specific sources
@@ -487,7 +487,7 @@
             `&toTokenAddress=${sc_output_in}` +
             `&amount=${amount_in_big}` +
             `&fromAddress=${userAddr}` +
-            `&slippage=10` +
+            `&slippage=${getSlippageValue()}` +
             `&destReceiver=${userAddr}` +
             `&disableEstimate=true`
         };
@@ -538,7 +538,7 @@
           fromTokenDecimals: des_input,
           toTokenDecimals: des_output,
           sellAmount: String(amount_in_big),
-          slippage: '0.1'
+          slippage: getSlippageValue()
         });
         return { url: `${baseUrl}?${params.toString()}`, method: 'GET' };
       },
@@ -810,7 +810,7 @@
           enableNewChainSwaps: 'true',
           fromAddress:         userAddr,
           sellToken:           sc_input_in,
-          slippage:            '2',
+          slippage:            getSlippageValue(),
           source:              '0x',
           sellAmount:          String(amount_in_big)
         });
@@ -857,7 +857,7 @@
           enableNewChainSwaps: 'true',
           fromAddress:         userAddr,
           sellToken:           sc_input_in,
-          slippage:            '2',
+          slippage:            getSlippageValue(),
           source:              '1inch',
           sellAmount:          String(amount_in_big)
         });
@@ -931,7 +931,7 @@
           tokenIn: sc_input_in,
           tokenOut: sc_output_in,
           amount: String(amount_in_big),
-          maxSlippage: '0.005',
+          maxSlippage: getSlippageValue(),
           sender: userAddr
         });
         return { url: `${baseUrl}?${params.toString()}`, method: 'GET' };
@@ -1015,7 +1015,7 @@
           toToken: sc_output_in,
           amount: amount_in_big.toString(),
           fromAddress: userAddr,
-          slippage: '0.005'
+          slippage: '0.3'
         });
         return {
           url: `https://temple-api-evm.prod.templewallet.com/api/swap-route?${params.toString()}`,
@@ -1054,7 +1054,7 @@
             inputTokens: [{ tokenAddress: sc_input_in, amount: amount_in_big.toString() }],
             outputTokens: [{ tokenAddress: sc_output_in, proportion: 1 }],
             userAddr: wallet,
-            slippageLimitPercent: 0.3,
+            slippageLimitPercent: parseFloat(getSlippageValue()),
             referralCode: 0,
             disableRFQs: true,
             compact: true
@@ -1084,7 +1084,7 @@
       const destToken = isSolana ? sc_output_in : sc_output.toLowerCase();
       const body = {
         fromChain: dzapChainId,
-        data: [{ amount: amount_in_big.toString(), destDecimals: Number(des_output), destToken: destToken, slippage: 0.3, srcDecimals: Number(des_input), srcToken: srcToken, toChain: dzapChainId }],
+        data: [{ amount: amount_in_big.toString(), destDecimals: Number(des_output), destToken: destToken, slippage: parseFloat(getSlippageValue()), srcDecimals: Number(des_input), srcToken: srcToken, toChain: dzapChainId }],
         gasless: false
       };
       return { url: 'https://api.dzap.io/v1/quotes', method: 'POST', data: JSON.stringify(body) };
@@ -1353,7 +1353,7 @@
         const nativeAddresses = ['0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', '0x0000000000000000000000000000000000000000'];
         let payTokenId = nativeAddresses.includes(sc_input.toLowerCase()) ? chainSlug : sc_input.toLowerCase();
         let receiveTokenId = nativeAddresses.includes(sc_output.toLowerCase()) ? chainSlug : sc_output.toLowerCase();
-        const params = new URLSearchParams({ id: userAddr, chain_id: chainSlug, dex_id: rabbyDexId, pay_token_id: payTokenId, pay_token_raw_amount: String(amount_in_big), receive_token_id: receiveTokenId, slippage: '0.01', fee: 'true', no_pre_exec: 'true' });
+        const params = new URLSearchParams({ id: userAddr, chain_id: chainSlug, dex_id: rabbyDexId, pay_token_id: payTokenId, pay_token_raw_amount: String(amount_in_big), receive_token_id: receiveTokenId, slippage: getSlippageValue(), fee: 'true', no_pre_exec: 'true' });
         return { url: `https://api.rabby.io/v1/wallet/swap_quote?${params.toString()}`, method: 'GET', headers: {} };
       },
       parseResponse: (response, { des_output, chainName }) => {
@@ -1491,7 +1491,7 @@
         const chainConfig = (root.CONFIG_CHAINS || {})[String(chainName || '').toLowerCase()];
         const dzapChainId = chainConfig?.DZAP_CHAIN_ID || Number(codeChain);
         const userAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
-        const params = new URLSearchParams({ chainId: String(dzapChainId), fromTokenAddress: sc_input.toLowerCase(), toTokenAddress: sc_output.toLowerCase(), amount: String(amount_in_big), slippage: '0.5', userAddress: userAddr });
+        const params = new URLSearchParams({ chainId: String(dzapChainId), fromTokenAddress: sc_input.toLowerCase(), toTokenAddress: sc_output.toLowerCase(), amount: String(amount_in_big), slippage: getSlippageValue(), userAddress: userAddr });
         return { url: `https://api.dzap.io/v1/quote?${params.toString()}`, method: 'GET', headers: {} };
       },
       parseResponse: (response, { des_output, chainName }) => {
@@ -1798,7 +1798,7 @@
         },
         connectedWallets: [],
         selectedWallets: {},
-        slippage: "1", // 1% slippage (Rango uses "1" not "1.0")
+        slippage: getSlippageValue(), // USER-CONFIGURABLE slippage
         contractCall: false,
         swapperGroups: [
           "Across", "AllBridge", "Arbitrum Bridge", "Bridgers", "Chainflip",
@@ -2606,7 +2606,7 @@
         ? getRandomApiKeyRocketX()
         : 'znYxDQz2P46Dsbdj5slpe9i5ofpv4hkOaUuyV6xU';
 
-      const apiUrl = `https://api.rocketx.exchange/v1/quotation?fromToken=${fromToken}&fromNetwork=${rxChain}&toToken=${toToken}&toNetwork=${rxChain}&amount=${amountInTokens}&slippage=1&walletLess=false`;
+      const apiUrl = `https://api.rocketx.exchange/v1/quotation?fromToken=${fromToken}&fromNetwork=${rxChain}&toToken=${toToken}&toNetwork=${rxChain}&amount=${amountInTokens}&slippage=${getSlippageValue()}&walletLess=false`;
 
       return {
         url: apiUrl,
@@ -2697,7 +2697,7 @@
           `&srcChainId=${chainId}&destChainId=${chainId}` +
           `&srcTokenAddress=${fromToken}&destTokenAddress=${toToken}` +
           `&srcTokenAmount=${srcAmount}` +
-          `&insufficientBal=true&resetApproval=false&gasIncluded=true&gasIncluded7702=false&slippage=0.5`;
+          `&insufficientBal=true&resetApproval=false&gasIncluded=true&gasIncluded7702=false&slippage=${getSlippageValue()}`;
 
         const quotes = [];
         let settled = false;
@@ -2873,7 +2873,7 @@
           toNetworkId:           networkId,
           protocol:              'Swap',
           userAddress:           walletAddr,
-          slippagePercentage:    '1',
+          slippagePercentage:    getSlippageValue(),
           autoSlippage:          'true',
           receivingAddress:      walletAddr,
           kind:                  'sell',
@@ -3043,7 +3043,7 @@
             toNetworkId:            networkId,
             protocol:               'Swap',
             userAddress:            walletAddr,
-            slippagePercentage:     '1',
+            slippagePercentage:     getSlippageValue(),
             autoSlippage:           'true',
             receivingAddress:       walletAddr,
             kind:                   'sell',
@@ -3478,6 +3478,21 @@
 
     // Default fallback (should not reach here)
     return { selectedStrategy: primary, fallbackStrategy: null, mode: 'unknown', isRotation: false };
+  }
+
+  /**
+   * Get slippage tolerance from localStorage or default.
+   * Returns string for direct use in request parameters.
+   */
+  function getSlippageValue() {
+    try {
+      const v = (typeof window !== 'undefined' && typeof window.getSlippageTolerance === 'function')
+        ? window.getSlippageTolerance()
+        : 0.3;
+      return String(v || 0.3);
+    } catch (_) {
+      return '0.3';
+    }
   }
 
   /**
