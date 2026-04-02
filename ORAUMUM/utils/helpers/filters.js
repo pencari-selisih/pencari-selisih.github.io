@@ -38,6 +38,22 @@
         saveToLocalStorage(key, f);
     }
 
+    // Slippage tolerance helpers
+    function getSlippageTolerance() {
+        try {
+            const stored = parseFloat(localStorage.getItem('SLIPPAGE_TOLERANCE'));
+            return isFinite(stored) && stored > 0 ? stored : 0.3;  // Default 0.3%
+        } catch (_) { return 0.3; }
+    }
+
+    function setSlippageTolerance(value) {
+        const v = parseFloat(value);
+        const clean = isFinite(v) && v > 0 ? v : 0.3;
+        try {
+            localStorage.setItem('SLIPPAGE_TOLERANCE', clean);
+        } catch (_) { }
+    }
+
     function getFilterMulti() {
         const f = getFromLocalStorage('FILTER_MULTICHAIN', null);
         if (f && typeof f === 'object') return {
@@ -162,6 +178,8 @@
     if (typeof window !== 'undefined') {
         window.getPNLFilter = getPNLFilter;
         window.setPNLFilter = setPNLFilter;
+        window.getSlippageTolerance = getSlippageTolerance;
+        window.setSlippageTolerance = setSlippageTolerance;
         window.getFilterMulti = getFilterMulti;
         window.setFilterMulti = setFilterMulti;
         window.getFilterChain = getFilterChain;

@@ -2678,9 +2678,25 @@ async function deferredInit() {
         try {
             setPNLFilter(clean);
             $(this).val(clean);
-            try { if (typeof toast !== 'undefined' && toast.info) toast.info(`PNL Filter diset: $${clean}`); } catch (_) { }
-            // Clear previously displayed scan signal cards when PNL filter changes
-            try { if (typeof window.clearSignalCards === 'function') window.clearSignalCards(); } catch (_) { }
+        } catch (_) { }
+    });
+
+    // Initialize and persist Slippage Tolerance input
+    function syncSlippageInputFromStorage() {
+        try {
+            const v = (typeof getSlippageTolerance === 'function') ? getSlippageTolerance() : 0.3;
+            $('#slippageInput').val(v);
+        } catch (_) { }
+    }
+    syncSlippageInputFromStorage();
+
+    $(document).on('change blur', '#slippageInput', function () {
+        const raw = $(this).val();
+        const v = parseFloat(raw);
+        const clean = isFinite(v) && v > 0 ? v : 0.3;
+        try {
+            setSlippageTolerance(clean);
+            $(this).val(clean);
         } catch (_) { }
     });
 

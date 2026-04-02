@@ -2495,9 +2495,12 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
 
   // ✅ REFACTORED: Badge logic berdasarkan tipe routing
   // Regular DEX: no badge
-  // MetaDEX: show provider name as badge
+  // MetaDEX: show provider name as badge dengan warna sesuai arah
+  // CEX→DEX (TokenToPair) = hijau (#00AA00)
+  // DEX→CEX (PairToToken) = merah (#FF0000)
+  const dexBadgeColor = (trx === "TokentoPair") ? "#00AA00" : "#FF0000";
   const dexInfoDisplay = isMetaDex && providerInfo
-    ? ` <span style="color:#ff6b35; font-size:11px; font-weight:bold;">[${providerInfo}]</span>`
+    ? ` <span style="color:${dexBadgeColor}; font-size:11px; font-weight:bold;">[${providerInfo}]</span>`
     : '';
 
   const sLink = `
