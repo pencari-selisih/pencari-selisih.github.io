@@ -464,7 +464,6 @@
 
                 // ✅ baseFull: DEX biasa saja — MetaDEX TIDAK masuk default
                 // MetaDEX hanya muncul jika user CENTANG di filter scanner (tersimpan di saved.dex)
-
                 const baseFull = Object.keys(window.CONFIG_DEXS || {}).filter(key => {
                     const cfg = (window.CONFIG_DEXS || {})[key];
                     if (!cfg || cfg.disabled) return false;
@@ -473,10 +472,21 @@
                     return true;
                 });
 
-                // ✅ Helper: merge list dengan metaDexKeys (deduplikasi)
-                const mergeWithMeta = (list) => {
-                    const arr = Array.isArray(list) ? list : Object.keys(list || {});
-                    return [...new Set([...arr.map(x => String(x).toLowerCase()), ...metaDexKeys])];
+                // ✅ FIX: Definisikan metaDexKeys — kunci MetaDEX yang aktif dan dicentang user
+                // Ini adalah DEX yang memiliki isMetaDex=true, tidak disabled, tidak isBackendProvider
+                const metaDexAllKeys = Object.keys(window.CONFIG_DEXS || {}).filter(key => {
+                    const cfg = (window.CONFIG_DEXS || {})[key];
+                    return cfg && cfg.isMetaDex && !cfg.disabled && !cfg.isBackendProvider;
+                }).map(x => String(x).toLowerCase());
+
+                // ✅ FIX: mergeWithMeta — gabungkan list DEX biasa + MetaDEX yang ada di saved filter
+                // Hanya MetaDEX yang ADA di saved.dex (user centang) yang masuk
+                const mergeWithMeta = (list, savedDex) => {
+                    const arr = (Array.isArray(list) ? list : Object.keys(list || {})).map(x => String(x).toLowerCase());
+                    // Ambil MetaDEX yang user centang (ada di saved.dex)
+                    const savedSet = new Set((Array.isArray(savedDex) ? savedDex : []).map(x => String(x).toLowerCase()));
+                    const metaSelected = metaDexAllKeys.filter(k => savedSet.has(k));
+                    return [...new Set([...arr, ...metaSelected])];
                 };
 
                 const m = getAppMode();
@@ -487,17 +497,23 @@
                     // Jika ada filter tersimpan (termasuk MetaDEX yg dicentang user), pakai itu
                     // Jika tidak, pakai base dari chain (tanpa MetaDEX)
                     const list = (Array.isArray(saved.dex) && saved.dex.length) ? saved.dex : base;
-                    return filterSolanaOnly(filterBackend(list), chain);
+                    // ✅ Merge MetaDEX yang dicentang user ke dalam list
+                    const merged = mergeWithMeta(list, saved.dex);
+                    return filterSolanaOnly(filterBackend(merged), chain);
                 } else if (window.CEXModeManager && window.CEXModeManager.isCEXMode()) {
                     const saved = (typeof getFilterCEX === 'function')
                         ? getFilterCEX(window.CEXModeManager.getSelectedCEX())
                         : { dex: [] };
                     const list = (Array.isArray(saved.dex) && saved.dex.length) ? saved.dex : baseFull;
-                    return filterBackend(list);
+                    // ✅ Merge MetaDEX yang dicentang user ke dalam list
+                    const merged = mergeWithMeta(list, saved.dex);
+                    return filterBackend(merged);
                 } else {
                     const saved = getFilterMulti() || { dex: [] };
                     const list = (Array.isArray(saved.dex) && saved.dex.length) ? saved.dex : baseFull;
-                    return filterBackend(list);
+                    // ✅ Merge MetaDEX yang dicentang user ke dalam list
+                    const merged = mergeWithMeta(list, saved.dex);
+                    return filterBackend(merged);
                 }
             } catch (_) {
                 return Object.keys(window.CONFIG_DEXS || {})
