@@ -23,9 +23,16 @@ async function fetchDexQuotesKyber(chainKey, srcToken, destToken, amountWei, dec
             const chainId = CONFIG_CHAINS[chainKey]?.Kode_Chain;
             const chainName = KRYSTAL_CHAIN_ID_MAP[Number(chainId)];
             if (!chainName) return [];
+            
+            // ✅ Get dynamic slippage
+            const slippagePercent = typeof getSlippageTolerance === 'function'
+                ? String(getSlippageTolerance())
+                : '0.3';
+            
             const url = `https://api.krystal.app/${chainName}/v2/swap/allRates` +
                 `?src=${srcToken}&srcAmount=${amountWei}&dest=${destToken}` +
-                `&platformWallet=${KRYSTAL_PLATFORM_WALLET_KB}`;
+                `&platformWallet=${KRYSTAL_PLATFORM_WALLET_KB}` +
+                `&slippage=${slippagePercent}`;
             const resp = await fetchWithRetry(url);
             if (!resp.ok) return [];
             const data = await resp.json();
@@ -47,8 +54,15 @@ async function fetchDexQuotesKyber(chainKey, srcToken, destToken, amountWei, dec
             // CTD: Kyber Aggregator API langsung
             const chainName = KYBER_CHAIN_MAP[chainKey];
             if (!chainName) return [];
+            
+            // ✅ Get dynamic slippage (Kyber API uses slippageBps parameter)
+            const slippageBps = typeof getSlippageInBps === 'function'
+                ? String(getSlippageInBps())
+                : '30';
+            
             const url = `https://aggregator-api.kyberswap.com/${chainName}/api/v1/routes` +
-                `?tokenIn=${srcToken}&tokenOut=${destToken}&amountIn=${amountWei}&gasInclude=true`;
+                `?tokenIn=${srcToken}&tokenOut=${destToken}&amountIn=${amountWei}&gasInclude=true` +
+                `&slippageBps=${slippageBps}`;
             const resp = await fetchWithRetry(url, { headers: { 'x-client-id': 'hybridapp' } });
             if (!resp.ok) return [];
             const data = await resp.json();

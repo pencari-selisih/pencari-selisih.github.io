@@ -3,13 +3,16 @@ function fetchDexQuotesMetax(chainId, srcToken, destToken, amountWei) {
     const cacheKey = `dex:mx:${chainId}:${srcToken}:${destToken}:${amountWei}`;
     return cacheWrap(cacheKey, 900, () => new Promise(resolve => {
         const userAddr = CFG.wallet || '0x0000000000000000000000000000000000000000';
+        const slippagePercent = typeof getSlippageTolerance === 'function'
+            ? String(getSlippageTolerance())
+            : '0.3';  // default 0.3%
         const params = new URLSearchParams({
             walletAddress: userAddr, destWalletAddress: userAddr,
             srcChainId: chainId, destChainId: chainId,
             srcTokenAddress: srcToken, destTokenAddress: destToken,
             srcTokenAmount: amountWei,
             insufficientBal: 'true', resetApproval: 'false',
-            gasIncluded: 'true', gasIncluded7702: 'false', slippage: '0.5'
+            gasIncluded: 'true', gasIncluded7702: 'false', slippage: slippagePercent
         });
         const url = `https://bridge.api.cx.metamask.io/getQuoteStream?${params}`;
         const quotes = []; let done = false;

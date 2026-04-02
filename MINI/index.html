@@ -186,26 +186,33 @@
                     <input class="settings-input" id="setWallet" type="text" placeholder="0x...">
                 </div>
 
-                <!-- Notif Suara + AutoLevel -->
-                <div class="settings-grid-2 mb8">
+                <!-- Notif Suara + AutoLevel + Slippage (Satu Baris) -->
+                <div class="settings-grid-3 mb8">
                     <div class="settings-toggle-row">
-                        <span class="settings-toggle-lbl-sm">🔔 Notif Suara</span>
+                        <label class="settings-label">🔔 Notif Suara</label>
                         <input type="checkbox" id="setSoundMuted" class="settings-toggle-chk">
                     </div>
                     <div class="settings-field" id="autoLevelField">
                         <label class="settings-label">Auto Level</label>
                         <input class="settings-input" id="setLevelCount" type="number" min="1" max="4" value="2">
                     </div>
+                    <div class="settings-field">
+                        <label class="settings-label">Slippage(%)</label>
+                        <input class="settings-input" id="setSlippage" type="number" min="0.01" max="100" step="0.01"
+                            placeholder="0.3" title="Default: 0.3%">
+                    </div>
                 </div>
 
-                <!-- DEX on/off + route counts -->
-                <div class="settings-row">
-                    <label class="settings-label">DEX Scanner <span class="settings-hint">ketuk toggle untuk
-                            aktifkan/nonaktifkan</span></label>
+               
+            </div>
+ <!-- DEX on/off + route counts -->
+                <div class="settings-card">
+                   
+                        <h3>SCANNER DEX </h3>
+                            <span class="settings-hint">ketuk toggle untuk
+                            aktifkan/nonaktifkan</span>
                     <div id="dexSettingsContainer"></div>
                 </div>
-            </div>
-
             <div class="settings-card">
                 <h3>FILTER KOIN [<span id="filterCoinCount">0</span> KOIN]</h3>
                 <div class="settings-row">
@@ -233,7 +240,7 @@
 
             <!-- SETTINGS CARD: CEX Wallet Fee WD -->
             <div class="settings-card" id="cexWalletCard">
-                <h3>CEK BIAYA WD & STATUS DEPOSIT/WITHDRAW</h3>
+                <h3>CEK DEPOSIT/WITHDRAW CEX</h3>
                 <div class="settings-row">
                     <label class="settings-label">
                         <span class="settings-hint">(terakhir diperbarui: <span id="walletLastUpdate">—</span>)</span>
@@ -478,6 +485,7 @@
     </div>
 
     <script src="utils/db.js"></script>
+    <script src="utils/slippage-helper.js"></script>
     <script src="config.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <audio id="audioComplete" src="complete.mp3" preload="auto"></audio>

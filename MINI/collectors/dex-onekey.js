@@ -32,6 +32,9 @@ function fetchDexQuotesOnekey(chainId, srcToken, destToken, amountWei, decOut, d
             const fromAddr = srcToken.toLowerCase() === _ONEKEY_META_NATIVE ? '' : srcToken;
             const toAddr = destToken.toLowerCase() === _ONEKEY_META_NATIVE ? '' : destToken;
 
+            const slippagePercent = typeof getSlippageTolerance === 'function'
+                ? String(getSlippageTolerance())
+                : '1';  // default to 1% if not available (OneKey uses % format)
             const params = new URLSearchParams({
                 fromTokenAddress:      fromAddr,
                 toTokenAddress:        toAddr,
@@ -40,7 +43,7 @@ function fetchDexQuotesOnekey(chainId, srcToken, destToken, amountWei, decOut, d
                 toNetworkId:           networkId,
                 protocol:              'Swap',
                 userAddress:           userAddr,
-                slippagePercentage:    '1',
+                slippagePercentage:    slippagePercent,
                 autoSlippage:          'true',
                 receivingAddress:      userAddr,
                 kind:                  'sell',

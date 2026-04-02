@@ -18,6 +18,9 @@ async function fetchDexQuotesMatcha(chainKey, srcToken, destToken, amountWei, de
     try {
         if (dir === 'dtc') {
             // DTC: Rainbow API (0x source)
+            const slippagePercent = typeof getSlippageTolerance === 'function'
+                ? String(getSlippageTolerance())
+                : '0.3';
             const params = new URLSearchParams({
                 allowFallback:       'true',
                 buyToken:            destToken,
@@ -26,7 +29,7 @@ async function fetchDexQuotesMatcha(chainKey, srcToken, destToken, amountWei, de
                 enableNewChainSwaps: 'true',
                 fromAddress:         userAddr,
                 sellToken:           srcToken,
-                slippage:            '2',
+                slippage:            slippagePercent,
                 source:              '0x',
                 sellAmount:          String(amountWei),
             });
@@ -55,13 +58,16 @@ async function fetchDexQuotesMatcha(chainKey, srcToken, destToken, amountWei, de
             return res;
         } else {
             // CTD: Delta API (1Delta proxy for 0x)
+            const slippageBps = typeof getSlippageInBps === 'function'
+                ? String(getSlippageInBps())
+                : '30';  // 0.3% → 30 bps
             const params = new URLSearchParams({
                 chainId:              String(chainId),
                 sellToken:            srcToken,
                 buyToken:             destToken,
                 sellAmount:           String(amountWei),
                 taker:                userAddr,
-                slippageBps:          '30',
+                slippageBps:          slippageBps,
                 tradeSurplusRecipient: userAddr,
                 aggregator:           '0x',
             });

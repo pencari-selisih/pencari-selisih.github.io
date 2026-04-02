@@ -138,38 +138,43 @@ function updateScanCount() {
 }
 
 function renderFilterChips() {
-    // Hitung jumlah koin per CEX berdasarkan filter chain + pair aktif (tanpa filter CEX)
-    const _allToks = getTokens();
-    const _cexCounts = {};
-    _allToks.forEach(t => {
-        const chainOk = CFG.activeChains.length === 0 || CFG.activeChains.includes(t.chain);
-        const pairTk = (t.tickerPair || 'USDT').toUpperCase();
-        const isStable = STABLE_COINS.has(pairTk);
-        const pairOk = CFG.pairType === 'all' || (CFG.pairType === 'stable' ? isStable : !isStable);
-        if (chainOk && pairOk) _cexCounts[t.cex] = (_cexCounts[t.cex] || 0) + 1;
-    });
+    try {
+        // Hitung jumlah koin per CEX berdasarkan filter chain + pair aktif (tanpa filter CEX)
+        const _allToks = getTokens();
+        const _cexCounts = {};
+        _allToks.forEach(t => {
+            const chainOk = CFG.activeChains.length === 0 || CFG.activeChains.includes(t.chain);
+            const pairTk = (t.tickerPair || 'USDT').toUpperCase();
+            const isStable = STABLE_COINS.has(pairTk);
+            const pairOk = CFG.pairType === 'all' || (CFG.pairType === 'stable' ? isStable : !isStable);
+            if (chainOk && pairOk) _cexCounts[t.cex] = (_cexCounts[t.cex] || 0) + 1;
+        });
 
-    // CEX filter chips (multi-select toggle)
-    $('#filterCexChips').html(Object.entries(CONFIG_CEX).map(([k, v]) => {
-        const on = CFG.activeCex.length === 0 || CFG.activeCex.includes(k);
-        const cnt = _cexCounts[k] || 0;
-        return `<span class="fchip${on ? ' on' : ''}" style="--c: var(--cex-${k})" data-key="${k}" data-type="cex"
-          onclick="toggleFilterChip(this,'cex')">
-          <img src="icons/cex/${k}.png" class="chip-icon" onerror="this.style.display='none'">
-          ${v.label}<span class="chip-count">${cnt}</span></span>`;
-    }).join(''));
-    // Chain filter chips (multi-select toggle)
-    $('#filterChainChips').html(Object.entries(CONFIG_CHAINS).map(([k, v]) => {
-        const on = CFG.activeChains.length === 0 || CFG.activeChains.includes(k);
-        return `<span class="fchip${on ? ' on' : ''}" style="--c: var(--chain-${k})" data-key="${k}" data-type="chain"
-          onclick="toggleFilterChip(this,'chain')">
-          <img src="icons/chains/${k}.png" class="chip-icon" onerror="this.style.display='none'">
-          ${v.label}</span>`;
-    }).join(''));
-    // Pair type chips — sync active state
-    document.querySelectorAll('#filterPairTypeChips .pair-type-chip').forEach(el => {
-        el.classList.toggle('on', el.dataset.val === (CFG.pairType || 'all'));
-    });
+        // CEX filter chips (multi-select toggle)
+        const cexHtml = Object.entries(CONFIG_CEX).map(([k, v]) => {
+            const on = CFG.activeCex.length === 0 || CFG.activeCex.includes(k);
+            const cnt = _cexCounts[k] || 0;
+            return `<span class="fchip${on ? ' on' : ''}" style="--c: var(--cex-${k})" data-key="${k}" data-type="cex" onclick="toggleFilterChip(this,'cex')"><img src="icons/cex/${k}.png" class="chip-icon" onerror="this.style.display='none'"> ${v.label} <span class="chip-count">${cnt}</span></span>`;
+        }).join('');
+        
+        // inject langsung — element selalu ada di DOM (hanya display:none saat tab tidak aktif)
+        $('#filterCexChips').html(cexHtml);
+
+        // Chain filter chips (multi-select toggle)
+        const chainHtml = Object.entries(CONFIG_CHAINS).map(([k, v]) => {
+            const on = CFG.activeChains.length === 0 || CFG.activeChains.includes(k);
+            return `<span class="fchip${on ? ' on' : ''}" style="--c: var(--chain-${k})" data-key="${k}" data-type="chain" onclick="toggleFilterChip(this,'chain')"><img src="icons/chains/${k}.png" class="chip-icon" onerror="this.style.display='none'"> ${v.label}</span>`;
+        }).join('');
+
+        $('#filterChainChips').html(chainHtml);
+
+        // Pair type chips — sync active state
+        document.querySelectorAll('#filterPairTypeChips .pair-type-chip').forEach(el => {
+            el.classList.toggle('on', el.dataset.val === (CFG.pairType || 'all'));
+        });
+    } catch (err) {
+        console.error('[renderFilterChips] Error:', err);
+    }
 }
 
 function setPairTypeFilter(val) {
@@ -269,6 +274,8 @@ function loadSettings() {
     if (onboardNameEl) onboardNameEl.textContent = appName;
     const titleEl = document.getElementById('appTitle');
     if (titleEl) titleEl.textContent = appName;
+    // Render filter chips (always, whether tab is active or not)
+    // This will ensure chips appear when Settings tab is opened
     renderFilterChips();
     updateScanCount();
 }
@@ -455,69 +462,71 @@ function _calcUsedSlots(excludeKey) {
 }
 
 function renderDexSettings() {
-    const container = document.getElementById('dexSettingsContainer');
-    if (!container) return;
-    container.innerHTML = '';
+    try {
+        const container = document.getElementById('dexSettingsContainer');
+        if (!container) return;
+        container.innerHTML = '';
 
-    const MAX = APP_DEV_CONFIG.maxDexDisplay || 6;
+        const MAX = APP_DEV_CONFIG.maxDexDisplay || 6;
 
-    Object.entries(CONFIG_DEX).forEach(([key, cfg]) => {
-        if (!cfg.enabled) return;
-        const isActive = CFG.dex?.[key]?.active !== false;
-        const div = document.createElement('div');
-        div.className = 'dex-setting-row' + (isActive ? ' dex-setting-on' : '');
-        div.id = `dexRow_${key}`;
+        Object.entries(CONFIG_DEX).forEach(([key, cfg]) => {
+            if (!cfg.enabled) return;
+            const isActive = CFG.dex?.[key]?.active !== false;
+            const div = document.createElement('div');
+            div.className = 'dex-setting-row' + (isActive ? ' dex-setting-on' : '');
+            div.id = `dexRow_${key}`;
 
-        let countHtml = '';
-        if (cfg.hasCount) {
-            const count = CFG.dex[key]?.count || cfg.count;
-            // Max route untuk MetaDEX ini = sisa slot jika key exclude dirinya sendiri
-            const slots = _calcUsedSlots(key);
-            const maxRoute = isActive ? Math.max(1, slots.remaining) : cfg.count;
-            countHtml = `<span class="dex-count-lbl">Route</span>
+            let countHtml = '';
+            if (cfg.hasCount) {
+                const count = CFG.dex[key]?.count || cfg.count;
+                const slots = _calcUsedSlots(key);
+                const maxRoute = isActive ? Math.max(1, slots.remaining) : cfg.count;
+                countHtml = `<span class="dex-count-lbl">Route</span>
                 <input class="settings-input dex-count-inp" id="setQuote_${key}" type="number" min="1" max="${maxRoute}"
                     value="${Math.min(count, maxRoute)}" ${isActive ? '' : 'disabled'}>`;
+            }
+
+            div.innerHTML = `
+                <span class="dex-sw-wrap" onclick="toggleDexSetting('${key}')">
+                    <span class="dex-sw${isActive ? ' on' : ''}"></span>
+                </span>
+                <span class="dex-setting-badge" style="background:var(--dex-${key})">${cfg.badge}</span>
+                <span class="dex-setting-name${isActive ? '' : ' dex-setting-off'}">${cfg.label}</span>
+                ${countHtml}
+            `;
+            container.appendChild(div);
+
+            if (cfg.hasCount) {
+                const inp = div.querySelector('.dex-count-inp');
+                if (inp) inp.addEventListener('change', function () {
+                    const slots = _calcUsedSlots(key);
+                    const maxAllowed = Math.max(1, slots.remaining);
+                    const v = Math.min(maxAllowed, Math.max(1, parseInt(this.value) || cfg.count));
+                    this.value = v;
+                    if (!CFG.dex[key]) CFG.dex[key] = {};
+                    CFG.dex[key].count = v;
+                    _syncLegacyDexCounts();
+                    _persistCFG();
+                    renderDexSettings();
+                    showToast(`✓ ${cfg.label} Route: ${v} (slot terpakai: ${slots.used + v}/${MAX})`);
+                });
+            }
+        });
+
+        // Tampilkan info total slot — gunakan insertAdjacentElement (lebih compat)
+        const total = totalQuoteCount();
+        let infoEl = document.getElementById('dexSlotInfo');
+        if (!infoEl) {
+            infoEl = document.createElement('div');
+            infoEl.id = 'dexSlotInfo';
+            infoEl.style.cssText = 'font-size:11px;color:var(--muted);margin-top:8px;text-align:right;padding-right:4px;';
+            container.insertAdjacentElement('afterend', infoEl);
         }
-
-        div.innerHTML = `
-            <span class="dex-sw-wrap" onclick="toggleDexSetting('${key}')">
-                <span class="dex-sw${isActive ? ' on' : ''}"></span>
-            </span>
-            <span class="dex-setting-badge" style="background:var(--dex-${key})">${cfg.badge}</span>
-            <span class="dex-setting-name${isActive ? '' : ' dex-setting-off'}">${cfg.label}</span>
-            ${countHtml}
-        `;
-        container.appendChild(div);
-
-        if (cfg.hasCount) {
-            div.querySelector('.dex-count-inp').addEventListener('change', function () {
-                // Ambil max ulang saat user mengubah (state mungkin berubah)
-                const slots = _calcUsedSlots(key);
-                const maxAllowed = Math.max(1, slots.remaining);
-                const v = Math.min(maxAllowed, Math.max(1, parseInt(this.value) || cfg.count));
-                this.value = v;
-                if (!CFG.dex[key]) CFG.dex[key] = {};
-                CFG.dex[key].count = v;
-                _syncLegacyDexCounts();
-                _persistCFG();
-                // Re-render agar input lain juga update max-nya
-                renderDexSettings();
-                showToast(`✓ ${cfg.label} Route: ${v} (slot terpakai: ${slots.used + v}/${MAX})`);
-            });
-        }
-    });
-
-    // Tampilkan info total slot di bawah list
-    const total = totalQuoteCount();
-    let infoEl = document.getElementById('dexSlotInfo');
-    if (!infoEl) {
-        infoEl = document.createElement('div');
-        infoEl.id = 'dexSlotInfo';
-        infoEl.style.cssText = 'font-size:11px;color:var(--muted);margin-top:8px;text-align:right;padding-right:4px;';
-        container.after(infoEl);
+        const slotCls = total >= MAX ? 'color:#f87171' : 'color:var(--accent)';
+        infoEl.innerHTML = `Kolom DEX tampil: <b style="${slotCls}">${total}</b> / <b>${MAX}</b>`;
+    } catch (err) {
+        console.error('[renderDexSettings] Error:', err);
     }
-    const slotCls = total >= MAX ? 'color:#f87171' : 'color:var(--accent)';
-    infoEl.innerHTML = `Kolom DEX tampil: <b style="${slotCls}">${total}</b> / <b>${MAX}</b>`;
 }
 
 function toggleDexSetting(key) {
@@ -614,7 +623,14 @@ function switchTab(tabId) {
     // Reset cache agar data selalu fresh dari localStorage saat pindah tab
     clearTokenCache();
     if (tabId === 'tabToken') { renderTokenList(); renderDexConfig(); }
-    if (tabId === 'tabSettings') loadSettings();
+    if (tabId === 'tabSettings') {
+        loadSettings();
+        // Defer render agar DOM tab Settings sudah settled sebelum inject
+        setTimeout(function () {
+            renderDexSettings();
+            renderFilterChips();
+        }, 0);
+    }
     if (tabId === 'tabMonitor' && !scanning) {
         _lastBuildN = 0; // force full rebuild agar hasil scan lama terhapus
         _cardEls.clear();

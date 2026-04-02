@@ -19,9 +19,16 @@ async function fetchDexQuotesOkx(chainId, srcToken, destToken, amountWei, decOut
                 // DTC: Krystal allRates API — filter platform "OKX Dex"
                 const chainName = KRYSTAL_CHAIN_ID_MAP_OX[Number(chainId)];
                 if (!chainName) return [];
+                
+                // ✅ Get dynamic slippage
+                const slippagePercent = typeof getSlippageTolerance === 'function'
+                    ? String(getSlippageTolerance())
+                    : '0.3';
+                
                 const url = `https://api.krystal.app/${chainName}/v2/swap/allRates` +
                     `?src=${srcToken}&srcAmount=${amountWei}&dest=${destToken}` +
-                    `&platformWallet=${KRYSTAL_PLATFORM_WALLET_OX}`;
+                    `&platformWallet=${KRYSTAL_PLATFORM_WALLET_OX}` +
+                    `&slippage=${slippagePercent}`;
                 const resp = await fetchWithRetry(url);
                 if (!resp.ok) return [];
                 const data = await resp.json();
@@ -55,6 +62,12 @@ async function fetchDexQuotesOkx(chainId, srcToken, destToken, amountWei, decOut
                 const userAddr = CFG.wallet || '0x0000000000000000000000000000000000000000';
                 const amount = parseFloat(amountWei) / Math.pow(10, decIn);
                 if (!isFinite(amount) || amount <= 0) return [];
+                
+                // ✅ Get dynamic slippage (for Coin98 API, using slippagePercent format)
+                const slippagePercent = typeof getSlippageTolerance === 'function'
+                    ? String(getSlippageTolerance())
+                    : '0.3';
+                
                 const isNativeSrc = srcToken.toLowerCase() === _C98_NATIVE;
                 const isNativeDst = destToken.toLowerCase() === _C98_NATIVE;
                 const token0 = { chainId: Number(chainId), decimals: decIn };
@@ -66,6 +79,7 @@ async function fetchDexQuotesOkx(chainId, srcToken, destToken, amountWei, decOut
                 const body = JSON.stringify({
                     isAuto: true, amount, token0, token1,
                     backer: ['OKX'], wallet: userAddr,
+                    slippage: slippagePercent,
                 });
                 const targetUrl = 'https://superlink-server.coin98.tech/quote';
                 const resp = await proxyFetch(targetUrl, {

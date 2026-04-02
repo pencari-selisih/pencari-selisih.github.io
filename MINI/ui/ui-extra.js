@@ -249,6 +249,110 @@ async function calcUpdatePrice() {
     }
 }
 
+// ─── Settings Load/Save Functions ─────────────────────────
+/**
+ * Load settings dari storage (db/localStorage) ke UI fields
+ */
+function loadSettings() {
+    try {
+        // Load username
+        const username = dbGet(LS_SETTINGS)?.username || '';
+        $('#setUsername').val(username);
+        CFG.username = username;
+
+        // Load wallet
+        const wallet = dbGet(LS_SETTINGS)?.wallet || '';
+        $('#setWallet').val(wallet);
+        CFG.wallet = wallet;
+
+        // Load speed
+        const speed = dbGet(LS_SETTINGS)?.interval || 800;
+        CFG.interval = speed;
+        $('#speedChips button').removeClass('active').filter(`[data-speed="${speed}"]`).addClass('active');
+
+        // Load soundMuted
+        const soundMuted = dbGet(LS_SETTINGS)?.soundMuted || false;
+        $('#setSoundMuted').prop('checked', soundMuted);
+        CFG.soundMuted = soundMuted;
+
+        // Load level count
+        const levelCount = dbGet(LS_SETTINGS)?.levelCount || 2;
+        $('#setLevelCount').val(levelCount);
+        CFG.levelCount = levelCount;
+
+        // Load slippage tolerance ✅ NEW
+        const slippage = getSlippageTolerance?.();
+        if (slippage !== undefined) {
+            $('#setSlippage').val(slippage);
+        }
+
+        // Load DEX settings
+        const dexSettings = dbGet(LS_SETTINGS)?.dex || {};
+        Object.entries(dexSettings).forEach(([key, settings]) => {
+            if (CFG.dex?.[key]) {
+                CFG.dex[key] = { ...CFG.dex[key], ...settings };
+            }
+        });
+
+        _syncLegacyDexCounts();
+    } catch (e) {
+        console.warn('[loadSettings]', e);
+    }
+}
+
+/**
+ * Save settings dari UI fields ke storage
+ */
+function saveSettings() {
+    try {
+        const username = $('#setUsername').val() || '';
+        const wallet = $('#setWallet').val() || '';
+        const interval = +$('#speedChips button.active').data('speed') || 800;
+        const soundMuted = $('#setSoundMuted').prop('checked') || false;
+        const levelCount = +$('#setLevelCount').val() || 2;
+        const slippage = +$('#setSlippage').val() || 0.3;  // ✅ NEW
+
+        // Update CFG
+        CFG.username = username;
+        CFG.wallet = wallet;
+        CFG.interval = interval;
+        CFG.soundMuted = soundMuted;
+        CFG.levelCount = levelCount;
+
+        // Save slippage via helper ✅ NEW
+        if (typeof setSlippageTolerance === 'function') {
+            setSlippageTolerance(slippage);
+        }
+
+        // Save to DB
+        const settings = {
+            username,
+            wallet,
+            interval,
+            soundMuted,
+            levelCount,
+            dex: CFG.dex,
+        };
+        dbSet(LS_SETTINGS, settings);
+
+        _syncLegacyDexCounts();
+        showToast('✅ Pengaturan disimpan!');
+    } catch (e) {
+        console.warn('[saveSettings]', e);
+        showToast('🗑️ Error menyimpan pengaturan');
+    }
+}
+
+/**
+ * Speed chip event handlers
+ */
+$(function () {
+    $(document).on('click', '#speedChips button', function () {
+        $('#speedChips button').removeClass('active');
+        $(this).addClass('active');
+    });
+});
+
 async function calcCekToken() {
     const sym = ($('#cfCustomSym').val() || '').trim().toLowerCase();
     if (!sym) { showAlert('Isi symbol token terlebih dahulu (contoh: SOL)', 'Cek Token', 'warn'); return; }
@@ -281,5 +385,31 @@ async function calcCekToken() {
         showToast('🗑️ Error: ' + e.message);
     }
 }
+
+// ─── REAL-TIME SLIPPAGE CHANGE HANDLER (Like Auto Level) ─────
+// ✅ NEW: Event listener untuk notif & auto-save ketika user ubah slippage
+$(function () {
+    $('#setSlippage').on('input', function () {
+        let value = +$(this).val() || 0.3;
+        
+        // Validate range
+        if (value < 0.01) {
+            value = 0.01;
+            $(this).val(value);
+        }
+        if (value > 100) {
+            value = 100;
+            $(this).val(value);
+        }
+        
+        // Real-time save to storage
+        if (typeof setSlippageTolerance === 'function') {
+            setSlippageTolerance(value);
+        }
+        
+        // Show real-time notification (like Auto Level)
+        showToast('✅ Slippage: ' + value.toFixed(2) + '%');
+    });
+});
 
 window.__uiExtraLoaded = true;

@@ -49,6 +49,9 @@ function fetchDexQuotesJumpx(chainId, srcToken, destToken, amountWei) {
     return cacheWrap(cacheKey, 900, () => new Promise(async resolve => {
         try {
             const userAddr = CFG.wallet || '0x0000000000000000000000000000000000000000';
+            const slippageDecimal = typeof getSlippageAsDecimal === 'function'
+                ? getSlippageAsDecimal()
+                : 0.003;  // default 0.3% → 0.003
             const body = {
                 fromChainId: Number(chainId),
                 toChainId: Number(chainId),
@@ -57,7 +60,7 @@ function fetchDexQuotesJumpx(chainId, srcToken, destToken, amountWei) {
                 fromAmount: amountWei.toString(),
                 fromAddress: userAddr,
                 toAddress: userAddr,
-                options: { slippage: 0.03, order: 'RECOMMENDED', allowSwitchChain: false }
+                options: { slippage: slippageDecimal, order: 'RECOMMENDED', allowSwitchChain: false }
             };
             const resp = await fetch('https://li.quest/v1/advanced/routes', {
                 method: 'POST',

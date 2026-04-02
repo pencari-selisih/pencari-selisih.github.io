@@ -9,7 +9,7 @@
 // ============================================================
 const APP_DEV_CONFIG = {
   appName: "MINI SCANNER",
-  appVersion: "04.01",
+  appVersion: "04.04",
 
   telegramBotToken: "8053447166:AAH7YYbyZ4eBoPX31D8H3bCYdzEeIaiG4JU",
   telegramGroupId: "-5271018516",

@@ -70,6 +70,9 @@ async function fetchDexQuoteslifidex(chainId, srcToken, destToken, amountWei, de
             // CTD: Temple API (LIFI proxy)
             const chainIdNum = Number(chainId);
             const userAddr = CFG.wallet || '0x0000000000000000000000000000000000000000';
+            const slippagePercent = typeof getSlippageTolerance === 'function'
+                ? String(getSlippageTolerance())
+                : '0.3';  // default 0.3%
             const params = new URLSearchParams({
                 fromChain: chainIdNum.toString(),
                 toChain: chainIdNum.toString(),
@@ -77,7 +80,7 @@ async function fetchDexQuoteslifidex(chainId, srcToken, destToken, amountWei, de
                 toToken: destToken,
                 amount: amountWei.toString(),
                 fromAddress: userAddr,
-                slippage: '0.005',
+                slippage: slippagePercent,
             });
             const url = `https://temple-api-evm.prod.templewallet.com/api/swap-route?${params}`;
             const resp = await proxyFetch(url, {
