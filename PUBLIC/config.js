@@ -3,7 +3,7 @@ const CONFIG_APP = {
         NAME: "PENCARI-SELISIH",
         // NAME: "WATCHMARKET",
         // NAME: "APP PRIVATE",
-        VERSION: "2026.04.02",
+        VERSION: "2026.04.04",
         SCAN_LIMIT: true,
         AUTORUN: false,
         AUTO_VOLUME: false,  // cek volume otomatis untuk filter dan alert
