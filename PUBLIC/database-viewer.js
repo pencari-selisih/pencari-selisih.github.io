@@ -1210,10 +1210,16 @@
                                 <input class="uk-input uk-form-small db-table-search" type="text" placeholder="Cari di tabel ini...">
                             </div>
                             ` : ''}
-                            <button class="uk-button uk-button-small uk-button-default export-table-btn" data-table="${table.name}" title="Export to JSON">
-                                <span uk-icon="icon: download; ratio: 0.7"></span>
-                                Export
-                            </button>
+                            ${table.type === 'koin' ? `
+                                <button class="uk-button uk-button-small uk-button-default export-csv-btn" data-table="${table.name}" title="Export to CSV">
+                                    <span uk-icon="icon: download; ratio: 0.7"></span>
+                                    Export CSV
+                                </button>
+                                <button class="uk-button uk-button-small uk-button-primary import-csv-btn" data-table="${table.name}" title="Import dari CSV">
+                                    <span uk-icon="icon: upload; ratio: 0.7"></span>
+                                    Import CSV
+                                </button>
+                            ` : ''}
                             <button class="uk-button uk-button-small uk-button-danger delete-table-btn" data-table="${table.name}" title="Hapus Tabel">
                                 <span uk-icon="icon: trash; ratio: 0.7"></span>
                                 Hapus
@@ -1239,8 +1245,8 @@
      */
     function bindAccordionEvents() {
         $('.db-table-header').off('click').on('click', function (e) {
-            // Jangan toggle jika klik di button export
-            if ($(e.target).closest('.export-table-btn').length > 0) {
+            // Jangan toggle jika klik di button (export, import, delete)
+            if ($(e.target).closest('.export-csv-btn, .import-csv-btn, .delete-table-btn').length > 0) {
                 return;
             }
 
@@ -1317,11 +1323,18 @@
             });
         });
 
-        // Bind export buttons
-        $('.export-table-btn').off('click').on('click', function (e) {
+        // Bind export CSV buttons (for koin tables only)
+        $('.export-csv-btn').off('click').on('click', function (e) {
             e.stopPropagation();
             const tableName = $(this).data('table');
-            exportTableToJSON(tableName);
+            exportTableToCSV(tableName);
+        });
+
+        // Bind import CSV buttons (for koin tables only)
+        $('.import-csv-btn').off('click').on('click', function (e) {
+            e.stopPropagation();
+            const tableName = $(this).data('table');
+            importFromCSV(tableName);
         });
 
         // Bind delete buttons
@@ -1363,6 +1376,286 @@
             console.error('[Database Viewer] Export error:', err);
             if (typeof toast !== 'undefined' && toast.error) {
                 toast.error('Gagal export data');
+            }
+        }
+    }
+
+    /**
+     * Export token/koin data to CSV file
+     */
+    function exportTableToCSV(tableName) {
+        const table = allTablesData[tableName];
+        if (!table || !Array.isArray(table.data) || table.data.length === 0) {
+            if (typeof toast !== 'undefined' && toast.error) {
+                toast.error('Tabel kosong atau tidak ditemukan');
+            }
+            return;
+        }
+
+        try {
+            // ✅ Kolom-kolom spesifik untuk export (user-defined columns)
+            const exportHeaders = [
+                'id', 'selectedCexs', 'status', 'symbol_in', 'symbol_out',
+                'sc_in', 'des_in', 'sc_out', 'des_out', 'cex',
+                'depositToken', 'withdrawToken', 'depositPair', 'withdrawPair'
+            ];
+
+            // Build CSV content with simple headers (no quotes around header names)
+            let csvContent = exportHeaders.join(',') + '\n';
+            
+            table.data.forEach(item => {
+                const row = exportHeaders.map(header => {
+                    let value = item[header] !== undefined ? item[header] : '';
+                    // Handle different data types
+                    if (Array.isArray(value)) {
+                        value = value.join(';');
+                    } else if (typeof value === 'object' && value !== null) {
+                        value = JSON.stringify(value);
+                    }
+                    // Escape quotes dan newlines
+                    value = String(value).replace(/"/g, '""').replace(/\n/g, ' ');
+                    return `"${value}"`;
+                });
+                csvContent += row.join(',') + '\n';
+            });
+
+            // Create and download blob
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${tableName}_${new Date().getTime()}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            if (typeof toast !== 'undefined' && toast.success) {
+                toast.success(`Export ${table.displayName} ke CSV berhasil (${table.data.length} baris)`);
+            }
+        } catch (err) {
+            console.error('[Database Viewer] CSV Export error:', err);
+            if (typeof toast !== 'undefined' && toast.error) {
+                toast.error('Gagal export ke CSV');
+            }
+        }
+    }
+
+    /**
+     * Import token/koin data from CSV file
+     * 
+     * Expected CSV columns (in any order):
+     * id, selectedCexs, status, symbol_in, symbol_out, sc_in, des_in, sc_out, des_out,
+     * cex, depositToken, withdrawToken, depositPair, withdrawPair
+     * 
+     * Data type auto-detection:
+     * - "true"/"false" → boolean
+     * - numeric strings → number
+     * - "[...]" → JSON array
+     * - "{...}" → JSON object
+     * - "value;value;..." → array (semicolon-separated)
+     * - others → string
+     */
+    function importFromCSV(tableName) {
+        const table = allTablesData[tableName];
+        if (!table || table.type !== 'koin') {
+            if (typeof toast !== 'undefined' && toast.error) {
+                toast.error('Hanya bisa import ke tabel koin');
+            }
+            return;
+        }
+
+        // Create hidden file input
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.csv';
+        fileInput.style.display = 'none';
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Validate file type
+            if (!file.name.endsWith('.csv')) {
+                if (typeof toast !== 'undefined' && toast.error) {
+                    toast.error('File harus berformat CSV');
+                }
+                return;
+            }
+
+            try {
+                const text = await file.text();
+                const lines = text.trim().split('\n');
+                
+                if (lines.length < 2) {
+                    if (typeof toast !== 'undefined' && toast.error) {
+                        toast.error('File CSV harus memiliki header dan minimal 1 data');
+                    }
+                    return;
+                }
+
+                // Parse CSV
+                const headers = parseCSVLine(lines[0]);
+                const importedData = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    const values = parseCSVLine(lines[i]);
+                    if (values.length === 0) continue;
+
+                    const item = {};
+                    headers.forEach((header, idx) => {
+                        let value = values[idx] || '';
+                        
+                        // Try to parse boolean values
+                        if (value === 'true') value = true;
+                        else if (value === 'false') value = false;
+                        // Try to parse numbers
+                        else if (!isNaN(value) && value !== '') value = Number(value);
+                        // Try to parse JSON arrays/objects
+                        else if ((value.startsWith('[') && value.endsWith(']')) || 
+                                 (value.startsWith('{') && value.endsWith('}'))) {
+                            try {
+                                value = JSON.parse(value);
+                            } catch (_) {
+                                // Keep as string if JSON parse fails
+                            }
+                        }
+                        // Handle semicolon-separated arrays
+                        else if (value.includes(';')) {
+                            value = value.split(';');
+                        }
+
+                        item[header] = value;
+                    });
+                    
+                    if (Object.keys(item).length > 0) {
+                        importedData.push(item);
+                    }
+                }
+
+                if (importedData.length === 0) {
+                    if (typeof toast !== 'undefined' && toast.error) {
+                        toast.error('Tidak ada data yang bisa di-import');
+                    }
+                    return;
+                }
+
+                // Confirm import
+                const confirmMsg = `Import ${importedData.length} koin ke ${table.displayName}?\n\nData lama akan DIGANTI!`;
+                if (!confirm(confirmMsg)) {
+                    return;
+                }
+
+                // Save to IndexedDB
+                saveImportedKoinData(tableName, importedData, table);
+
+            } catch (err) {
+                console.error('[Database Viewer] CSV Import error:', err);
+                if (typeof toast !== 'undefined' && toast.error) {
+                    toast.error('Gagal import CSV: ' + err.message);
+                }
+            }
+
+            // Clean up file input
+            document.body.removeChild(fileInput);
+        });
+
+        document.body.appendChild(fileInput);
+        fileInput.click();
+    }
+
+    /**
+     * Helper function to parse CSV line (handles quoted values)
+     */
+    function parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let insideQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            const nextChar = line[i + 1];
+
+            if (char === '"') {
+                if (insideQuotes && nextChar === '"') {
+                    // Escaped quote
+                    current += '"';
+                    i++; // Skip next quote
+                } else {
+                    // Toggle quote state
+                    insideQuotes = !insideQuotes;
+                }
+            } else if (char === ',' && !insideQuotes) {
+                // End of field
+                result.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+
+        // Add last field
+        result.push(current.trim());
+        return result;
+    }
+
+    /**
+     * Save imported koin data to IndexedDB
+     */
+    async function saveImportedKoinData(tableName, importedData, table) {
+        try {
+            // Find the storage method and key
+            const kvIndex = new Map();
+            Object.entries(root.CONFIG_DB?.STORES || {}).forEach(([key, val]) => {
+                kvIndex.set(String(val || '').toLowerCase(), { rawKey: key });
+            });
+
+            const rawKey = (kvIndex.get(tableName.toLowerCase()) || {}).rawKey || tableName;
+
+            // Try using storage module if available
+            if (typeof root.saveToLocalStorageAsync === 'function') {
+                const ok = await root.saveToLocalStorageAsync(rawKey, importedData);
+                if (ok) {
+                    // Update local data
+                    allTablesData[tableName].data = importedData;
+                    allTablesData[tableName].count = importedData.length;
+                    
+                    // Refresh display
+                    refresh();
+                    
+                    if (typeof toast !== 'undefined' && toast.success) {
+                        toast.success(`Import ${importedData.length} koin berhasil!`);
+                    }
+                    return;
+                }
+            }
+
+            // Fallback to IndexedDB
+            const db = await openDatabase();
+            const tx = db.transaction([DB_CONFIG.store], 'readwrite');
+            const store = tx.objectStore(DB_CONFIG.store);
+            
+            const req = store.put(importedData, rawKey);
+            await new Promise((resolve, reject) => {
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(new Error('Failed to save to IndexedDB'));
+            });
+
+            // Update local data
+            allTablesData[tableName].data = importedData;
+            allTablesData[tableName].count = importedData.length;
+
+            // Refresh display
+            refresh();
+
+            if (typeof toast !== 'undefined' && toast.success) {
+                toast.success(`Import ${importedData.length} koin berhasil!`);
+            }
+        } catch (err) {
+            console.error('[Database Viewer] Save import error:', err);
+            if (typeof toast !== 'undefined' && toast.error) {
+                toast.error('Gagal menyimpan data import: ' + err.message);
             }
         }
     }

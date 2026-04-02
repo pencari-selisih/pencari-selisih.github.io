@@ -1251,6 +1251,34 @@ function isDarkMode() { // REFACTORED
 
 /**
  * Render computed fees/PNL and swap link into a DEX cell; drive signal panel and Telegram.
+ * 
+ * ✅ SIGNAL ROUTING LOGIC (META-DEX):
+ * ────────────────────────────────────────────────────────────────────────────────────
+ * Sinyal dari META-DEX aggregator (LIFI/METAX/DZAP/ONEKEY) dirutingkan ke card DEX 
+ * yang menemukan harga terbaik, BUKAN ke card aggregator-nya sendiri.
+ * 
+ * CONTOH:
+ *   - META-DEX METAX scanning token A→B menemukan harga terbaik di DEX ODOS
+ *   - Signal dikirim ke: Card ODOS (bukan Card METAX)
+ *   - Badge [MT] muncul di Card ODOS untuk menunjukkan signal berasal dari METAX
+ *   - Card METAX tetap kosong (signal tidak tampil di sana)
+ * 
+ * Parameter aggregatorKey di InfoSinyal() digunakan untuk:
+ *   - Menentukan badge yang ditampilkan ([MT], [JM], [DZ], [KY], dll)
+ *   - Mengidentifikasi signal berasal dari META-DEX
+ *   - FILTER: Jika signal dari META-DEX DAN target adalah META-DEX card → SKIP
+ * 
+ * IMPLEMENTASI:
+ *   1. DisplayPNL() menghitung best PNL dari multi-route
+ *   2. Tentukan signalDexType:
+ *      - Jika hanya 1 provider (single-route) → route ke DEX spesifik
+ *      - Jika multi-provider → route ke card aggregator
+ *   3. Set aggregatorKeyForBadge = aggregator asal jika routing ke DEX spesifik
+ *   4. Panggil InfoSinyal(..., aggregatorKeyForBadge)
+ *   5. InfoSinyal() cek: "apakah signal dari META-DEX & target adalah META-DEX?"
+ *      - Jika YA → SKIP (jangan tampilkan)
+ *      - Jika TIDAK → Tampilkan signal dengan badge
+ * ────────────────────────────────────────────────────────────────────────────────────
  */
 function DisplayPNL(data) {
   const {
@@ -1451,7 +1479,7 @@ function DisplayPNL(data) {
       // Get DEX color from config
       const dexKey = String(dextype || '').toLowerCase();
       const dexConfig = (typeof window !== 'undefined' && window.CONFIG_DEXS) ? window.CONFIG_DEXS[dexKey] : null;
-      const dexColor = dexConfig?.warna || '#ff6b35';
+      const dexColor = dexConfig?.warna || '#050505ff';
       const dexLabel = dexConfig?.label || String(dextype).toUpperCase();
 
       // ⚠️ READ maxProviders from user setting (SETTING_SCANNER.metaDex.topRoutes), fallback to config or 3
@@ -1723,9 +1751,7 @@ function DisplayPNL(data) {
           ? `<a class="${_wdCls}" href="${metaWdUrl}" target="_blank" rel="noopener" title="FEE WITHDRAW">${_wdText}: ${subFeeWD.toFixed(4)}$</a>`
           : `<a class="${_dpCls}" href="${metaDpUrl}" target="_blank" rel="noopener">${_dpText}</a>`;
 
-        // Ikon sumber fee pendek untuk span SW
-        const subFeeSrcLblShort = subFeeSrc === 'api' ? '✅' : subFeeSrc === 'calc' ? '↗' : '⚠️';
-
+    
         // ✅ link ⬆/⬇ pakai divTitle penuh — IDENTIK dengan DEX reguler (tipBuy = tipSell = __titleLog)
         const tipFull = divTitle;
 
@@ -1738,7 +1764,7 @@ function DisplayPNL(data) {
               <a class="monitor-line uk-text-success dex-price-link" href="${buyLink}" target="_blank" rel="noopener" title="${tipFull}">⬆ ${fmtUSD(buyPrice)}</a>
               <a class="monitor-line uk-text-danger dex-price-link" href="${sellLink}" target="_blank" rel="noopener" title="${tipFull}">⬇ ${fmtUSD(sellPrice)}</a>
               <span class="monitor-line">${feeLabel1}</span>
-              <span class="monitor-line uk-text-dark" title="${divTitle}">💸 SW: ${feeSwap.toFixed(4)}$ ${subFeeSrcLblShort}</span>
+              <span class="monitor-line uk-text-dark" title="${divTitle}">💸 SW: ${feeSwap.toFixed(4)}$  </span>
               <span class="monitor-line uk-text-danger" title="BRUTO ~ TOTAL FEE">[${subBruto.toFixed(2)} ~ <b style="font-size: larger;">${subTotalFee.toFixed(2)}</b>]</span>
               <span class="monitor-line ${pnlClass}" title="PROFIT / LOSS" style="font-weight: bold;">💰 PNL: ${subPnl.toFixed(2)}</span>
             </span>
@@ -1807,73 +1833,112 @@ function DisplayPNL(data) {
         el.classList.remove('dex-cell-highlight');
       }
 
-      // *** SIGNAL untuk DZAP/LIFI - kirim sinyal jika ada PNL, dengan warning jika volume tidak cukup ***
-      // Always show signal if PNL > 0, pass volume flag for warning indicator
+      // *** SIGNAL untuk DZAP/LIFI - kirim sinyal untuk SETIAP provider yang profit ***
+      // NEW: Loop semua providers dan kirim signal individual ke card META-DEX
       if (hasSignal && typeof InfoSinyal === 'function') {
-        // Hitung total fee untuk best provider
-        const bestSubRes = subResults[0]; // Provider terbaik (sudah di-sort)
-        const bestFeeSwap = n(bestSubRes?.FeeSwap || bestSubRes?.fee || 0);
+        // ✅ KIRIM SIGNAL PER PROVIDER (bukan hanya best)
+        // ⚠️ PENTING: Signal dari META-DEX harus dikirim ke CARD METADEX SENDIRI (bukan provider card)
+        // Dengan parameter aggregatorKey untuk menampilkan provider name sebagai badge
+        // Contoh: METAX menemukan best price di ODOS → signal ke card METAX (dengan badge [ODOS])
+        // 
+        // Ini BERBEDA dari DEX Regular yang route ke card DEX sendiri (tanpa aggregator).
+        // MetaDEX signals route ke MetaDEX card dengan provider info sebagai badge display.
+        const aggregatorSourceDex = dextype;  // Aggregator DEX name (METAX, LIFI, DZAP, dll)
+        const aggregatorSourceLower = lower(aggregatorSourceDex);
 
-        // ✅ REFACTORED: feeTransfer pakai gas onchain 65000 units (bukan estimasi feeSwap*0.5)
-        const bestFeeTransfer = direction === 'pairtotoken'
-          ? ((typeof getTransferFeeUSD === 'function') ? getTransferFeeUSD(nameChain) : (bestFeeSwap * 0.5))
-          : 0;
-        const bestFeeWD = direction === 'tokentopair' ? baseFeeWD : 0;
-        const bestTotalFee = bestFeeSwap + bestFeeWD + bestFeeTransfer + baseFeeTrade;
+        // Loop setiap provider dan kirim signal jika profit
+        // ⚠️ IMPORTANT: Harus re-calculate PNL per provider karena subRes object tidak menyimpan PNL
+        let signalCount = 0;
+        for (let i = 0; i < Math.min(subResults.length, maxProviders); i++) {
+          const subRes = subResults[i];
+          
+          // ✅ Re-calculate PNL untuk provider ini (SAMA LOGIC seperti di subColsHtml loop)
+          const amtIn_sig = direction === 'tokentopair'
+            ? (buyTokenCEX > 0 ? baseModal / buyTokenCEX : 0)
+            : baseModal;
+          const amtOut_sig = n(subRes.amount_out || subRes.amountOut || 0);
+          
+          // Calculate exchange rate & total value
+          let subTotalValue_sig = 0;
+          if (direction === 'tokentopair') {
+            const dexRate = amtIn_sig > 0 ? (amtOut_sig / amtIn_sig) : 0;
+            const isUsdtPair = upper(Name_out) === 'USDT';
+            subTotalValue_sig = isUsdtPair ? amtOut_sig : (amtOut_sig * sellPairCEX);
+          } else {
+            subTotalValue_sig = amtOut_sig * sellTokenCEX;
+          }
+          
+          // Calculate fees
+          const feeSwap_sig = n(subRes.FeeSwap || subRes.fee || 0);
+          const subFeeTransfer_sig = direction === 'pairtotoken'
+            ? ((typeof getTransferFeeUSD === 'function') ? getTransferFeeUSD(nameChain) : (feeSwap_sig * 0.5))
+            : 0;
+          const subFeeWD_sig = direction === 'tokentopair' ? baseFeeWD : 0;
+          const subTotalFee_sig = feeSwap_sig + subFeeWD_sig + subFeeTransfer_sig + baseFeeTrade;
+          
+          // Calculate PNL
+          const subBruto_sig = subTotalValue_sig - baseModal;
+          const subPnlValue_sig = subBruto_sig - subTotalFee_sig;
 
-        const bestProfitPercent = baseModal > 0 ? ((bestPnl / baseModal) * 100) : 0;
+          // Hanya kirim signal jika provider ini profit (PNL > 0)
+          if (subPnlValue_sig > 0) {
+            const subProfitPercent = baseModal > 0 ? ((subPnlValue_sig / baseModal) * 100) : 0;
 
-        // FIX: Jika hanya 1 provider di subResults, kirim sinyal ke card provider tersebut
-        // Jika lebih dari 1 provider, kirim ke card aggregator (LIFI/DZAP)
-        const signalDexType = (subResults.length === 1 && bestSubRes?.dexTitle)
-          ? lower(bestSubRes.dexTitle)  // Kirim ke card DEX spesifik jika hanya 1 provider
-          : lower(dextype);              // Kirim ke card aggregator jika multi-provider
+            // Provider name dari dexTitle (untuk badge display)
+            const providerName = subRes.dexTitle ? String(subRes.dexTitle) : `Provider_${i}`;
+            
+            // ✅ FIX CRITICAL: Route signal ke CARD METADEX (aggregatorSourceLower), bukan ke provider card
+            // Provider info (providerName) akan ditampilkan sebagai badge di card MetaDEX
+            const signalTargetDex = aggregatorSourceLower;  // ← Routing: card MetaDEX (METAX, LIFI, DZAP)
 
-        // Log berbeda tergantung volume sufficiency
-        if (volumeSufficient) {
-          console.log(`✅ [Multi-DEX] Sending signal to: ${signalDexType}, Token: ${Name_in}->${Name_out}, PNL: ${bestPnl.toFixed(2)}`);
-        } else {
-          console.warn(`⚠️  [Multi-DEX] Sending signal WITH WARNING (insufficient volume) for ${Name_in}->${Name_out} on ${dextype}:`, {
-            bestPnl: bestPnl.toFixed(2),
-            maxModal: data.maxModal?.toFixed(2),
-            actualModal: data.autoVolResult?.actualModal?.toFixed(2)
-          });
+            if (volumeSufficient) {
+              console.log(`✅ [Multi-DEX/${aggregatorSourceDex}] Signal #${i + 1} (provider: ${providerName}): ${Name_in}->${Name_out}, PNL: ${subPnlValue_sig.toFixed(2)}, routing to: #sinyal${signalTargetDex}`);
+            }
+
+            // Kirim signal KE CARD METADEX, dengan provider name sebagai badge
+            InfoSinyal(
+              signalTargetDex,      // ✅ ROUTING: Target card adalah MetaDEX card (METAX, LIFI, DZAP)
+              NameX,                // Token pair
+              subPnlValue_sig,      // PNL provider ini (baru dihitung)
+              subTotalFee_sig,      // Total fee
+              upper(cex),           // CEX name
+              Name_in,              // Input token
+              Name_out,             // Output token
+              subProfitPercent,     // Profit %
+              baseModal,            // Modal
+              nameChain,            // Chain
+              codeChain,            // Chain code
+              trx,                  // Direction
+              idPrefix,             // ID prefix
+              baseId,               // Base ID
+              volumeSufficient,     // Volume flag
+              providerName          // ✅ aggregatorKey: provider name untuk badge display di MetaDEX card
+            );
+
+            signalCount++;
+          }
         }
 
-        // Kirim signal dengan volume flag
-        InfoSinyal(
-          signalDexType,            // DEX type: provider spesifik atau aggregator
-          NameX,                    // Token pair name
-          bestPnl,                  // PNL terbaik
-          bestTotalFee,             // Total fee
-          upper(cex),               // CEX name
-          Name_in,                  // Input token
-          Name_out,                 // Output token
-          bestProfitPercent,        // Profit percentage
-          baseModal,                // Modal
-          nameChain,                // Chain name
-          codeChain,                // Chain code
-          trx,                      // Direction
-          idPrefix,                 // ID prefix
-          baseId,                   // Base ID
-          volumeSufficient          // ✅ NEW: Pass volume sufficiency flag
-        );
+        // Log jika beberapa provider loss
+        if (signalCount < Math.min(subResults.length, maxProviders)) {
+          const skipped = Math.min(subResults.length, maxProviders) - signalCount;
+          console.log(`ℹ️ [Multi-DEX] ${skipped} provider(s) skipped (loss atau PNL ≤ 0) for ${Name_in}->${Name_out}`);
+        }
+
+        if (signalCount === 0) {
+          console.log(`⚠️ [Multi-DEX] No provider profit (all PNL ≤ 0) for ${Name_in}->${Name_out} on ${dextype}`);
+        }
       } else if (hasSignal && !volumeSufficient) {
         // 🔍 DEBUG: Signal suppressed due to insufficient volume
-        console.log(`⚠️  [Multi-DEX] Signal NOT shown (insufficient volume) for ${Name_in}->${Name_out} on ${dextype}:`, {
+        console.log(`⚠️  [Multi-DEX] Signal SUPPRESSED due to insufficient volume for ${Name_in}->${Name_out}:`, {
           bestPnl: bestPnl.toFixed(2),
           maxModal: data.maxModal?.toFixed(2),
           actualModal: data.autoVolResult?.actualModal?.toFixed(2)
         });
       } else if (!hasSignal) {
         // 🔍 DEBUG: Log when no signal (PNL ≤ 0 - loss atau break-even)
-        console.log(`⚠️ [Multi-DEX] No signal (PNL ≤ 0) for ${Name_in}->${Name_out} on ${dextype}:`, {
+        console.log(`⚠️ [Multi-DEX] No signal (best PNL ≤ 0) for ${Name_in}->${Name_out} on ${dextype}:`, {
           bestPnl: bestPnl.toFixed(2)
-        });
-      } else if (hasSignal && !shouldHighlight) {
-        // ℹ️ DEBUG: Signal shown but not highlighted (PNL positif tapi < filter)
-        console.log(`ℹ️ [Multi-DEX] Signal shown WITHOUT highlight for ${Name_in}->${Name_out} on ${dextype}:`, {
-          bestPnl: bestPnl.toFixed(2), filterPNLValue, reason: 'PNL positive but below filter'
         });
       }
 
@@ -2285,7 +2350,113 @@ function DisplayPNL(data) {
   } catch (_) { }
 }
 
-function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair, profitLossPercent, modal, nameChain, codeChain, trx, idPrefix, domIdOverride, volumeSufficient = true) {
+/**
+ * ✅ REFACTORED: Determine signal routing based on DEX type
+ * 
+ * PRINSIP ROUTING SIGNAL:
+ * ════════════════════════════════════════════════════════════════════
+ * 1. REGULAR DEX (non-MetaDEX)
+ *    - Signal masuk ke: Card DEX tersebut
+ *    - Badge: TIDAK ada
+ *    - Contoh: Signal dari ODOS → Card ODOS
+ * 
+ * 2. META-DEX AGGREGATOR (MetaDEX)
+ *    - Signal masuk ke: Card MetaDEX
+ *    - Badge: YA, menampilkan nama provider dari response MetaDEX
+ *    - Contoh: Signal dari METAX (provider=ODOS) → Card METAX + badge [ODOS]
+ * 
+ * ════════════════════════════════════════════════════════════════════
+ * PARAMETER:
+ * - dexKey: Nama DEX dari response (misal 'metax', 'odos', 'lifi')
+ * - aggregatorKey: Provider name dari MetaDEX response (misal 'ODOS', 'CURVE')
+ * 
+ * RETURN:
+ * - isMetaDex: Boolean, apakah DEX ini adalah MetaDEX
+ * - targetCard: Kartu mana yang akan menerima signal (id: sinyal${targetCard})
+ * - dexLabel: Display label untuk DEX
+ * - providerInfo: Nama provider (untuk badge, hanya jika MetaDEX)
+ * ════════════════════════════════════════════════════════════════════
+ */
+function determineSignalRouting(dexKey, aggregatorKey) {
+  /**
+   * ROUTING DECISION LOGIC untuk Signal Cards
+   * ═══════════════════════════════════════════════════════════════════════════
+   * 
+   * CASE 1: REGULAR DEX (non-MetaDEX) ← aggregatorKey = null
+   * ─────────────────────────────────────────────────────────────────────────
+   * Input:  dexKey = 'odos', aggregatorKey = null
+   * Output: targetCard = 'odos', isMetaDex = false, providerInfo = null
+   * Result: Signal tampil di card ODOS, tanpa badge provider
+   * 
+   * CASE 2: METADEX (Aggregator) dengan provider info ← aggregatorKey = provider name
+   * ─────────────────────────────────────────────────────────────────────────
+   * Input:  dexKey = 'metax', aggregatorKey = 'odos' (provider yang menemukan best price)
+   * Output: targetCard = 'metax', isMetaDex = true, providerInfo = 'ODOS'
+   * Result: Signal tampil di card METAX, dengan badge [ODOS] (provider name)
+   * 
+   * LOGIC SUMMARY:
+   * ┌─────────────────────────────────────────────────────────────────────────┐
+   * │ IF dexKey in CONFIG_DEXS AND CONFIG_DEXS[dexKey].isMetaDex === true:    │
+   * │    → route ke MetaDEX card (targetCard = dexKey)                        │
+   * │    → show provider badge jika aggregatorKey ada                         │
+   * │ ELSE:                                                                   │
+   * │    → route ke DEX card (targetCard = dexKey)                            │
+   * │    → no badge, langsung tampil sebagai signal DEX biasa                 │
+   * └─────────────────────────────────────────────────────────────────────────┘
+   */
+  
+  const dexKeyLower = String(dexKey).toLowerCase();
+  const dexConfig = (typeof window !== 'undefined' && window.CONFIG_DEXS)
+    ? window.CONFIG_DEXS[dexKeyLower]
+    : null;
+  const isMetaDex = dexConfig && dexConfig.isMetaDex === true;
+
+  // Normalize DEX key using alias map (untuk alias konsistensi seperti 0x → matcha)
+  const dexAliasMap = {
+    '0x': 'matcha',
+    'matcha': 'matcha'
+  };
+  const normalizedDex = dexAliasMap[dexKeyLower] || dexKeyLower;
+
+  return {
+    isMetaDex: isMetaDex,
+    targetCard: normalizedDex,     // Card destination for signal (id: sinyal${targetCard})
+    dexLabel: (dexConfig && dexConfig.label) ? String(dexConfig.label).toUpperCase() : String(dexKey).toUpperCase(),
+    providerInfo: aggregatorKey ? String(aggregatorKey).toUpperCase() : null  // Provider name from MetaDEX response (for badge display)
+  };
+}
+
+function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair, profitLossPercent, modal, nameChain, codeChain, trx, idPrefix, domIdOverride, volumeSufficient = true, aggregatorKey = null) {
+  // ✅ REFACTORED: Signal routing dengan prinsip jelas
+  // 
+  // ROUTING LOGIC:
+  // ═══════════════════════════════════════════════════════════════════
+  // Input parameter:
+  // - DEXPLUS: DEX name dari response (misal 'metax', 'odos', 'lifi')
+  // - aggregatorKey: Provider name dari MetaDEX (misal 'odos', 'curve')
+  //                  hanya ada jika signal dari MetaDEX multi-provider
+  // 
+  // Output:
+  // Determine routing berdasarkan isMetaDex dari CONFIG_DEXS
+  // ═══════════════════════════════════════════════════════════════════
+  
+  const routing = determineSignalRouting(DEXPLUS, aggregatorKey);
+  const dexLowerKey = routing.targetCard;
+  const isMetaDex = routing.isMetaDex;
+  const providerInfo = routing.providerInfo;
+
+  // DEBUG log untuk verify routing
+  if (aggregatorKey) {
+    console.log(`[InfoSinyal] MetaDEX Signal Routing:`, {
+      dexFrom: DEXPLUS,
+      isMetaDex: isMetaDex,
+      targetCard: dexLowerKey,
+      providerInfo: providerInfo,
+      token: `${NameToken}->${NamePair}`,
+      pnl: Number(PNL).toFixed(2)
+    });
+  }
+
   const chainData = getChainData(nameChain);
   const chainShort = String(chainData?.SHORT_NAME || chainData?.Nama_Chain || nameChain).toUpperCase();
   const warnaChain = String(chainData?.COLOR_CHAIN || chainData?.WARNA || '#94fa95');
@@ -2311,7 +2482,9 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
   const chainPart = isSingleMode2 ? '' : ` <span style="color:${warnaChain};">[${chainShort}]</span>`;
 
   // Generate unique ID untuk signal item (untuk mencegah duplicate)
-  const signalItemId = `signal_${idPrefix}${baseId}`;
+  // ✅ Include provider info in ID jika dari MetaDEX agar tidak replace signal lain
+  const providerSuffix = providerInfo ? `_${providerInfo}` : '';
+  const signalItemId = `signal_${idPrefix}${baseId}${providerSuffix}`;
 
   // ✅ NEW: Add warning indicator if volume insufficient
   const volumeWarning = !volumeSufficient ? ' ⚠️' : '';
@@ -2320,23 +2493,18 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
   // ✅ FIX: Round modal value properly (no floating point errors)
   const modalRounded = Number(modal) >= 100 ? Math.round(Number(modal)) : Number(modal).toFixed(2);
 
-  // ✅ FIX BUG: dexLowerKey harus dideklarasikan SEBELUM dipakai di metaBadge
-  const dexAliasMap = {
-    '0x': 'matcha',
-    'matcha': 'matcha'
-  };
-  const normalizedDex = String(DEXPLUS).toLowerCase();
-  const dexLowerKey = dexAliasMap[normalizedDex] || normalizedDex;
-
-  // ✅ Badge META-DEX: badge berwarna berbeda per provider
-  const metaBadge = getMetaDexBadge(dexLowerKey, '10px', 'solid');
-
+  // ✅ REFACTORED: Badge logic berdasarkan tipe routing
+  // Regular DEX: no badge
+  // MetaDEX: show provider name as badge
+  const dexInfoDisplay = isMetaDex && providerInfo
+    ? ` <span style="color:#ff6b35; font-size:11px; font-weight:bold;">[${providerInfo}]</span>`
+    : '';
 
   const sLink = `
     <div id="${signalItemId}" class="signal-item uk-flex uk-flex-middle uk-flex-nowrap uk-text-small uk-padding-remove-vertical" >
       <a href="#${idPrefix}${baseId}" class="uk-link-reset " style="text-decoration:none; font-size:12px; margin-top:2px; margin-left:4px;">
         <span class="${Number(PNL) > filterPNLValue ? 'signal-highlight' : ''}" style="color:${warnaCEX}; ${highlightStyle}; display:inline-block; font-weight:bolder;">
-          🔸 ${String(cex).slice(0, 3).toUpperCase()}X${volumeWarning}${metaBadge}
+          🔸 ${String(cex).slice(0, 3).toUpperCase()}X${volumeWarning}${dexInfoDisplay}
           <span class="uk-text-muted">:${modalRounded}</span>
           <span class="${warnaTeksArah}"> ${NameToken}->${NamePair}</span>${chainPart}:
           <span class="uk-text-muted">${Number(PNL).toFixed(2)}$</span>
