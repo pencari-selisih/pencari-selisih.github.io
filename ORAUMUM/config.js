@@ -905,7 +905,7 @@ const CONFIG_DEXS = {
                 pairtotoken: 'bungee-kyber'    // DEX→CEX: Bungee filtered KyberSwap (rotation)
             },
             alternative: {
-                tokentopair: 'lifi-kyber',  // CEX→DEX: Krystal allRates filtered KyberSwap (fallback)
+                tokentopair: 'rabby-kyber',  // CEX→DEX: Krystal allRates filtered KyberSwap (fallback)
                 pairtotoken: 'lifi-kyber'   // DEX→CEX: Krystal allRates filtered KyberSwap (fallback)
             }
         },
@@ -1023,8 +1023,8 @@ const CONFIG_DEXS = {
                 pairtotoken: 'bungee-matcha'    // DEX→CEX: Bungee filtered 0x/Matcha (rotation)
             },
             alternative: {
-                tokentopair: 'matcha',  // CEX→DEX: Rainbow proxy 0x/Matcha (fallback)
-                pairtotoken: 'matcha'   // DEX→CEX: Rainbow proxy 0x/Matcha (fallback)
+                tokentopair: 'rabby-matcha',  // CEX→DEX: Rainbow proxy 0x/Matcha (fallback)
+                pairtotoken: 'rabby-matcha'   // DEX→CEX: Rainbow proxy 0x/Matcha (fallback)
             },
             // ✅ SOLANA OVERRIDE: For Solana chain, always use direct matcha endpoint
             solana: {
@@ -1091,7 +1091,10 @@ const CONFIG_DEXS = {
                 tokentopair: 'rabby-1inch',      // CEX→DEX: Hinkal 1inch proxy (no API key)
                 pairtotoken: 'rainbow-1inch'      // DEX→CEX: Rainbow API (source=1inch)
             },
-
+            secondary: {
+                tokentopair: 'enkrypt-1inch',    // CEX→DEX: Enkrypt 1inch proxy
+                pairtotoken: 'enkrypt-1inch'     // DEX→CEX: Enkrypt 1inch proxy
+            },
             alternative: {
                 tokentopair: 'onekey-1inch',        // CEX→DEX: OneKey filtered → 1inch provider
                 pairtotoken: 'hinkal-1inch'         // DEX→CEX: OneKey filtered → 1inch provider
@@ -1277,27 +1280,27 @@ const CONFIG_DEXS = {
         allowFallback: false
     },
 
-    // rango: {
-    //     label: 'RANGO',
-    //     badgeClass: 'bg-rango',
-    //     disabled: false,
-    //     proxy: true,
-    //     warna: "#17aedcff",
-    //     isMetaDex: true,   // ✅ Meta-DEX: multi-quote EVM + Solana
-    //     evmOnly: false,   // ✅ Support Solana
-    //     delay: 1000,
-    //     isMultiDex: true,
-    //     maxProviders: 3,   // Maks sub-kolom yang ditampilkan
-    //     builder: ({ chainCode, tokenAddress, pairAddress }) =>
-    //         `https://app.rango.exchange/?from=${chainCode}&to=${chainCode}&fromToken=${tokenAddress}&toToken=${pairAddress}`,
-    //     fetchdex: {
-    //         primary: {
-    //             tokentopair: 'rango',
-    //             pairtotoken: 'rango'
-    //         }
-    //     },
-    //     allowFallback: false
-    // },
+    rango: {
+        label: 'RANGO',
+        badgeClass: 'bg-rango',
+        disabled: false,
+        proxy: true,
+        warna: "#17aedcff",
+        isMetaDex: true,   // ✅ Meta-DEX: multi-quote EVM + Solana
+        evmOnly: false,   // ✅ Support Solana
+        delay: 1000,
+        isMultiDex: true,
+        maxProviders: 3,   // Maks sub-kolom yang ditampilkan
+        builder: ({ chainCode, tokenAddress, pairAddress }) =>
+            `https://app.rango.exchange/?from=${chainCode}&to=${chainCode}&fromToken=${tokenAddress}&toToken=${pairAddress}`,
+        fetchdex: {
+            primary: {
+                tokentopair: 'rango',
+                pairtotoken: 'rango'
+            }
+        },
+        allowFallback: false
+    },
 
     // RocketX: TIDAK dipakai sebagai kolom DEX mandiri.
     // Digunakan sebagai backend transport via 'rocketx-velora' (filtered strategy untuk kolom Velora).
