@@ -134,10 +134,13 @@ body {
 }
 
 .top-bar .app-name {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--accent-dk);
-  letter-spacing: .6px;
+  font-size: 15px;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--accent-dk) 0%, #0abf7a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: .8px;
   white-space: nowrap;
   flex-shrink: 0;
   display: flex;
@@ -3613,7 +3616,7 @@ body.is-scanning .scan-sort-group {
   }
 
   .app-name {
-    font-size: 13px !important;
+    font-size: 15px !important;
   }
 
   .app-logo {

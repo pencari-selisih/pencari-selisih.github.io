@@ -2102,6 +2102,14 @@ document.addEventListener('click', function (e) {
 
 // ─── Init ────────────────────────────────────
 $(function () {
+    // Isi nama & versi app SEGERA (tanpa tunggu DB) — config.js sudah loaded synchronous
+    (function _initAppNameImmediate() {
+        const el = document.getElementById('appNameDisplay');
+        if (el) el.textContent = APP_DEV_CONFIG.appName || 'MINI SCANNER';
+        const vEl = document.getElementById('appVersion');
+        if (vEl) vEl.textContent = 'v' + (APP_DEV_CONFIG.appVersion || '');
+    })();
+
     (window._dbReady || Promise.resolve()).then(function () {
     // Restore auto-reload state
     autoReload = !!dbGet('scanAutoReload', false);
