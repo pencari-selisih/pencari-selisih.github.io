@@ -528,6 +528,60 @@
         };
       }
     },
+    'enkrypt-1inch': {
+      proxy: true,
+      buildRequest: ({ codeChain, sc_input, sc_output, amount_in_big, SavedSettingData }) => {
+        const userAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+        const nativeAddresses = ['0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', '0x0000000000000000000000000000000000000000'];
+        
+        const srcToken = nativeAddresses.includes(sc_input.toLowerCase()) ? '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' : sc_input.toLowerCase();
+        const dstToken = nativeAddresses.includes(sc_output.toLowerCase()) ? '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' : sc_output.toLowerCase();
+
+        const chainId = codeChain || 1;
+        const params = new URLSearchParams({
+          src: srcToken,
+          dst: dstToken,
+          amount: String(amount_in_big),
+          from: userAddr,
+          receiver: userAddr,
+          slippage: typeof getSlippageValue === 'function' ? getSlippageValue() : '0.5',
+          fee: '0.875',
+          referrer: '0x551d9d8eb02e1c713009da8f7c194870d651054a',
+          disableEstimate: 'true'
+        });
+
+        return {
+          url: `https://partners.mewapi.io/oneinch/v6.0/${chainId}/swap?${params.toString()}`,
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        };
+      },
+      parseResponse: (response, { des_output, chainName }) => {
+        if (!response || !response.dstAmount) {
+          throw new Error('ENKRYPT-1INCH: Invalid response, missing dstAmount');
+        }
+
+        const amount_out = parseFloat(response.dstAmount) / Math.pow(10, des_output);
+
+        let gasEstimate = 350000;
+        if (response.tx && response.tx.gas) {
+            gasEstimate = parseFloat(response.tx.gas);
+        }
+        
+        const gweiOverride = 0.1; 
+        const calculatedFee = typeof calculateGasFeeUSD === 'function' ? calculateGasFeeUSD(chainName, gasEstimate, gweiOverride) : 0;
+        const FeeSwap = (Number.isFinite(calculatedFee) && calculatedFee > 0)
+          ? calculatedFee
+          : typeof getFeeSwap === 'function' ? getFeeSwap(chainName) : 0;
+
+        return {
+          amount_out,
+          FeeSwap,
+          dexTitle: '1INCH',
+          routeTool: 'ENKRYPT-1INCH'
+        };
+      }
+    },
     'zero-kyber': {
       buildRequest: ({ sc_input, sc_output, amount_in_big, des_input, des_output, codeChain }) => {
         const baseUrl = 'https://api.zeroswap.io/quote/kyberswap';
@@ -1353,7 +1407,14 @@
         const nativeAddresses = ['0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', '0x0000000000000000000000000000000000000000'];
         let payTokenId = nativeAddresses.includes(sc_input.toLowerCase()) ? chainSlug : sc_input.toLowerCase();
         let receiveTokenId = nativeAddresses.includes(sc_output.toLowerCase()) ? chainSlug : sc_output.toLowerCase();
-        const params = new URLSearchParams({ id: userAddr, chain_id: chainSlug, dex_id: rabbyDexId, pay_token_id: payTokenId, pay_token_raw_amount: String(amount_in_big), receive_token_id: receiveTokenId, slippage: getSlippageValue(), fee: 'true', no_pre_exec: 'true' });
+        
+        // Add prefix for non-ETH chains
+        let actualDexId = rabbyDexId;
+        if (chainSlug !== 'eth') {
+            actualDexId = `${chainSlug}_${rabbyDexId}`;
+        }
+        
+        const params = new URLSearchParams({ id: userAddr, chain_id: chainSlug, dex_id: actualDexId, pay_token_id: payTokenId, pay_token_raw_amount: String(amount_in_big), receive_token_id: receiveTokenId, slippage: getSlippageValue(), fee: 'true', no_pre_exec: 'true' });
         return { url: `https://api.rabby.io/v1/wallet/swap_quote?${params.toString()}`, method: 'GET', headers: {} };
       },
       parseResponse: (response, { des_output, chainName }) => {
@@ -3670,8 +3731,8 @@
           const _providerCfg = (_strategyProvider && root.CONFIG_DEXS && root.CONFIG_DEXS[_strategyProvider])
             ? root.CONFIG_DEXS[_strategyProvider] : {};
 
-          // Use proxy if EITHER the DEX column config OR the strategy provider config has proxy: true
-          const useProxy = cfg.proxy === true || _providerCfg.proxy === true; // MUST be explicitly true
+          // Use proxy if EITHER the DEX column config OR the strategy provider config OR the strategy itself has proxy: true
+          const useProxy = cfg.proxy === true || _providerCfg.proxy === true || strategy.proxy === true; // MUST be explicitly true
 
           const proxyPrefix = (root.CONFIG_PROXY && root.CONFIG_PROXY.PREFIX) ? String(root.CONFIG_PROXY.PREFIX) : '';
           const finalUrl = (useProxy && proxyPrefix && typeof url === 'string' && !url.startsWith(proxyPrefix)) ? (proxyPrefix + url) : url;
