@@ -152,6 +152,7 @@ body {
   font-size: 12px;
   font-weight: 600;
   color: #000;
+  -webkit-text-fill-color: initial;
   background: rgba(0, 0, 0, 0.06);
   padding: 2px 6px;
   border-radius: 8px;
@@ -282,6 +283,7 @@ body {
   font-size: 11px;
   font-weight: 700;
   color: #fff;
+  -webkit-text-fill-color: initial;
   background: var(--accent);
   padding: 3px 10px;
   border-radius: 20px;
@@ -308,6 +310,7 @@ body {
   background: rgba(230, 57, 80, 0.15);
   border: 1px solid rgba(230, 57, 80, 0.35);
   color: #e63950;
+  -webkit-text-fill-color: initial;
 }
 
 .scan-status-badge.scan-status-done {

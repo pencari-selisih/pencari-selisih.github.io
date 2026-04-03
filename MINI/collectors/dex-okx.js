@@ -56,7 +56,7 @@ async function fetchDexQuotesOkx(chainId, srcToken, destToken, amountWei, decOut
                 } catch (_) {}
                 const dec = match.decimals ?? match.destDecimals ?? decOut;
                 const name = (match.platform || 'OKX').toUpperCase();
-                return [{ amount: parseFloat(match.amount), dec, name, src: 'OX', feeSwapUsdt }];
+                return [{ amount: match.amount, dec, name, src: 'OX', feeSwapUsdt }];
             } else {
                 // CTD: C98 Superlink — backer OKX
                 const userAddr = CFG.wallet || '0x0000000000000000000000000000000000000000';
@@ -92,7 +92,8 @@ async function fetchDexQuotesOkx(chainId, srcToken, destToken, amountWei, decOut
                 const d = data?.data?.[0];
                 const toAmt = d?.amount;
                 if (toAmt == null) return [];
-                return [{ amount: parseFloat(toAmt), dec: decOut, name: 'OKXDEX', src: 'OX', feeSwapUsdt: 0 }];
+                // C98 amount is human-readable -> isHuman: true
+                return [{ amount: parseFloat(toAmt), dec: null, isHuman: true, name: 'OKXDEX', src: 'OX', feeSwapUsdt: 0 }];
             }
         } catch { return []; }
     });

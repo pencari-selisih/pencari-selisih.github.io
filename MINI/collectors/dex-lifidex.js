@@ -3,6 +3,10 @@
 // DTC: C98 Superlink tanpa filter backer — ambil best quote dari semua backer
 // Temple Docs: https://temple-api-evm.prod.templewallet.com/api/swap-route
 // C98 Docs: https://superlink-server.coin98.tech/quote
+//
+// PENTING unit amount:
+//   CTD Temple API  → toAmount dalam BASE UNITS (Wei), di-handle dengan decOut oleh scan.js
+//   DTC C98 Superlink → amount sudah HUMAN-READABLE, gunakan isHuman:true
 
 const LIFI_C98_NATIVE = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
 const LIFI_C98_WALLET = '0xB7B10292EE6c5828b20eB0942C8c1275E8344800';
@@ -62,8 +66,8 @@ async function fetchDexQuoteslifidex(chainId, srcToken, destToken, amountWei, de
                     if (Number.isFinite(gasUsd) && gasUsd > 0) feeSwapUsdt = gasUsd;
                 }
             } catch (_) { }
-            // dec = decOut karena C98 amount sudah human-readable
-            const res = [{ amount: toAmt, dec: decOut, name: `LIFI (${backerUsed})`, src: 'LF', feeSwapUsdt }];
+            // C98 amount adalah human-readable → isHuman:true agar scan.js TIDAK fromWei lagi
+            const res = [{ amount: toAmt, dec: null, isHuman: true, name: `LIFI (${backerUsed})`, src: 'LF', feeSwapUsdt }];
             cacheSet(cacheKey, res, 900);
             return res;
         } else {
@@ -89,8 +93,11 @@ async function fetchDexQuoteslifidex(chainId, srcToken, destToken, amountWei, de
             if (!resp.ok) return [];
             const data = await resp.json();
             if (!data?.toAmount) return [];
-            const amountOut = parseFloat(data.toAmount);
-            if (!isFinite(amountOut) || amountOut <= 0) return [];
+            
+            // toAmount dari Temple API = base units (wei), JANGAN parseFloat agar tidak hilang presisi
+            const amountOutWei = data.toAmount;
+            if (!amountOutWei || String(amountOutWei) === '0') return [];
+            
             let feeSwapUsdt = 0;
             try {
                 const gasCostUsd = parseFloat(data.gasCostUSD || 0);
@@ -98,6 +105,7 @@ async function fetchDexQuoteslifidex(chainId, srcToken, destToken, amountWei, de
                     feeSwapUsdt = gasCostUsd;
                 }
             } catch (_) { }
+            
             // Extract tool name from steps
             let routeName = 'LIFI';
             try {
@@ -106,8 +114,9 @@ async function fetchDexQuoteslifidex(chainId, srcToken, destToken, amountWei, de
                     if (toolName) routeName = String(toolName).toUpperCase();
                 }
             } catch (_) { }
-            // toAmount dari Temple API = base units (wei), perlu convert
-            const res = [{ amount: amountOut, dec: decOut, name: routeName, src: 'LF', feeSwapUsdt }];
+            
+            // Kirim amount sebagai string wei (isHuman tidak di-set, ada decOut) untuk di-fromWei di scan.js
+            const res = [{ amount: amountOutWei, dec: decOut, name: routeName, src: 'LF', feeSwapUsdt }];
             cacheSet(cacheKey, res, 900);
             return res;
         }
