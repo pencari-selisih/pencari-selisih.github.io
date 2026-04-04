@@ -245,6 +245,10 @@ function loadSettings() {
     $('#setUsername').val(CFG.username);
     $('#setWallet').val(CFG.wallet);
     $('#setSoundMuted').prop('checked', !CFG.soundMuted); // centang = suara ON
+    if (typeof getSlippageTolerance === 'function') {
+        const slippage = getSlippageTolerance();
+        if (slippage !== undefined) $('#setSlippage').val(slippage);
+    }
     // Dynamic DEX settings — render from CONFIG_DEX
     renderDexSettings();
     // Auto Level CEX — selalu aktif, on/off via config.js defaultAutoLevel
