@@ -1822,11 +1822,12 @@ function DisplayPNL(data) {
         }
       }
 
-      // Highlight hanya jika PNL positif dan di atas threshold
-      const shouldHighlight = bestPnl > 0 && (filterPNLValue === 0 || bestPnl > filterPNLValue);
+      // Background hijau muncul setiap ada sinyal selisih (bestPnl > 0)
+      const shouldHighlight = hasSignal;  // Background hijau saat ada sinyal
 
       if (shouldHighlight) {
-        el.style.cssText = 'text-align:center;vertical-align:middle;';
+        const multiDexGreen = 'rgba(188, 233, 97, 0.9)';
+        el.style.cssText = `text-align:center;vertical-align:middle;background-color:${multiDexGreen}!important;font-weight:bolder!important;`;
         el.classList.add('dex-cell-highlight');
       } else {
         el.style.cssText = 'text-align:center;vertical-align:middle;';
@@ -2209,9 +2210,8 @@ function DisplayPNL(data) {
   const netClass = (pnl >= 0.02) ? 'uk-text-success' : 'uk-text-danger';
   const bracket = `[${bruto.toFixed(2)} ~ <b style="font-size: larger;">${feeAll.toFixed(2)}</b>]`;
 
-  // ✅ FIXED: Background hijau hanya muncul jika profit melewati threshold filter (shouldHighlight)
-  // Background hijau TIDAK muncul hanya karena pnl > 0 (menghindari kolom hijau kosong)
-  const shouldHighlight = isHighlight;  // Border highlight (filter + volume check)
+  // Background hijau muncul setiap ada sinyal selisih (pnl > 0)
+  const shouldHighlight = hasSignal;  // Background hijau saat ada sinyal (pnl > 0)
   const chainColorHexHL = getChainColorHexByName(nameChain);
   const modeNowHL = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
   const isMultiModeHL = String(modeNowHL.type).toLowerCase() !== 'single';

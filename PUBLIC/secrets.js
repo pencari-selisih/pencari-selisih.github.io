@@ -418,7 +418,8 @@ function getRandomApiKeyRocketX() {
 // Note: This test key has low rate limits - request production key for live usage
 const apiKeysRango = [
     'c6381a79-2817-4602-83bf-6a641a409e32',  // ✅ Official Rango test API key
-    '55978f60-150d-4e21-8289-5bbfd8f5df88'   // ✅ Production API key
+    '55978f60-150d-4e21-8289-5bbfd8f5df88',   // ✅ Production API key
+'ee7da377-0ed8-4d42-aaf9-fa978a32b18d'   // ✅ Production API Enkrypt
 ];
 
 let rangoKeyIndex = 0;
