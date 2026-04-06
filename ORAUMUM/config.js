@@ -997,7 +997,7 @@ const CONFIG_DEXS = {
                 pairtotoken: 'rabby-flytrade'   // DEX→CEX: Rabby filtered → Magpie route
             }
         },
-        allowFallback: false,  // ✅ Enable rotation between primary and alternative
+        allowFallback: true,  // ✅ Enable fallback to alternative on error
     },
     matcha: {
         label: 'Matcha',
@@ -1044,11 +1044,15 @@ const CONFIG_DEXS = {
         fetchdex: {
             primary: {
                 tokentopair: 'odos3',          // CEX→DEX: Official ODOS v3 API (request ganjil)
-                pairtotoken: 'hinkal-odos'     // DEX→CEX: Hinkal ODOS proxy (request ganjil)
+                pairtotoken: 'hinkal1-odos'     // DEX→CEX: Hinkal ODOS proxy (request ganjil)
             },
-            secondary: {                       // ✅ ROTATION: bergantian dengan primary
+            secondary: {
+                tokentopair: 'hinkal2-odos',          // CEX→DEX: Official ODOS v3 API (request ganjil)
+                pairtotoken: 'lifi-odos3'     // DEX→CEX: Hinkal ODOS proxy (request ganjil)
+            },
+            alternative: {                       // ✅ ROTATION: bergantian dengan primary
                 tokentopair: 'swoop-odos',     // CEX→DEX: SWING filtered for ODOS (request genap)
-                pairtotoken: 'lifi-odos'      // DEX→CEX: SWING filtered for ODOS (request genap)
+                pairtotoken: 'swoop-odos'      // DEX→CEX: SWING filtered for ODOS (request genap)
             }
         },
         allowFallback: true,  // ✅ Jika yang dipilih gagal, coba yang lain
