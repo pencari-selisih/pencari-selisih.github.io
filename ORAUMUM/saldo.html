@@ -825,6 +825,7 @@ $(document).ready(async function () {
         if (!aggregated.length) {
             saldoEl.innerHTML = `<span class="uk-text-muted ${exClass}">Tidak ada aset</span>`;
             localStorage.setItem(`MULTI_${exchangeId}Saldo`, '0');
+            localStorage.removeItem(`MULTI_${exchangeId}_DETAIL`);
             return;
         }
 
@@ -845,6 +846,7 @@ $(document).ready(async function () {
         if (!visibleAssets.length) {
             saldoEl.innerHTML = `<span class="uk-text-muted ${exClass}">Tidak Ada</span>`;
             localStorage.setItem(`MULTI_${exchangeId}Saldo`, '0');
+            localStorage.removeItem(`MULTI_${exchangeId}_DETAIL`);
             return;
         }
 
@@ -934,6 +936,7 @@ $(document).ready(async function () {
         } catch(e) {
             setCEXStatus('BINANCE','error',e.message);
             localStorage.setItem('MULTI_BINANCESaldo','0');
+            localStorage.removeItem('MULTI_BINANCE_DETAIL');
         }
     }
 
@@ -955,6 +958,7 @@ $(document).ready(async function () {
         } catch(e) {
             setCEXStatus('GATE','error',e.message);
             localStorage.setItem('MULTI_GATESaldo','0');
+            localStorage.removeItem('MULTI_GATE_DETAIL');
         }
     }
 
@@ -972,6 +976,7 @@ $(document).ready(async function () {
         } catch(e) {
             setCEXStatus('BITGET','error',e.message);
             localStorage.setItem('MULTI_BITGETSaldo','0');
+            localStorage.removeItem('MULTI_BITGET_DETAIL');
         }
     }
 
@@ -991,6 +996,7 @@ $(document).ready(async function () {
         } catch(e) {
             setCEXStatus('KUCOIN','error',e.message);
             localStorage.setItem('MULTI_KUCOINSaldo','0');
+            localStorage.removeItem('MULTI_KUCOIN_DETAIL');
         }
     }
 
@@ -1011,6 +1017,7 @@ $(document).ready(async function () {
         } catch(e) {
             setCEXStatus('BYBIT','error',e.message);
             localStorage.setItem('MULTI_BYBITSaldo','0');
+            localStorage.removeItem('MULTI_BYBIT_DETAIL');
         }
     }
 
@@ -1030,6 +1037,7 @@ $(document).ready(async function () {
         } catch(e) {
             setCEXStatus('MEXC','error',e.message);
             localStorage.setItem('MULTI_MEXCSaldo','0');
+            localStorage.removeItem('MULTI_MEXC_DETAIL');
         }
     }
 
@@ -1053,6 +1061,7 @@ $(document).ready(async function () {
         } catch(e) {
             setCEXStatus('INDODAX','error',e.message||String(e));
             localStorage.setItem('MULTI_INDODAXSaldo','0');
+            localStorage.removeItem('MULTI_INDODAX_DETAIL');
         }
     }
 
@@ -1087,6 +1096,7 @@ $(document).ready(async function () {
         } catch(e) {
             setCEXStatus('HTX','error',e.message);
             localStorage.setItem('MULTI_HTXSaldo','0');
+            localStorage.removeItem('MULTI_HTX_DETAIL');
         }
     }
 
@@ -1108,6 +1118,7 @@ $(document).ready(async function () {
         } catch(e) {
             setCEXStatus('OKX','error',e.message);
             localStorage.setItem('MULTI_OKXSaldo','0');
+            localStorage.removeItem('MULTI_OKX_DETAIL');
         }
     }
 

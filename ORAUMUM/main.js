@@ -2860,6 +2860,17 @@ async function deferredInit() {
     // Global search (in filter card) updates both monitoring and management views
     // Use event delegation since #searchInput is created dynamically
     $(document).on('input', '#searchInput', debounce(function () {
+        // ✅ PROTESI: Jangan re-render tabel jika scan sedang berjalan
+        // Re-rendering akan menghancurkan cell yang sedang di-scan
+        try {
+            if (typeof window.isThisTabScanning === 'function' && window.isThisTabScanning()) {
+                // console.log('[SEARCH] Scan active, skipping monitoring table re-render');
+                // Tetap biarkan renderTokenManagementList jalan agar view manager ter-update
+                try { renderTokenManagementList(); } catch (_) { }
+                return;
+            }
+        } catch (_) { }
+
         // Filter monitoring table: tampilkan semua data yang sesuai dengan filter dan pencarian
         const searchValue = ($(this).val() || '').toLowerCase();
 
@@ -2914,6 +2925,17 @@ async function deferredInit() {
 
     // Modal search input - sync with main search input
     $(document).on('input', '#modal-searchInput', debounce(function () {
+        // ✅ PROTESI: Jangan re-render tabel jika scan sedang berjalan
+        try {
+            if (typeof window.isThisTabScanning === 'function' && window.isThisTabScanning()) {
+                // console.log('[SEARCH-MODAL] Scan active, syncing value only');
+                const val = ($(this).val() || '').toLowerCase();
+                $('#searchInput').val(val);
+                try { renderTokenManagementList(); } catch (_) { }
+                return;
+            }
+        } catch (_) { }
+
         const searchValue = ($(this).val() || '').toLowerCase();
 
         // Sync with main search input
@@ -5642,6 +5664,7 @@ $(document).ready(function () {
             setHomeHref(st.lastChain || getDefaultChain());
             try { applySortToggleState(); } catch (_) { }
             try { syncPnlInputFromStorage(); } catch (_) { }
+            try { syncSlippageInputFromStorage(); } catch (_) { }
             // Re-apply controls based on multichain state
             try {
                 const state = computeAppReadiness();
@@ -5665,6 +5688,7 @@ $(document).ready(function () {
         try { loadAndDisplaySingleChainTokens(); } catch (e) { console.error('single-chain init error', e); }
         try { applySortToggleState(); } catch (_) { }
         try { syncPnlInputFromStorage(); } catch (_) { }
+        try { syncSlippageInputFromStorage(); } catch (_) { }
         // Re-apply controls based on current chain state (check if tokens exist for this chain)
         try {
             const state = computeAppReadiness();

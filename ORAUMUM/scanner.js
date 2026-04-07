@@ -623,8 +623,14 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
      * Dijalankan menggunakan `requestAnimationFrame` untuk performa optimal.
      */
     function processUiUpdates() {
-        // Jika scan sudah berhenti dan antrian kosong, hentikan loop.
-        if (!isScanRunning && uiUpdateQueue.length === 0) return;
+        // Jika scan sudah berhenti dan antrian kosong, hentikan loop dan bersihkan animation frame.
+        if (!isScanRunning && uiUpdateQueue.length === 0) {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            return;
+        }
 
         const start = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
         // REFACTORED: Budget 12ms agar browser punya lebih banyak waktu untuk paint
@@ -723,12 +729,15 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
             if ((now - start) >= budgetMs) break; // yield to next frame
         }
 
-        // Jika halaman tidak terlihat (tab tidak aktif), `requestAnimationFrame` akan dijeda oleh browser.
-        // Gunakan `setTimeout` sebagai fallback untuk memastikan UI tetap di-update.
-        if (typeof document !== 'undefined' && document.hidden) {
-            setTimeout(processUiUpdates, 150);
+        // Hanya jadwalkan frame berikutnya jika scan masih berjalan atau masih ada antrian yang tersisa.
+        if (isScanRunning || uiUpdateQueue.length > 0) {
+            if (typeof document !== 'undefined' && document.hidden) {
+                setTimeout(processUiUpdates, 150);
+            } else {
+                animationFrameId = requestAnimationFrame(processUiUpdates);
+            }
         } else {
-            animationFrameId = requestAnimationFrame(processUiUpdates);
+            animationFrameId = null;
         }
     }
 
@@ -1663,8 +1672,10 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                         } catch (_) { }
 
                         // Panggil API DEX setelah jeda yang dikonfigurasi.
+                        // FIX: markDexRequestStart HARUS dipanggil SEBELUM setTimeout agar
+                        // waitForPendingDexRequests tidak resolve prematur saat scan 1 token.
+                        markDexRequestStart();
                         setTimeout(() => {
-                            markDexRequestStart();
                             if (!isScanRunning) {
                                 markDexRequestEnd();
                                 return;
@@ -2169,7 +2180,7 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
         if (uiUpdateQueue.length > 0) {
             // console.log(`[FINAL] Processing remaining ${uiUpdateQueue.length} items in queue...`);
 
-            // Process semua item yang ada di queue
+            // Process semua item yang ada di queue secara sinkron di akhir scan
             while (uiUpdateQueue.length > 0) {
                 const updateData = uiUpdateQueue.shift();
                 if (!updateData) { continue; }
@@ -2210,10 +2221,13 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
             // console.log('[FINAL] No items in queue to process.');
         }
 
-        // Set flag dan hentikan loop UI.
+        // Set flag dan hentikan loop UI SETELAH queue dikuras.
         isScanRunning = false;
         setEditFormState(false); // Placeholder (form tetap aktif saat scanning)
-        cancelAnimationFrame(animationFrameId);
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
         setPageTitleForRun(false);
 
         // === RELEASE GLOBAL SCAN LOCK ===
