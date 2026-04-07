@@ -388,7 +388,7 @@
         };
       }
     },
-    'hinkal-odos': {
+    'hinkal1-odos': {
       /**
        * Hinkal ODOS Proxy - Privacy-focused ODOS integration
        * Endpoint: https://ethmainnet.server.hinkal.pro/OdosSwapData
@@ -462,7 +462,67 @@
           amount_out,
           FeeSwap,
           dexTitle: 'ODOS',
-          routeTool: 'HINKAL-ODOS'  // Track that it came via Hinkal proxy
+          routeTool: 'HINKAL-ODOS1'  // Track that it came via Hinkal proxy
+        };
+      }
+    },
+    'hinkal2-odos': {
+      /**
+       * Hinkal ODOS2 Proxy - Alternative Hinkal ODOS endpoint
+       * Endpoint: https://wallet-prodv11.hinkal.pro/server/OdosSwapData
+       */
+      buildRequest: ({ codeChain, SavedSettingData, amount_in_big, sc_input_in, sc_output_in }) => {
+        const wallet = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+        return {
+          url: 'https://wallet-prodv11.hinkal.pro/server/OdosSwapData',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          data: JSON.stringify({
+            chainId: codeChain,
+            inputTokens: [{
+              tokenAddress: sc_input_in,
+              amount: amount_in_big.toString()
+            }],
+            outputTokens: [{
+              tokenAddress: sc_output_in,
+              proportion: 1
+            }],
+            userAddr: wallet,
+            slippageLimitPercent: parseFloat(getSlippageValue()),
+            disableRFQs: true
+          })
+        };
+      },
+      parseResponse: (response, { des_output, chainName }) => {
+        const odosData = response?.odosResponse;
+        if (!odosData) throw new Error('Invalid Hinkal-ODOS2 response: missing odosResponse');
+
+        const outRawStr = odosData.outputTokens?.[0]?.amount;
+        if (!outRawStr) throw new Error('Invalid Hinkal-ODOS2 response: missing outputTokens');
+
+        const outRaw = parseFloat(outRawStr);
+        if (!Number.isFinite(outRaw) || outRaw <= 0) {
+          throw new Error(`Invalid Hinkal-ODOS2 output amount: ${outRawStr}`);
+        }
+
+        const amount_out = outRaw / Math.pow(10, des_output);
+
+        const feeUsd = parseFloat(
+          odosData.gasEstimateValue ||
+          response?.gasEstimateValue ||
+          0
+        );
+        const FeeSwap = (Number.isFinite(feeUsd) && feeUsd > 0)
+          ? feeUsd
+          : getFeeSwap(chainName);
+
+        return {
+          amount_out,
+          FeeSwap,
+          dexTitle: 'ODOS',
+          routeTool: 'HINKAL-ODOS2'
         };
       }
     },
@@ -643,7 +703,7 @@
             buyTokenAddress: sc_output_in,         // Solana token address (base58, case-sensitive)
             sellAmount: String(amount_in_big),     // Amount in base units (lamports)
             dynamicSlippage: 'true',               // Enable dynamic slippage
-            slippageBps: '50'                      // 0.5% slippage (50 basis points)
+            slippageBps: String(Math.round(parseFloat(getSlippageValue()) * 100))  // USER-CONFIGURABLE (bps)
           });
 
           const url = `${baseUrl}?${params.toString()}`;
@@ -822,7 +882,7 @@
           buyToken: sc_output_in,
           sellAmount: String(amount_in_big),
           taker: userAddr,
-          slippageBps: '30',
+          slippageBps: String(Math.round(parseFloat(getSlippageValue()) * 100)),  // USER-CONFIGURABLE (bps)
           tradeSurplusRecipient: userAddr,
           aggregator: '0x'
         });
@@ -1024,7 +1084,7 @@
           fromTokenAddress: sc_input_in,
           toTokenAddress: sc_output_in,
           sellAmount: String(amount_in_big),
-          slippage: '0.005',
+          slippage: String(parseFloat(getSlippageValue()) / 100),  // USER-CONFIGURABLE (fraction)
           gasless: 'false',
           fromAddress: userAddr,
           toAddress: userAddr
@@ -1069,7 +1129,7 @@
           toToken: sc_output_in,
           amount: amount_in_big.toString(),
           fromAddress: userAddr,
-          slippage: '0.3'
+          slippage: getSlippageValue()  // USER-CONFIGURABLE (percentage)
         });
         return {
           url: `https://temple-api-evm.prod.templewallet.com/api/swap-route?${params.toString()}`,
@@ -1186,7 +1246,7 @@
         fromAmount: amount_in_big.toString(),
         fromAddress: userAddr,
         toAddress: userAddr,
-        options: { slippage: 0.03, order: 'RECOMMENDED', allowSwitchChain: false }
+        options: { slippage: parseFloat(getSlippageValue()) / 100, order: 'RECOMMENDED', allowSwitchChain: false }  // USER-CONFIGURABLE (fraction)
       };
       return { url: 'https://li.quest/v1/advanced/routes', method: 'POST', data: JSON.stringify(body), headers: { 'Content-Type': 'application/json', 'x-lifi-api-key': apiKey } };
     },
@@ -1225,7 +1285,7 @@
         fromAmount: amount_in_big.toString(),
         fromAddress: userAddr,
         allowExchanges: 'odos',
-        slippage: '0.03',
+        slippage: String(parseFloat(getSlippageValue()) / 100),  // USER-CONFIGURABLE (fraction)
         order: 'RECOMMENDED'
       });
       return { url: `https://li.quest/v1/quote?${params.toString()}`, method: 'GET', headers: { 'x-lifi-api-key': apiKey } };
@@ -1258,7 +1318,7 @@
           fromAmount: amount_in_big.toString(),
           fromAddress: userAddr,
           allowExchanges: dexKey,
-          slippage: '0.03',
+          slippage: String(parseFloat(getSlippageValue()) / 100),  // USER-CONFIGURABLE (fraction)
           order: 'RECOMMENDED'
         });
         return { url: `https://li.quest/v1/quote?${params.toString()}`, method: 'GET', headers: { 'x-lifi-api-key': apiKey } };
@@ -1292,7 +1352,7 @@
           fromAmount: amount_in_big.toString(),
           fromAddress: userAddr,
           toAddress: userAddr,
-          options: { slippage: 0.03, order: 'RECOMMENDED', allowSwitchChain: false }
+          options: { slippage: parseFloat(getSlippageValue()) / 100, order: 'RECOMMENDED', allowSwitchChain: false }  // USER-CONFIGURABLE (fraction)
         };
         return { url: 'https://li.quest/v1/advanced/routes', method: 'POST', data: JSON.stringify(body), headers: { 'Content-Type': 'application/json', 'x-lifi-api-key': apiKey } };
       },
@@ -1330,7 +1390,7 @@
         toToken: toToken,
         fromAmount: amount_in_big.toString(),
         fromAddress: userAddr,
-        slippage: '0.03',
+        slippage: String(parseFloat(getSlippageValue()) / 100),  // USER-CONFIGURABLE (fraction)
         order: 'RECOMMENDED'
       });
       return { url: `https://li.quest/v1/quote?${params.toString()}`, method: 'GET', headers: { 'x-lifi-api-key': apiKey } };
@@ -1358,7 +1418,7 @@
           inToken: { chainId: Number(codeChain), type: 'TOKEN', address: sc_input.toLowerCase(), decimals: Number(des_input) },
           outToken: { chainId: Number(codeChain), type: 'TOKEN', address: sc_output.toLowerCase(), decimals: Number(des_output) },
           amountInWei: String(amount_in_big),
-          slippageBps: '100',
+          slippageBps: String(Math.round(parseFloat(getSlippageValue()) * 100)),  // USER-CONFIGURABLE (bps)
           gasPriceGwei: gasPrice
         };
         return { url: 'https://bzvwrjfhuefn.up.railway.app/swap', method: 'POST', data: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } };
@@ -2250,7 +2310,7 @@
         tokenOut: sc_output_in,
         amount: amount_in_big.toString(),
         swapType: 'exactIn',
-        maxSlippageBps: '50', // 0.5% max slippage
+        maxSlippageBps: String(Math.round(parseFloat(getSlippageValue()) * 100)),  // USER-CONFIGURABLE (bps)
         includeRfq: 'true',
         timeoutMs: '1200',
         atLeastOneNoMoreThanTimeoutMS: '2000'
@@ -3531,6 +3591,7 @@
       return {
         selectedStrategy,
         fallbackStrategy,
+        alternativeStrategy: alternative || null,  // ✅ Level ke-3 jika primary+secondary keduanya gagal
         mode: 'rotation',
         isRotation: true,
         rotationInfo: { counter: state.counter, used: state.lastUsed }
@@ -3854,6 +3915,7 @@
       const strategySelection = selectStrategy(normalizedKey, primary, secondary, alternative, mode);
       const selectedStrategy = strategySelection.selectedStrategy;
       const fallbackStrategy = strategySelection.fallbackStrategy;
+      const alternativeStrategy = strategySelection.alternativeStrategy || null;
       const isRotationMode = strategySelection.isRotation;
 
       // DEBUG: Log strategy selection with mode info
@@ -3928,7 +3990,28 @@
               return result;
             })
             .catch((e2) => {
-              // ✅ ENHANCEMENT: Fallback juga gagal - enhance error dengan info kedua strategy
+              // ✅ LEVEL 3: Coba alternativeStrategy jika rotation primary+secondary keduanya gagal
+              const e2Code = Number(e2 && e2.statusCode) || 0;
+              const noResp2 = !Number.isFinite(e2Code) || e2Code === 0;
+              const shouldTryAlternative = alternativeStrategy && allowFallback && (
+                (Number.isFinite(e2Code) && (e2Code === 429 || e2Code >= 500)) ||
+                noResp2
+              );
+
+              if (shouldTryAlternative) {
+                console.warn(`[DEX FALLBACK L3] ${dexType.toUpperCase()}: primary+fallback failed, trying alternative='${alternativeStrategy}'`);
+                return runStrategy(alternativeStrategy)
+                  .then((result) => {
+                    if (USE_LRU_CACHE) {
+                      DEX_RESPONSE_CACHE.set(cacheKey, result);
+                    } else {
+                      DEX_RESPONSE_CACHE.set(cacheKey, { response: result, timestamp: Date.now() });
+                    }
+                    return result;
+                  });
+              }
+
+              // ENHANCEMENT: Fallback juga gagal - enhance error dengan info kedua strategy
               // Extract provider names untuk clarity
               const primaryProvider = String(selectedStrategy || '').includes('-')
                 ? String(selectedStrategy).split('-')[0].toUpperCase()
@@ -3953,7 +4036,6 @@
 
               // Enhance error message untuk show both failures
               const e1Code = Number(e1 && e1.statusCode) || 0;
-              const e2Code = Number(e2 && e2.statusCode) || 0;
               const e1Msg = String(e1 && e1.pesanDEX || 'unknown error');
               const e2Msg = String(e2 && e2.pesanDEX || 'unknown error');
 
@@ -3966,15 +4048,15 @@
                 DEX: String(dexType || '').toUpperCase(),
                 dexURL: e2.dexURL || e1.dexURL,
                 textStatus: e2.textStatus || e1.textStatus,
-                primaryStrategy: selectedStrategy,     // ✅ NEW: Primary strategy yang dicoba
-                primaryProvider: primaryName,          // ✅ NEW: Primary provider name
-                primaryError: e1Msg,                   // ✅ NEW: Primary error message
-                primaryCode: e1Code,                   // ✅ NEW: Primary error code
-                fallbackStrategy: computedFallback,    // ✅ NEW: Fallback strategy yang dicoba
-                fallbackProvider: fallbackName,        // ✅ NEW: Fallback provider name
-                fallbackError: e2Msg,                  // ✅ NEW: Fallback error message
-                fallbackCode: e2Code,                  // ✅ NEW: Fallback error code
-                bothFailed: true                       // ✅ NEW: Flag untuk indicate both failed
+                primaryStrategy: selectedStrategy,
+                primaryProvider: primaryName,
+                primaryError: e1Msg,
+                primaryCode: e1Code,
+                fallbackStrategy: computedFallback,
+                fallbackProvider: fallbackName,
+                fallbackError: e2Msg,
+                fallbackCode: e2Code,
+                bothFailed: true
               };
             });
         })
@@ -4017,7 +4099,7 @@
           inToken: { chainId: codeChain, type: 'TOKEN', address: sc_input.toLowerCase(), decimals: parseFloat(des_input) },
           outToken: { chainId: codeChain, type: 'TOKEN', address: sc_output.toLowerCase(), decimals: parseFloat(des_output) },
           amountInWei: String(BigInt(Math.round(Number(amount_in) * Math.pow(10, des_input)))),
-          slippageBps: '100', gasPriceGwei: Number(getFromLocalStorage('gasGWEI', 0)),
+          slippageBps: String(Math.round(parseFloat(getSlippageValue()) * 100)), gasPriceGwei: Number(getFromLocalStorage('gasGWEI', 0)),  // USER-CONFIGURABLE (bps)
         };
         $.ajax({
           url: 'https://bzvwrjfhuefn.up.railway.app/swap', // Endpoint SWOOP
@@ -4092,7 +4174,7 @@
             amount: fromAmount,
             destDecimals: Number(des_output),
             destToken: sc_output.toLowerCase(),
-            slippage: 0.3, // Nilai slippage default
+            slippage: parseFloat(getSlippageValue()),  // USER-CONFIGURABLE (percentage)
             srcDecimals: Number(des_input),
             srcToken: sc_input.toLowerCase(),
             toChain: Number(codeChain)

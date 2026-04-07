@@ -38,11 +38,18 @@
         saveToLocalStorage(key, f);
     }
 
-    // Slippage tolerance helpers
+    // Slippage tolerance helpers — disimpan per filter aktif (FILTER_BSC, FILTER_MULTICHAIN, dll)
     function getSlippageTolerance() {
         try {
-            const stored = parseFloat(localStorage.getItem('SLIPPAGE_TOLERANCE'));
-            return isFinite(stored) && stored > 0 ? stored : 0.3;  // Default 0.3%
+            const key = (typeof getActiveFilterKey === 'function') ? getActiveFilterKey() : null;
+            if (key) {
+                const f = getFromLocalStorage(key, {}) || {};
+                const v = parseFloat(f.slip);
+                if (isFinite(v) && v > 0) return v;
+            }
+            // Fallback: legacy global key (migrasi dari versi lama)
+            const legacy = parseFloat(localStorage.getItem('SLIPPAGE_TOLERANCE'));
+            return isFinite(legacy) && legacy > 0 ? legacy : 0.3;
         } catch (_) { return 0.3; }
     }
 
@@ -50,6 +57,13 @@
         const v = parseFloat(value);
         const clean = isFinite(v) && v > 0 ? v : 0.3;
         try {
+            const key = (typeof getActiveFilterKey === 'function') ? getActiveFilterKey() : null;
+            if (key) {
+                const f = getFromLocalStorage(key, {}) || {};
+                f.slip = clean;
+                saveToLocalStorage(key, f);
+            }
+            // Tetap simpan global sebagai fallback
             localStorage.setItem('SLIPPAGE_TOLERANCE', clean);
         } catch (_) { }
     }
@@ -60,9 +74,10 @@
             chains: f.chains || [],
             cex: f.cex || [],
             dex: (f.dex || []).map(x => String(x).toLowerCase()),
-            pair: (f.pair || []).map(x => String(x).toUpperCase()) // Added Pair support
+            pair: (f.pair || []).map(x => String(x).toUpperCase()),
+            slip: (isFinite(parseFloat(f.slip)) && parseFloat(f.slip) > 0) ? parseFloat(f.slip) : 0.3
         };
-        return { chains: [], cex: [], dex: [], pair: [] };
+        return { chains: [], cex: [], dex: [], pair: [], slip: 0.3 };
     }
 
     function setFilterMulti(val) {
@@ -79,7 +94,11 @@
             next.dex = (val.dex || []).map(x => String(x).toLowerCase());
         }
         if (val && Object.prototype.hasOwnProperty.call(val, 'pair')) {
-            next.pair = (val.pair || []).map(x => String(x).toUpperCase()); // Added Pair support
+            next.pair = (val.pair || []).map(x => String(x).toUpperCase());
+        }
+        if (val && Object.prototype.hasOwnProperty.call(val, 'slip')) {
+            const s = parseFloat(val.slip);
+            next.slip = isFinite(s) && s > 0 ? s : 0.3;
         }
         saveToLocalStorage('FILTER_MULTICHAIN', next);
     }
@@ -100,8 +119,13 @@
                 }
             }
         }
-        if (f && typeof f === 'object') return { cex: (f.cex || []).map(String), pair: (f.pair || []).map(x => String(x).toUpperCase()), dex: (f.dex || []).map(x => String(x).toLowerCase()) };
-        return { cex: [], pair: [], dex: [] };
+        if (f && typeof f === 'object') return {
+            cex: (f.cex || []).map(String),
+            pair: (f.pair || []).map(x => String(x).toUpperCase()),
+            dex: (f.dex || []).map(x => String(x).toLowerCase()),
+            slip: (isFinite(parseFloat(f.slip)) && parseFloat(f.slip) > 0) ? parseFloat(f.slip) : 0.3
+        };
+        return { cex: [], pair: [], dex: [], slip: 0.3 };
     }
 
     function setFilterChain(chain, val) {
@@ -117,6 +141,10 @@
         if (val && Object.prototype.hasOwnProperty.call(val, 'dex')) {
             next.dex = (val.dex || []).map(x => String(x).toLowerCase());
         }
+        if (val && Object.prototype.hasOwnProperty.call(val, 'slip')) {
+            const s = parseFloat(val.slip);
+            next.slip = isFinite(s) && s > 0 ? s : 0.3;
+        }
         saveToLocalStorage(key, next);
     }
 
@@ -131,14 +159,16 @@
             chains: f.chains || [],
             pair: (f.pair || []).map(x => String(x).toUpperCase()),
             dex: (f.dex || []).map(x => String(x).toLowerCase()),
-            sort: f.sort || 'A'
+            sort: f.sort || 'A',
+            slip: (isFinite(parseFloat(f.slip)) && parseFloat(f.slip) > 0) ? parseFloat(f.slip) : 0.3
         };
         // Default: tidak ada filter tersimpan → kosong (user harus pilih sendiri)
         return {
             chains: [],
             pair: [],
             dex: [],
-            sort: 'A'
+            sort: 'A',
+            slip: 0.3
         };
     }
 
@@ -157,6 +187,10 @@
         }
         if (val && Object.prototype.hasOwnProperty.call(val, 'sort')) {
             next.sort = val.sort;
+        }
+        if (val && Object.prototype.hasOwnProperty.call(val, 'slip')) {
+            const s = parseFloat(val.slip);
+            next.slip = isFinite(s) && s > 0 ? s : 0.3;
         }
         saveToLocalStorage(key, next);
     }
