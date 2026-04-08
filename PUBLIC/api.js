@@ -555,7 +555,13 @@ async function sendStatusTELE(user, status) {
     }
   } catch (_) { }
 
-  const message = `<b>${APP_HEADER}</b>\n<b>USER:</b> ${user ? user.toUpperCase() : '-'}[<b>${status ? status.toUpperCase() : '-'}]</b>\n<b>IP:</b> ${ipAddress}\n<b>CHAIN :</b> ${chainInfo}`;
+  const statusUpper = status ? status.toUpperCase() : '-';
+  const statusIcon = statusUpper === 'ONLINE' ? '🟢' : statusUpper === 'OFFLINE' ? '🔴' : '🔵';
+  const message = [
+    `🚨 <b>${APP_HEADER}</b>`,
+    `👤 <b>USER :</b> ${user ? user.toUpperCase() : '-'} — ${statusIcon} <b>${statusUpper}</b>`,
+    `🌐 <b>IP :</b> ${ipAddress} | ⛓️ <b>CHAIN :</b> ${chainInfo}`,
+  ].join('\n');
   sendTelegramHTML(message);
 }
 
@@ -660,31 +666,32 @@ async function MultisendMessage(
   const settings = (typeof getFromLocalStorage === 'function') ? getFromLocalStorage('SETTING_SCANNER', {}) : {};
   const walletMeta = settings.walletMeta || 'N/A';
   const ipAddress = await getUserIP();
-  // Compose pesan
-  const lines = [];
-  lines.push('---------------------------------------------------');
-  lines.push(`${APP_HEADER} #${String(chainConfig.Nama_Chain || '').toUpperCase()}`);
-  lines.push(`<b>IP:</b> ${ipAddress}\n<b>WALLET:</b> ${walletMeta}`);
-  lines.push(`#USERNAME : #${String(nickname || '').trim() || '-'}`);
-  lines.push('---------------------------------------------------');
-  lines.push(`<b>PROSES :</b> <b>${procLeft}</b>[ #${String(fromSymbol).toUpperCase()} ] => <b>${procRight}</b>[ #${String(toSymbol).toUpperCase()} ]`);
-  lines.push(`<b>TRANSAKSI :</b> <a href="${linkScFrom}">${String(fromSymbol).toUpperCase()}</a> => <a href="${linkScTo}">${String(toSymbol).toUpperCase()}</a>`);
-  lines.push(`<b>MODAL:</b> ${Number(modal || 0).toFixed(2)}$ | <a href="${stockLink}">STOK</a>`);
-
   // BUY/SELL arah-aware
   const buyLinkText = isC2D ? linkCexTradeToken : linkDefillama;
   const sellLinkText = isC2D ? linkDefillama : linkCexTradePair;
-  lines.push(`<b>BUY USDT-${String(toSymbol).toUpperCase()}</b> : <a href="${buyLinkText}">${Number(priceBUY || 0).toFixed(10)}$</a>`);
-  lines.push(`<b>SELL ${String(toSymbol).toUpperCase()}-USDT</b> : <a href="${sellLinkText}">${Number(priceSELL || 0).toFixed(10)}$</a>`);
-  lines.push(`<b>PROFIT & TOTAL FEE :</b> ${Number(PNL || 0).toFixed(2)}$ & ${Number(totalFee || 0).toFixed(2)}$`);
-  lines.push(`<b>FEE WD & FEE SWAP :</b> ${Number(FeeWD || 0).toFixed(2)}$ & ${Number(FeeSwap || 0).toFixed(2)}$`);
 
   // Status WD/DP — selalu tampilkan berdasarkan canonical TOKEN/PAIR
   const tokenSym = String(TOKEN_SYM || '').toUpperCase();
   const pairSym = String(PAIR_SYM || '').toUpperCase();
-  lines.push(`<b>${tokenSym}:</b> <a href="${wdTokenUrl}">WD</a>${emo(wdTok)} | <a href="${dpTokenUrl}">DP</a>${emo(depTok)}`);
-  lines.push(`<b>${pairSym}:</b> <a href="${wdPairUrl}">WD</a>${emo(wdPair)} | <a href="${dpPairUrl}">DP</a>${emo(depPair)}`);
-  lines.push('---------------------------------------------------');
+
+  // Compose pesan
+  const lines = [];
+  lines.push(`🔔 <b>${APP_HEADER}</b> `);
+  lines.push(`🌐 <b>IP :</b> ${ipAddress}`);
+  lines.push(`👤 <b>USERNAME :</b> #${String(nickname || '').trim() || '-'} ON #${String(chainConfig.Nama_Chain || '').toUpperCase()}`);
+  lines.push(`👛 <b>WALLET :</b> ${walletMeta}`);
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push(`🔄 <b>PROSES :</b> <b>${procLeft}</b> [ #${String(fromSymbol).toUpperCase()} ] ➡️ <b>${procRight}</b> [ #${String(toSymbol).toUpperCase()} ]`);
+  lines.push(`🔗 <b>TRANSAKSI :</b> <a href="${linkScFrom}">${String(fromSymbol).toUpperCase()}</a> ➡️ <a href="${linkScTo}">${String(toSymbol).toUpperCase()}</a>`);
+  lines.push(`💰 <b>MODAL :</b> ${Number(modal || 0).toFixed(2)}$   📦 <a href="${stockLink}">STOK</a>`);
+  lines.push(`🟢 <b>BUY USDT-${String(toSymbol).toUpperCase()} :</b> <a href="${buyLinkText}">${Number(priceBUY || 0).toFixed(10)}$</a>`);
+  lines.push(`🔴 <b>SELL ${String(toSymbol).toUpperCase()}-USDT :</b> <a href="${sellLinkText}">${Number(priceSELL || 0).toFixed(10)}$</a>`);
+  lines.push(`💸  <b>PROFIT :</b> ${Number(PNL || 0).toFixed(2)}$   🧾 <b>TOTAL FEE :</b> ${Number(totalFee || 0).toFixed(2)}$`);
+  lines.push(`📤 <b>FEE WD :</b> ${Number(FeeWD || 0).toFixed(2)}$   💵 <b>FEE SWAP :</b> ${Number(FeeSwap || 0).toFixed(2)}$`);
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push(`🚨 <b>STATUS WD / DP</b>`);
+  lines.push(` <b>${tokenSym} :</b> <a href="${wdTokenUrl}">WD</a>${emo(wdTok)} | <a href="${dpTokenUrl}">DP</a>${emo(depTok)}`);
+  lines.push(` <b>${pairSym} :</b> <a href="${wdPairUrl}">WD</a>${emo(wdPair)} | <a href="${dpPairUrl}">DP</a>${emo(depPair)}`);
 
   sendTelegramHTML(lines.join('\n'));
 }

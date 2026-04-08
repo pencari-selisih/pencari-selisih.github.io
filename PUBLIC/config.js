@@ -1,14 +1,17 @@
 const CONFIG_APP = {
     APP: {
-        NAME: "PENCARI-SELISIH",
+        NAME: "PENCARI SELISIH",
         // NAME: "WATCHMARKET",
         // NAME: "APP PRIVATE",
-        VERSION: "2026.04.06",
+        VERSION: "2026.04.08",
         SCAN_LIMIT: true,
         AUTORUN: false,
         AUTO_VOLUME: false,  // cek volume otomatis untuk filter dan alert
         VOL_CHECK: true, // cek volume aktual
         DEBUG_LOG: false,
+        // Gas units untuk ERC-20 transfer onchain (DEX → CEX wallet)
+        // Lebih kecil dari swap gas (~150k-300k) karena hanya transfer biasa
+        TRANSFER_GAS_LIMIT: 65000,
         // META-DEX: fitur DEX TAMBAHAN yang menampilkan BANYAK quote sekaligus per token.
         // Berbeda dari DEX regular (single-quote). Berjalan TERPISAH dari scan DEX regular.
         // Jika true → Settings menampilkan panel: Modal DEX, Filter Scanner, Card Signal, Jeda DEX.
@@ -37,7 +40,7 @@ const CONFIG_APP = {
             // rango: { enabled: true, evmOnly: false, jedaDex: 500, label: 'RANGO' },       // EVM + Solana multi-quote
             //rocketx: { enabled: true, evmOnly: false, jedaDex: 600, label: 'ROCKET' },    // EVM + Solana multi-quote
             metax: { enabled: true, evmOnly: true, jedaDex: 800, label: 'METAX' },       // EVM only (no Solana support)
-           // onekey: { enabled: true, evmOnly: true, jedaDex: 800, label: 'ONEKEY' },       // EVM only — SSE streaming (OKX, 1inch, 0x)
+            onekey: { enabled: true, evmOnly: true, jedaDex: 800, label: 'ONEKEY' },       // EVM only — SSE streaming (OKX, 1inch, 0x)
         },
 
         // Chain yang didukung semua META-DEX aggregators (EVM + Solana)
@@ -994,7 +997,7 @@ const CONFIG_DEXS = {
                 pairtotoken: 'rabby-flytrade'   // DEX→CEX: Rabby filtered → Magpie route
             }
         },
-        allowFallback: false,  // ✅ Enable rotation between primary and alternative
+        allowFallback: true,  // ✅ Enable fallback to alternative on error
     },
     matcha: {
         label: 'Matcha',
@@ -1013,15 +1016,15 @@ const CONFIG_DEXS = {
         fetchdex: {
             primary: {
                 tokentopair: 'delta-matcha',    // CEX→DEX: 1Delta proxy (fast, free) - EVM only
-                pairtotoken: 'c98-matcha'       // DEX→CEX: Coin98 Superlink filtered - EVM only
+                pairtotoken: 'bungee-matcha'       // DEX→CEX: Coin98 Superlink filtered - EVM only
             },
             secondary: {
-                tokentopair: 'rainbow-matcha',   // CEX→DEX: Bungee filtered 0x/Matcha (rotation)
-                pairtotoken: 'bungee-matcha'    // DEX→CEX: Bungee filtered 0x/Matcha (rotation)
+                tokentopair: 'c98-matcha',   // CEX→DEX: Bungee filtered 0x/Matcha (rotation)
+                pairtotoken: 'rabby-matcha'    // DEX→CEX: Bungee filtered 0x/Matcha (rotation)
             },
             alternative: {
                 tokentopair: 'rabby-matcha',  // CEX→DEX: Rainbow proxy 0x/Matcha (fallback)
-                pairtotoken: 'rabby-matcha'   // DEX→CEX: Rainbow proxy 0x/Matcha (fallback)
+                pairtotoken: 'rainbow-matcha'   // DEX→CEX: Rainbow proxy 0x/Matcha (fallback)
             },
             // ✅ SOLANA OVERRIDE: For Solana chain, always use direct matcha endpoint
             solana: {
@@ -1041,11 +1044,15 @@ const CONFIG_DEXS = {
         fetchdex: {
             primary: {
                 tokentopair: 'odos3',          // CEX→DEX: Official ODOS v3 API (request ganjil)
-                pairtotoken: 'hinkal-odos'     // DEX→CEX: Hinkal ODOS proxy (request ganjil)
+                pairtotoken: 'hinkal1-odos'     // DEX→CEX: Hinkal ODOS proxy (request ganjil)
             },
-            secondary: {                       // ✅ ROTATION: bergantian dengan primary
+            secondary: {
+                tokentopair: 'hinkal2-odos',          // CEX→DEX: Official ODOS v3 API (request ganjil)
+                pairtotoken: 'lifi-odos3'     // DEX→CEX: Hinkal ODOS proxy (request ganjil)
+            },
+            alternative: {                       // ✅ ROTATION: bergantian dengan primary
                 tokentopair: 'swoop-odos',     // CEX→DEX: SWING filtered for ODOS (request genap)
-                pairtotoken: 'lifi-odos'      // DEX→CEX: SWING filtered for ODOS (request genap)
+                pairtotoken: 'swoop-odos'      // DEX→CEX: SWING filtered for ODOS (request genap)
             }
         },
         allowFallback: true,  // ✅ Jika yang dipilih gagal, coba yang lain
@@ -1066,10 +1073,10 @@ const CONFIG_DEXS = {
         fetchdex: {
             primary: {
                 tokentopair: 'velora6',        // CEX→DEX: Official Velora v6.2
-                pairtotoken: 'rocketx-velora'         // DEX→CEX: Official Velora v5
+                pairtotoken: 'velora5'         // DEX→CEX: Official Velora v5
             },
             alternative: {
-                tokentopair: 'velora5', // CEX→DEX: RocketX filtered → ParaSwap route
+                tokentopair: 'rocketx-velora', // CEX→DEX: RocketX filtered → ParaSwap route
                 pairtotoken: 'swing-velora'     // DEX→CEX: SWING filtered → ParaSwap route
             }
         },
