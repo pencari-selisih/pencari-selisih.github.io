@@ -1021,14 +1021,23 @@
             const cexUpper = cex.toUpperCase();
             const chainLower = String(chainKey || '').toLowerCase();
 
-            // console.log(`fetchCexData for ${cex} on chain ${chainLower} - Using services/cex.js`);
-
             let coins = [];
+
+            // =====================================================================
+            // PATH KHUSUS INDODAX
+            // Flow berbeda dari CEX lain karena Indodax tidak menyediakan SC.
+            // Steps:
+            //   1. summaries → daftar simbol tradeable di Indodax
+            //   2. Filter getInfo() network → hanya koin yg Indodax support di chain ini
+            //   3. Cari SC: DATAJSON → snapshot CEX lain (chain sama) → existing cache
+            // =====================================================================
+            if (cexUpper === 'INDODAX') {
+                return await fetchIndodaxChainData(chainKey);
+            }
 
             // Use the unified fetchWalletStatus from services/cex.js
             if (window.App?.Services?.CEX?.fetchWalletStatus) {
                 try {
-                    // console.log(`Fetching wallet status for ${cexUpper} using services/cex.js...`);
                     const walletData = await window.App.Services.CEX.fetchWalletStatus(cexUpper);
 
                     if (walletData && Array.isArray(walletData)) {
@@ -1069,7 +1078,7 @@
                                     chainRejected.forEach(item => {
                                         const symbol = String(item.tokenName || '').toUpperCase();
                                         if (tokenDbMap.has(symbol)) {
-                                            // Guard: skip if item.chain matches a different canonical chain
+                                            // Guard 1: skip if item.chain matches a different canonical chain
                                             // (e.g. AI/BSC should NOT be recovered into ETH snapshot)
                                             const itemChain = String(item.chain || '');
                                             const belongsToOtherChain = allChainKeys.some(
@@ -1132,7 +1141,6 @@
                             };
                         });
 
-                        // console.log(`Converted ${coins.length} coins from ${cexUpper} wallet API data`);
                     } else {
                         // console.warn(`${cexUpper}: No wallet data returned from services/cex.js`);
                     }
@@ -1146,7 +1154,6 @@
 
             // Fallback: Use cached data if service failed or no data returned
             if (coins.length === 0) {
-                // console.log(`${cexUpper}: Using cached snapshot data as fallback`);
                 const snapshotMap = await snapshotDbGet(SNAPSHOT_DB_CONFIG.snapshotKey) || {};
                 const keyLower = String(chainKey || '').toLowerCase();
                 const allTokens = Array.isArray(snapshotMap[keyLower]) ? snapshotMap[keyLower] : [];
@@ -1155,22 +1162,215 @@
                     return String(token.cex || '').toUpperCase() === cexUpper;
                 });
 
-                // console.log(`Using cached data for ${cexUpper}: ${coins.length} coins`);
-
                 if (coins.length === 0) {
                     // console.warn(`${cexUpper}: No service data and no cached data available`);
                 }
             }
 
-            // ===== NO REMOTE ENRICHMENT FOR LBANK =====
-            // LBANK (and all CEX) will use local database lookup in validateTokenData
-            // Tokens without SC from CEX API will be looked up in snapshot database (local)
-            // If not found in local database, they will be filtered out (not displayed)
-
-            // console.log(`fetchCexData for ${cex}: fetched ${coins.length} coins total`);
             return coins;
         } catch (error) {
             // console.error(`fetchCexData failed for ${cex}:`, error);
+            return [];
+        }
+    }
+
+    /**
+     * fetchIndodaxChainData — Path khusus untuk INDODAX snapshot
+     *
+     * Flow 3 langkah:
+     *   1. walletData (summaries + getInfo() networks) dari services/cex.js
+     *   2. Filter: hanya koin yg Indodax resmi support di chain ini (getInfo() network match)
+     *      → Jika getInfo() tidak tersedia (no API key): lewati filter ini
+     *   3. Cari SC per koin:
+     *      a. DATAJSON (TOKEN_<chain>) — paling akurat
+     *      b. Snapshot CEX lain pada chain yang sama (BINANCE/MEXC/GATE/dll)
+     *      c. Existing cached data Indodax
+     *      d. Skip jika tidak ada SC sama sekali
+     */
+    async function fetchIndodaxChainData(chainKey) {
+        const chainLower = String(chainKey || '').toLowerCase();
+
+        // ----- STEP 1: Get wallet data dari services/cex.js -----
+        let walletData = [];
+        try {
+            if (window.App?.Services?.CEX?.fetchWalletStatus) {
+                walletData = await window.App.Services.CEX.fetchWalletStatus('INDODAX') || [];
+            }
+        } catch (e) {
+            console.warn('[INDODAX] fetchWalletStatus failed:', e?.message);
+        }
+
+        if (!Array.isArray(walletData) || walletData.length === 0) {
+            console.warn('[INDODAX] No wallet data — falling back to cached snapshot');
+            return await _indodaxCachedFallback(chainLower);
+        }
+
+        // Ambil flag dari walletData[0] (semua entry punya hasNetworkInfo yang sama)
+        const hasNetworkInfo = walletData[0]?.hasNetworkInfo === true;
+
+        // ----- STEP 2: Filter berdasarkan getInfo() network -----
+        // Hanya koin yang Indodax officially support di chain ini
+        let filteredWallet = walletData;
+        if (hasNetworkInfo) {
+            filteredWallet = walletData.filter(item => {
+                const nets = Array.isArray(item.indodaxNetworks) ? item.indodaxNetworks : [];
+                if (nets.length === 0) return false; // koin tidak ada di getInfo() → skip
+                return nets.some(net => matchesCex(chainKey, net));
+            });
+            console.log(`[INDODAX] Step 2 — getInfo() filter: ${filteredWallet.length}/${walletData.length} coins match chain=${chainKey}`);
+        } else {
+            console.log(`[INDODAX] Step 2 — skipped (no API key/getInfo() failed), using all ${walletData.length} coins`);
+        }
+
+        if (filteredWallet.length === 0) {
+            console.warn(`[INDODAX] No coins match chain=${chainKey} after getInfo() filter`);
+            return [];
+        }
+
+        // ----- STEP 3: Cari SC dari berbagai sumber -----
+
+        // 3a. DATAJSON (TOKEN_<chain>)
+        let tokenDbMap = new Map();
+        try {
+            tokenDbMap = await loadChainTokenDatabase(chainKey);
+        } catch (_) { }
+
+        // 3b. Snapshot CEX lain pada chain sama (previous run)
+        const snapshotMap = await snapshotDbGet(SNAPSHOT_DB_CONFIG.snapshotKey) || {};
+        const chainSnapshot = Array.isArray(snapshotMap[chainLower]) ? snapshotMap[chainLower] : [];
+        const sourceCEXs = ['BINANCE', 'MEXC', 'GATE', 'KUCOIN', 'BITGET', 'BYBIT', 'OKX', 'HTX', 'LBANK'];
+
+        // Build CEX snapshot lookup: symbol → token (from most reliable CEX first)
+        const cexSnapshotLookup = new Map();
+        for (const cexName of [...sourceCEXs].reverse()) { // reverse so highest priority overwrites
+            chainSnapshot
+                .filter(t => String(t.cex || '').toUpperCase() === cexName && t.sc_in && String(t.sc_in).trim() !== '')
+                .forEach(t => {
+                    const sym = String(t.symbol_in || '').toUpperCase();
+                    if (sym) cexSnapshotLookup.set(sym, t);
+                });
+        }
+
+        // 3c. Existing cached INDODAX data
+        const existingIndodax = chainSnapshot.filter(t => String(t.cex || '').toUpperCase() === 'INDODAX');
+        const existingLookup = new Map();
+        existingIndodax.forEach(t => {
+            const sym = String(t.symbol_in || '').toUpperCase();
+            if (sym) existingLookup.set(sym, t);
+        });
+
+        // Portfolio tokens
+        const portfolioMap = new Map();
+        try {
+            const portfolioChain = (typeof getTokensChain === 'function') ? getTokensChain(chainKey) : [];
+            const portfolioMulti = (typeof getTokensMulti === 'function') ? getTokensMulti() : [];
+            const allPortfolio = [...portfolioChain, ...portfolioMulti.filter(t => String(t.chain).toLowerCase() === chainLower)];
+            allPortfolio.forEach(token => {
+                const sym = String(token.symbol_in || token.symbol || '').toUpperCase();
+                if (sym && !portfolioMap.has(sym)) portfolioMap.set(sym, token);
+            });
+        } catch (_) { }
+
+        console.log(`[INDODAX] Step 3 — resolving SC: DATAJSON=${tokenDbMap.size}, CEX snapshot=${cexSnapshotLookup.size}, existing=${existingLookup.size}, portfolio=${portfolioMap.size}`);
+
+        let matchDb = 0, matchCex = 0, matchExisting = 0, matchPortfolio = 0, noMatch = 0;
+
+        const coins = [];
+        for (const item of filteredWallet) {
+            const symbol = String(item.tokenName || '').toUpperCase();
+            if (!symbol) continue;
+
+            let sc = '';
+            let decimals = 18;
+            let tokenName = symbol;
+            let enrichedFrom = '';
+
+            // Priority 1: DATAJSON
+            if (tokenDbMap.has(symbol)) {
+                const dbEntry = tokenDbMap.get(symbol);
+                sc = dbEntry.sc || '';
+                decimals = dbEntry.decimals || 18;
+                tokenName = dbEntry.name || symbol;
+                enrichedFrom = 'DATAJSON';
+                matchDb++;
+            }
+            // Priority 2: CEX snapshot lain (chain sama)
+            else if (cexSnapshotLookup.has(symbol)) {
+                const match = cexSnapshotLookup.get(symbol);
+                sc = match.sc_in || '';
+                decimals = match.des_in || match.decimals || 18;
+                tokenName = match.token_name || symbol;
+                enrichedFrom = String(match.cex || 'CEX');
+                matchCex++;
+            }
+            // Priority 3: Portfolio
+            else if (portfolioMap.has(symbol)) {
+                const match = portfolioMap.get(symbol);
+                sc = match.sc_in || match.sc || '';
+                decimals = match.des_in || match.decimals || 18;
+                tokenName = match.token_name || match.name || symbol;
+                enrichedFrom = 'PORTFOLIO';
+                matchPortfolio++;
+            }
+            // Priority 4: Existing cached INDODAX (dari run sebelumnya)
+            else if (existingLookup.has(symbol)) {
+                const match = existingLookup.get(symbol);
+                sc = match.sc_in || '';
+                decimals = match.des_in || match.decimals || 18;
+                tokenName = match.token_name || symbol;
+                enrichedFrom = 'CACHE';
+                matchExisting++;
+            }
+
+            // Skip jika tidak ada SC sama sekali
+            if (!sc || sc.trim() === '' || sc === '0x') {
+                noMatch++;
+                continue;
+            }
+
+            coins.push({
+                cex: 'INDODAX',
+                symbol_in: symbol,
+                tokenName: symbol,
+                token_name: tokenName,
+                sc_in: sc,
+                contractAddress: sc,
+                decimals,
+                des_in: decimals,
+                deposit: item.depositEnable ? '1' : '0',
+                withdraw: item.withdrawEnable ? '1' : '0',
+                feeWD: parseFloat(item.feeWDs || 0),
+                symbol_out: '',
+                sc_out: '',
+                des_out: 0,
+                tradeable: item.trading !== undefined ? !!item.trading : true,
+                needsEnrichment: false,
+                chain: chainKey,
+                enrichedFrom,
+                _indodaxNetworks: item.indodaxNetworks || []
+            });
+        }
+
+        console.log(`[INDODAX] ✅ fetchIndodaxChainData done: ${coins.length} coins with SC (DATAJSON=${matchDb}, CEX=${matchCex}, Portfolio=${matchPortfolio}, Cache=${matchExisting}, NoSC=${noMatch})`);
+
+        // Fallback ke cached data jika tidak ada hasil sama sekali
+        if (coins.length === 0) {
+            console.warn(`[INDODAX] No coins resolved — falling back to cached snapshot`);
+            return await _indodaxCachedFallback(chainLower);
+        }
+
+        return coins;
+    }
+
+    /** Fallback: ambil data INDODAX dari cached snapshot sebelumnya */
+    async function _indodaxCachedFallback(chainLower) {
+        try {
+            const snapshotMap = await snapshotDbGet(SNAPSHOT_DB_CONFIG.snapshotKey) || {};
+            const allTokens = Array.isArray(snapshotMap[chainLower]) ? snapshotMap[chainLower] : [];
+            const cached = allTokens.filter(t => String(t.cex || '').toUpperCase() === 'INDODAX');
+            console.log(`[INDODAX] Cached fallback: ${cached.length} coins`);
+            return cached;
+        } catch (_) {
             return [];
         }
     }
@@ -2415,8 +2615,16 @@
                 console.log(`📦 [Database] Existing tokens: ${existingTokensFull.length}, New tokens: ${enrichedTokens.length}`);
 
                 // Create map by unique key: CEX + symbol_in + sc_in
+                // PENTING: Hapus dulu entry lama dari CEX yang sedang di-snapshot ulang,
+                // agar token yang sudah tidak valid (mis. ZKJ INDODAX yg getInfo()=erc20 tapi chain=BSC)
+                // tidak tersisa dari run sebelumnya (accumulation bug).
+                const snapshotedCexSet = new Set(
+                    (Array.isArray(selectedCex) ? selectedCex : []).map(c => String(c).toUpperCase())
+                );
                 const tokenMap = new Map();
                 existingTokensFull.forEach(token => {
+                    // Skip token lama dari CEX yang baru saja di-snapshot (akan diganti enrichedTokens)
+                    if (snapshotedCexSet.has(String(token.cex || '').toUpperCase())) return;
                     const key = `${token.cex}_${token.symbol_in}_${token.sc_in || 'NOSC'}`;
                     tokenMap.set(key, token);
                 });

@@ -3,7 +3,7 @@ const CONFIG_APP = {
         NAME: "PENCARI SELISIH",
         // NAME: "WATCHMARKET",
         // NAME: "APP PRIVATE",
-        VERSION: "2026.04.06",
+        VERSION: "2026.04.08",
         SCAN_LIMIT: false,
         AUTORUN: true,
         AUTO_VOLUME: true,  // cek volume otomatis untuk filter dan alert
@@ -1016,15 +1016,15 @@ const CONFIG_DEXS = {
         fetchdex: {
             primary: {
                 tokentopair: 'delta-matcha',    // CEX→DEX: 1Delta proxy (fast, free) - EVM only
-                pairtotoken: 'c98-matcha'       // DEX→CEX: Coin98 Superlink filtered - EVM only
+                pairtotoken: 'bungee-matcha'       // DEX→CEX: Coin98 Superlink filtered - EVM only
             },
             secondary: {
-                tokentopair: 'rainbow-matcha',   // CEX→DEX: Bungee filtered 0x/Matcha (rotation)
-                pairtotoken: 'bungee-matcha'    // DEX→CEX: Bungee filtered 0x/Matcha (rotation)
+                tokentopair: 'c98-matcha',   // CEX→DEX: Bungee filtered 0x/Matcha (rotation)
+                pairtotoken: 'rabby-matcha'    // DEX→CEX: Bungee filtered 0x/Matcha (rotation)
             },
             alternative: {
                 tokentopair: 'rabby-matcha',  // CEX→DEX: Rainbow proxy 0x/Matcha (fallback)
-                pairtotoken: 'rabby-matcha'   // DEX→CEX: Rainbow proxy 0x/Matcha (fallback)
+                pairtotoken: 'rainbow-matcha'   // DEX→CEX: Rainbow proxy 0x/Matcha (fallback)
             },
             // ✅ SOLANA OVERRIDE: For Solana chain, always use direct matcha endpoint
             solana: {
@@ -1073,10 +1073,10 @@ const CONFIG_DEXS = {
         fetchdex: {
             primary: {
                 tokentopair: 'velora6',        // CEX→DEX: Official Velora v6.2
-                pairtotoken: 'rocketx-velora'         // DEX→CEX: Official Velora v5
+                pairtotoken: 'velora5'         // DEX→CEX: Official Velora v5
             },
             alternative: {
-                tokentopair: 'velora5', // CEX→DEX: RocketX filtered → ParaSwap route
+                tokentopair: 'rocketx-velora', // CEX→DEX: RocketX filtered → ParaSwap route
                 pairtotoken: 'swing-velora'     // DEX→CEX: SWING filtered → ParaSwap route
             }
         },

@@ -463,23 +463,84 @@
             }
 
             case 'INDODAX': {
-                const url = `https://indodax.com/api/summaries`;
-                const response = await $.ajax({ url });
-                const list = response?.tickers || {};
-                // Remove underscore and IDR suffix (e.g., "islm_idr" -> "ISLM")
-                const allCoins = Object.keys(list).map(k => k.toUpperCase().replace('_IDR', ''));
+                // FILTER STRATEGY (3 lapis):
+                // 1. Indodax coin list → hanya koin yg tradeable di Indodax
+                // 2. getInfo() network → Indodax officially support chain ini (BSC/ETH/dll)
+                // 3. DATAJSON recovery (snapshot-new.js) → contract ada di chain aktif
+                //
+                // Field `indodaxNetworks` dikirim ke fetchCexData agar bisa dipakai di step 2.
+                // Jika API key tidak ada → indodaxNetworks=[] → hanya filter DATAJSON (step 3)
 
-                // depositEnable/withdrawEnable/feeWD: default semua ON dan feeWD=0
-                // (Private API /tapi dihapus karena menyebabkan ribuan request error & lambat)
-                const arr = allCoins.map(tokenName => ({
-                    cex,
-                    tokenName,
-                    chain: 'INDODAX',
-                    feeWDs: 0,
-                    depositEnable: true,
-                    withdrawEnable: true,
-                    trading: true
-                }));
+                // Step 1: Daftar koin tradeable via Public API
+                let publicList = {};
+                try {
+                    const pubResp = await $.ajax({ url: 'https://indodax.com/api/summaries' });
+                    publicList = pubResp?.tickers || {};
+                } catch (pubErr) {
+                    console.warn('[INDODAX] Failed to fetch /api/summaries:', pubErr?.message || pubErr);
+                }
+                const allCoins = Object.keys(publicList).map(k => k.toUpperCase().replace('_IDR', ''));
+
+                // Step 2: getInfo() untuk network per-koin (butuh API Key)
+                // network format: { "eth": "erc20", "1inch": "erc20", "bnb": "bep20", "eth": ["eth","arb"] }
+                let networkMap = {};
+                let hasNetworkInfo = false;
+                const indodaxCreds = (typeof getCEXCredentials === 'function')
+                    ? getCEXCredentials('INDODAX') : null;
+
+                if (indodaxCreds?.ApiKey && indodaxCreds?.ApiSecret) {
+                    try {
+                        const nonce = Date.now();
+                        const body = `method=getInfo&nonce=${nonce}`;
+                        // INDODAX pakai HMAC-SHA512
+                        const sign = CryptoJS.HmacSHA512(body, indodaxCreds.ApiSecret)
+                            .toString(CryptoJS.enc.Hex);
+                        const tapiResp = await $.ajax({
+                            url: 'https://indodax.com/tapi',
+                            method: 'POST',
+                            data: body,
+                            headers: {
+                                'Key': indodaxCreds.ApiKey,
+                                'Sign': sign,
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            }
+                        });
+                        if (tapiResp?.success === 1 && tapiResp?.return?.network) {
+                            networkMap = tapiResp.return.network || {};
+                            hasNetworkInfo = Object.keys(networkMap).length > 0;
+                            console.log(`[INDODAX] ✅ getInfo() OK — ${Object.keys(networkMap).length} coin networks`);
+                        } else {
+                            console.warn('[INDODAX] getInfo() error:', tapiResp?.error || 'Unknown');
+                        }
+                    } catch (e) {
+                        console.warn('[INDODAX] getInfo() failed (CORS/key/network):', e?.message || e);
+                    }
+                } else {
+                    console.warn('[INDODAX] No API key — chain filter hanya via DATAJSON (step 3 only)');
+                }
+
+                // Step 3: Build token list dengan indodaxNetworks untuk filter di snapshot-new.js
+                const arr = allCoins.map(tokenName => {
+                    const coinKey = tokenName.toLowerCase();
+                    const rawNet = networkMap[coinKey];
+                    // Normalisasi ke array uppercase: ['ERC20'], ['BEP20'], ['ETH','ARB'], dll
+                    const indodaxNetworks = rawNet
+                        ? (Array.isArray(rawNet) ? rawNet : [rawNet]).map(n => String(n).toUpperCase())
+                        : [];
+                    return {
+                        cex,
+                        tokenName,
+                        chain: 'INDODAX',   // special marker → DATAJSON recovery di snapshot-new.js
+                        indodaxNetworks,     // dari getInfo(): network resmi Indodax per koin
+                        hasNetworkInfo,      // true jika getInfo() berhasil (API key ada)
+                        feeWDs: 0,
+                        depositEnable: true,
+                        withdrawEnable: true,
+                        trading: true
+                    };
+                });
+
+                console.log(`[INDODAX] ✅ ${arr.length} coins (hasNetworkInfo=${hasNetworkInfo})`);
                 return arr;
             }
 
