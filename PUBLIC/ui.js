@@ -677,6 +677,9 @@ function buildDexCheckboxForKoin(token = {}) {
         return;
     }
 
+    // Grid 2 kolom agar DEX tidak menumpuk ke bawah
+    container.css({ display: 'grid', 'grid-template-columns': '1fr 1fr', 'row-gap': '4px', 'column-gap': '16px' });
+
     const selectedDexs = (token.selectedDexs || []).map(d => String(d).toLowerCase());
     const dataDexs = token.dataDexs || {};
 
@@ -688,8 +691,9 @@ function buildDexCheckboxForKoin(token = {}) {
         const leftVal = stored.left ?? 0;
         const rightVal = stored.right ?? 0;
         const safeId = dexKeyLower.replace(/[^a-z0-9_-]/gi, '');
-        // Use lowercase canonical key as value for consistency
-        container.append(`<div class="uk-flex uk-flex-middle uk-margin-small"><label class="uk-margin-small-right"><input type="checkbox" class="uk-checkbox dex-edit-checkbox" id="dex-${safeId}" value="${dexKeyLower}" ${isChecked ? 'checked' : ''}> <b>${dexName.toUpperCase()}</b></label><div class="uk-flex uk-flex-middle" style="gap:6px;"><input type="number" class="uk-input uk-form-xxsmall dex-left" id="dex-${safeId}-left" placeholder="KIRI" value="${leftVal}" style="width:88px;"><input type="number" class="uk-input uk-form-xxsmall dex-right" id="dex-${safeId}-right" placeholder="KANAN" value="${rightVal}" style="width:88px;"></div></div>`);
+        const dexColor = (window.CONFIG_DEXS?.[dexKeyLower]?.warna) || '#333';
+        // Use lowercase canonical key as value for consistency; color DEX name sesuai warna DEX di config
+        container.append(`<div style="display:flex;align-items:center;gap:6px;padding:2px 0;"><label style="display:flex;align-items:center;gap:3px;white-space:nowrap;min-width:90px;"><input type="checkbox" class="uk-checkbox dex-edit-checkbox" id="dex-${safeId}" value="${dexKeyLower}" ${isChecked ? 'checked' : ''}><b style="color:${dexColor};font-size:12px;">${dexName.toUpperCase()}</b></label><input type="number" class="uk-input uk-form-xxsmall dex-left" id="dex-${safeId}-left" placeholder="L" value="${leftVal}" style="width:80px;border-color:${dexColor}55;"><input type="number" class="uk-input uk-form-xxsmall dex-right" id="dex-${safeId}-right" placeholder="R" value="${rightVal}" style="width:80px;border-color:${dexColor}55;"></div>`);
     });
 
     // ✅ MetaDEX aggregators — render ke container terpisah (#metadex-checkbox-koin)
@@ -710,6 +714,8 @@ function buildDexCheckboxForKoin(token = {}) {
 
         if (metaAggs.length > 0) {
             metaColumn.show();
+            // MetaDEX sekarang full-width — layout horizontal (flex wrap, 3 per baris)
+            metaContainer.css({ display: 'grid', 'grid-template-columns': 'repeat(2, 1fr)', gap: '4px' });
             metaAggs.forEach(aggKey => {
                 const aggCfg = window.CONFIG_DEXS[aggKey] || {};
                 const aggLabel = (aggCfg.label || aggKey).toUpperCase();
@@ -720,7 +726,7 @@ function buildDexCheckboxForKoin(token = {}) {
                 const leftVal = stored.left ?? 100;
                 const rightVal = stored.right ?? 100;
 
-        metaContainer.append(`<div class="uk-flex uk-flex-middle uk-margin-small"><label class="uk-margin-small-right" style="min-width:95px;"><input type="checkbox" class="uk-checkbox metadex-edit-checkbox" id="metadex-${safeId}" value="${aggKey.toLowerCase()}" ${isChecked ? 'checked' : ''}> <b style="color:${aggColor};">${aggLabel}</b>${(typeof window.getMetaDexBadge === 'function' ? ' ' + window.getMetaDexBadge(aggKey, '8px', 'solid') : '')}</label><div class="uk-flex uk-flex-middle" style="gap:6px;"><input type="number" class="uk-input uk-form-xxsmall metadex-left" id="metadex-${safeId}-left" placeholder="KIRI" value="${leftVal}" style="width:82px;border-color:${aggColor}55;"><input type="number" class="uk-input uk-form-xxsmall metadex-right" id="metadex-${safeId}-right" placeholder="KANAN" value="${rightVal}" style="width:82px;border-color:${aggColor}55;"></div></div>`);
+                metaContainer.append(`<div style="display:flex;align-items:center;gap:6px;padding:2px 0;"><label style="display:flex;align-items:center;gap:3px;white-space:nowrap;min-width:90px;"><input type="checkbox" class="uk-checkbox metadex-edit-checkbox" id="metadex-${safeId}" value="${aggKey.toLowerCase()}" ${isChecked ? 'checked' : ''}> <b style="color:${aggColor};font-size:12px;">${aggLabel}</b>${(typeof window.getMetaDexBadge === 'function' ? ' ' + window.getMetaDexBadge(aggKey, '8px', 'solid') : '')}</label><input type="number" class="uk-input uk-form-xxsmall metadex-left" id="metadex-${safeId}-left" placeholder="L" value="${leftVal}" style="width:80px;border-color:${aggColor}55;"><input type="number" class="uk-input uk-form-xxsmall metadex-right" id="metadex-${safeId}-right" placeholder="R" value="${rightVal}" style="width:80px;border-color:${aggColor}55;"></div>`);
 
             });
         } else {

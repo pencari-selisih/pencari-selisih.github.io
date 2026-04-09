@@ -1543,7 +1543,8 @@
 
                 // Confirm import
                 const confirmMsg = `Import ${importedData.length} koin ke ${table.displayName}?\n\nData lama akan DIGANTI!`;
-                if (!confirm(confirmMsg)) {
+                const okConfirm = await FlatDialog.confirm(confirmMsg, 'Konfirmasi Import', 'warning');
+                if (!okConfirm) {
                     return;
                 }
 
@@ -1672,7 +1673,8 @@
             return;
         }
 
-        if (!confirm(`Anda yakin ingin menghapus tabel "${table.displayName}"? Tindakan ini tidak dapat dibatalkan.`)) {
+        const okConfirm = await FlatDialog.confirm(`Anda yakin ingin menghapus tabel "${table.displayName}"? Tindakan ini tidak dapat dibatalkan.`, 'Hapus Tabel', 'danger');
+        if (!okConfirm) {
             return;
         }
 

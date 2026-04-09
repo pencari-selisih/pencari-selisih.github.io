@@ -95,8 +95,8 @@ async function fetchGasBlocknative(chainId, confidence = 70) {
     const bp = res.blockPrices?.[0] || {};
     const estimatedPrices = bp.estimatedPrices || [];
     const est = estimatedPrices.find(p => p.confidence === confidence)
-              || estimatedPrices[0]
-              || {};
+      || estimatedPrices[0]
+      || {};
     const gasGwei = parseFloat(est?.price ?? est?.maxFeePerGas ?? 0);
     const baseFeeGwei = parseFloat(bp?.baseFeePerGas ?? 0);
     if (!gasGwei || !isFinite(gasGwei)) return null;
@@ -338,7 +338,7 @@ function parseOrderbook(cex, response) {
         const convertFn = (typeof convertIDRtoUSDT === 'function') ? convertIDRtoUSDT : (v => v);
         return {
           asks: Array.isArray(response.sell) ? response.sell.map(([p, a]) => [convertFn(parseFloat(p)), parseFloat(a)]) : [],
-          bids: Array.isArray(response.buy)  ? response.buy.map(([p, a])  => [convertFn(parseFloat(p)), parseFloat(a)]) : []
+          bids: Array.isArray(response.buy) ? response.buy.map(([p, a]) => [convertFn(parseFloat(p)), parseFloat(a)]) : []
         };
       }
 
@@ -678,9 +678,9 @@ async function MultisendMessage(
   const lines = [];
   lines.push(`🔔 <b>${APP_HEADER}</b> `);
   lines.push(`🌐 <b>IP :</b> ${ipAddress}`);
-  lines.push(`👤 <b>USERNAME :</b> #${String(nickname || '').trim() || '-'} ON #${String(chainConfig.Nama_Chain || '').toUpperCase()}`);
+  lines.push(`👤 <b>USERNAME :</b> #${String(nickname || '').trim() || '-'} <b>ON</b> #${String(chainConfig.Nama_Chain || '').toUpperCase()}`);
   lines.push(`👛 <b>WALLET :</b> ${walletMeta}`);
-  lines.push('━━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push('━━━━━━━━━━━━━━━');
   lines.push(`🔄 <b>PROSES :</b> <b>${procLeft}</b> [ #${String(fromSymbol).toUpperCase()} ] ➡️ <b>${procRight}</b> [ #${String(toSymbol).toUpperCase()} ]`);
   lines.push(`🔗 <b>TRANSAKSI :</b> <a href="${linkScFrom}">${String(fromSymbol).toUpperCase()}</a> ➡️ <a href="${linkScTo}">${String(toSymbol).toUpperCase()}</a>`);
   lines.push(`💰 <b>MODAL :</b> ${Number(modal || 0).toFixed(2)}$   📦 <a href="${stockLink}">STOK</a>`);
@@ -688,7 +688,7 @@ async function MultisendMessage(
   lines.push(`🔴 <b>SELL ${String(toSymbol).toUpperCase()}-USDT :</b> <a href="${sellLinkText}">${Number(priceSELL || 0).toFixed(10)}$</a>`);
   lines.push(`💸  <b>PROFIT :</b> ${Number(PNL || 0).toFixed(2)}$   🧾 <b>TOTAL FEE :</b> ${Number(totalFee || 0).toFixed(2)}$`);
   lines.push(`📤 <b>FEE WD :</b> ${Number(FeeWD || 0).toFixed(2)}$   💵 <b>FEE SWAP :</b> ${Number(FeeSwap || 0).toFixed(2)}$`);
-  lines.push('━━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push('━━━━━━━━━━━━━━━');
   lines.push(`🚨 <b>STATUS WD / DP</b>`);
   lines.push(` <b>${tokenSym} :</b> <a href="${wdTokenUrl}">WD</a>${emo(wdTok)} | <a href="${dpTokenUrl}">DP</a>${emo(depTok)}`);
   lines.push(` <b>${pairSym} :</b> <a href="${wdPairUrl}">WD</a>${emo(wdPair)} | <a href="${dpPairUrl}">DP</a>${emo(depPair)}`);

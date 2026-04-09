@@ -253,7 +253,7 @@ function attachEditButtonListeners() {
 }
 
 // Also bind a delegated delete handler to be resilient during scanning and rerenders
-$(document).off('click.globalDelete').on('click.globalDelete', '.delete-token-button', function () {
+$(document).off('click.globalDelete').on('click.globalDelete', '.delete-token-button', async function () {
     try {
         const $el = $(this);
         const id = String($el.data('id'));
@@ -262,8 +262,10 @@ $(document).off('click.globalDelete').on('click.globalDelete', '.delete-token-bu
         const symOut = String($el.data('symbol-out') || '').toUpperCase();
         const chain = String($el.data('chain') || '').toUpperCase();
         const cex = String($el.data('cex') || '').toUpperCase();
-        const detail = `• Token: ${symIn || '-'}/${symOut || '-'}\n• Chain: ${chain || '-'}\n• CEX: ${cex || '-'}`;
-        const ok = confirm(`🗑️ Hapus Koin Ini?\n\n${detail}\n\n⚠️ Tindakan ini tidak dapat dibatalkan. Lanjutkan?`);
+        const detail = `Token: ${symIn || '-'}/${symOut || '-'}\nChain: ${chain || '-'}\nCEX: ${cex || '-'}`;
+        const ok = await FlatDialog.confirm('Apakah Anda yakin ingin menghapus koin ini?', 'Konfirmasi Hapus', 'danger', {
+            details: detail
+        });
         if (!ok) return;
 
         // Cek apakah scanning sedang berjalan
@@ -601,11 +603,17 @@ function hasValidTokens() {
  * Dynamically render CEX API key input fields based on CONFIG_CEX
  * Now with per-CEX checkbox for enable/disable
  */
-function renderCEXAPIKeyInputs() {
+async function renderCEXAPIKeyInputs() {
     const container = document.getElementById('cex-api-keys-container');
     if (!container) {
         console.warn('[CEX Settings] Container #cex-api-keys-container not found');
         return;
+    }
+
+    // Tunggu cache IDB warm agar ENABLED_CEXS & CEX_API_KEYS terbaca dengan benar
+    // (terutama setelah restore backup + page reload)
+    if (window.whenStorageReady) {
+        try { await window.whenStorageReady; } catch (_) { }
     }
 
     container.innerHTML = ''; // Clear previous content
@@ -657,9 +665,9 @@ function renderCEXAPIKeyInputs() {
                 <!-- API Key inputs -->
                 <input type="text" class="uk-input uk-form-small cex-api-input" style="margin-bottom: 3px; font-size: 0.78rem;" 
                   id="cex_apikey_${cex}" placeholder="API Key" aria-label="${cex} API Key" ${!isEnabled ? 'disabled' : ''}>
-                <input type="password" class="uk-input uk-form-small cex-api-input" style="margin-bottom: ${needsPassphrase ? '3px' : '0'}; font-size: 0.78rem;" 
+                <input type="text" class="uk-input uk-form-small cex-api-input" style="margin-bottom: ${needsPassphrase ? '3px' : '0'}; font-size: 0.78rem;"
                   id="cex_secret_${cex}" placeholder="Secret Key" aria-label="${cex} Secret" ${!isEnabled ? 'disabled' : ''}>
-                ${needsPassphrase ? `<input type="password" class="uk-input uk-form-small cex-api-input" style="font-size: 0.78rem;" 
+                ${needsPassphrase ? `<input type="text" class="uk-input uk-form-small cex-api-input" style="font-size: 0.78rem;"
                   id="cex_passphrase_${cex}" placeholder="Passphrase (Required)" aria-label="${cex} Passphrase" ${!isEnabled ? 'disabled' : ''}>` : ''}
               </div>
             </div>
@@ -1885,7 +1893,7 @@ async function deferredInit() {
 
             // Section 1: CHAIN (horizontal flex) - ✅ FILTERED BY ENABLED CHAINS
             const $chainSection = $('<div style="margin-bottom:15px;"></div>');
-            $chainSection.append($('<div style="font-weight:700; color:#333; margin-bottom:8px; font-size:12px; border-bottom:2px solid #e5e5e5; padding-bottom:4px;">CHAIN</div>'));
+            $chainSection.append($('<div class="filter-section-title">CHAIN</div>'));
             const $chainGrid = $('<div style="display:flex; flex-wrap:wrap; gap:6px;"></div>');
 
             // ✅ Get enabled chains for filtering
@@ -1906,10 +1914,10 @@ async function deferredInit() {
                 const checked = chainsSel.includes(k.toLowerCase());
                 const col = CONFIG_CHAINS[k].WARNA || '#333';
                 $chainGrid.append($(`
-                    <label class="fc-chain" data-val="${k.toLowerCase()}" data-color="${col}" for="${id}" style="display:flex; align-items:center; gap:3px; padding:3px 8px; border-radius:3px; cursor:pointer; border:2px solid ${checked ? col : 'transparent'}; background:${checked ? '#f8f8f8' : 'white'};">
-                        <input type="checkbox" id="${id}" ${checked ? 'checked' : ''} style="width:11px; height:11px; margin:0;">
-                        <span style="font-weight:600; font-size:10px; color:${col};">${short}</span>
-                        <span style="font-size:9px; opacity:0.7; color:#555;">[${cnt}]</span>
+                    <label class="fc-chain filter-chip" data-val="${k.toLowerCase()}" data-color="${col}" for="${id}" style="border-color: ${checked ? col : 'transparent'};">
+                        <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
+                        <span class="chip-label" style="color:${col};">${short}</span>
+                        <span class="chip-count">[${cnt}]</span>
                     </label>
                 `));
             });
@@ -1922,13 +1930,13 @@ async function deferredInit() {
             // Build DEX section (shared between CEX and multichain)
             // ======== SECTION DEX (bukan MetaDEX) ========
             const $dexSection = $('<div style="margin-bottom:15px;"></div>');
-            $dexSection.append($('<div style="font-weight:700; color:#333; margin-bottom:8px; font-size:12px; border-bottom:2px solid #e5e5e5; padding-bottom:4px;">DEX</div>'));
+            $dexSection.append($('<div class="filter-section-title">DEX</div>'));
             const $dexGrid = $('<div style="display:flex; flex-wrap:wrap; gap:6px;"></div>');
             const metaDexEnabled = (CONFIG_APP && CONFIG_APP.APP && CONFIG_APP.APP.META_DEX === true);
 
             // ======== SECTION META-DEX (terpisah) ========
             const $metaDexSection = $('<div style="margin-bottom:15px;"></div>');
-            $metaDexSection.append($('<div style="font-weight:700; color:#7c3aed; margin-bottom:8px; font-size:12px; border-bottom:2px solid #e5e5e5; padding-bottom:4px;">&#x26A1; META-DEX AGGREGATORS  </div>'));
+            $metaDexSection.append($('<div class="filter-section-title" style="color:#7c3aed;">&#x26A1; META-DEX AGGREGATORS</div>'));
             const $metaDexGrid = $('<div style="display:flex; flex-wrap:wrap; gap:6px;"></div>');
 
             Object.keys(CONFIG_DEXS || {}).forEach(dx => {
@@ -1954,13 +1962,12 @@ async function deferredInit() {
                     const checked = dexSel.includes(key);
                     const _mb1 = (typeof window.getMetaDexBadge === 'function') ? window.getMetaDexBadge(key, '8px', 'solid') : `<span style="background:${col};color:#fff;padding:0 3px;border-radius:3px;font-size:8px;">MT</span>`;
                     $metaDexGrid.append($(`
-                        <label class="fc-dex" data-val="${key}" data-color="${col}" for="${id}"
-                               style="display:flex; align-items:center; gap:3px; padding:3px 8px; border-radius:3px; cursor:pointer;
-                                      border:2px solid ${checked ? col : '#c4b5fd'}; background:${checked ? '#f5f3ff' : 'white'};">
-                            <input type="checkbox" id="${id}" ${checked ? 'checked' : ''} style="width:11px; height:11px; margin:0;">
-                            <span style="font-weight:600; font-size:10px; color:${col};">${(dexConfig.label || dx).toUpperCase()}</span>
+                        <label class="fc-dex filter-chip" data-val="${key}" data-color="${col}" for="${id}"
+                               style="border-color: ${checked ? col : '#c4b5fd'};">
+                            <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
+                            <span class="chip-label" style="color:${col};">${(dexConfig.label || dx).toUpperCase()}</span>
                             ${_mb1}
-                            <span style="font-size:9px; opacity:0.7; color:#555;">[${cnt}]</span>
+                            <span class="chip-count">[${cnt}]</span>
                         </label>
                     `));
                 } else {
@@ -1970,12 +1977,11 @@ async function deferredInit() {
                     if (cnt === 0) return;
                     const checked = dexSel.includes(key);
                     $dexGrid.append($(`
-                        <label class="fc-dex" data-val="${key}" data-color="${col}" for="${id}"
-                               style="display:flex; align-items:center; gap:3px; padding:3px 8px; border-radius:3px; cursor:pointer;
-                                      border:2px solid ${checked ? col : 'transparent'}; background:${checked ? '#f8f8f8' : 'white'};">
-                            <input type="checkbox" id="${id}" ${checked ? 'checked' : ''} style="width:11px; height:11px; margin:0;">
-                            <span style="font-weight:600; font-size:10px; color:${col};">${(dexConfig.label || dx).toUpperCase()}</span>
-                            <span style="font-size:9px; opacity:0.7; color:#555;">[${cnt}]</span>
+                        <label class="fc-dex filter-chip" data-val="${key}" data-color="${col}" for="${id}"
+                               style="border-color: ${checked ? col : 'transparent'};">
+                            <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
+                            <span class="chip-label" style="color:${col};">${(dexConfig.label || dx).toUpperCase()}</span>
+                            <span class="chip-count">[${cnt}]</span>
                         </label>
                     `));
                 }
@@ -2008,7 +2014,7 @@ async function deferredInit() {
                 });
 
                 const $pairSection = $('<div style="margin-bottom:15px;"></div>');
-                $pairSection.append($('<div style="font-weight:700; color:#333; margin-bottom:8px; font-size:12px; border-bottom:2px solid #e5e5e5; padding-bottom:4px;">PAIR</div>'));
+                $pairSection.append($('<div class="filter-section-title">PAIR</div>'));
                 const $pairGrid = $('<div style="display:flex; flex-wrap:wrap; gap:6px;"></div>');
                 Object.keys(allPairDefs).forEach(p => {
                     const cnt = byPair[p] || 0;
@@ -2017,10 +2023,10 @@ async function deferredInit() {
                     const pairColor = (p === 'NON') ? '#6b7280' : accentColor;
                     const id = `modal-fc-pair-${p}`;
                     $pairGrid.append($(`
-                        <label class="fc-pair" data-val="${p}" data-color="${pairColor}" for="${id}" style="display:flex; align-items:center; gap:3px; padding:3px 8px; border-radius:3px; cursor:pointer; border:2px solid ${checked ? pairColor : 'transparent'}; background:${checked ? '#f8f8f8' : 'white'};">
-                            <input type="checkbox" id="${id}" ${checked ? 'checked' : ''} style="width:11px; height:11px; margin:0;">
-                            <span style="font-weight:600; font-size:10px; color:${pairColor};">${p}</span>
-                            <span style="font-size:9px; opacity:0.7; color:#555;">[${cnt}]</span>
+                        <label class="fc-pair filter-chip" data-val="${p}" data-color="${pairColor}" for="${id}" style="border-color: ${checked ? pairColor : 'transparent'};">
+                            <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
+                            <span class="chip-label" style="color:${pairColor};">${p}</span>
+                            <span class="chip-count">[${cnt}]</span>
                         </label>
                     `));
                 });
@@ -2041,16 +2047,16 @@ async function deferredInit() {
                 $wrap.append($chainSection);
 
                 const $cexSection = $('<div style="margin-bottom:15px;"></div>');
-                $cexSection.append($('<div style="font-weight:700; color:#333; margin-bottom:8px; font-size:12px; border-bottom:2px solid #e5e5e5; padding-bottom:4px;">EXCHANGER</div>'));
+                $cexSection.append($('<div class="filter-section-title">EXCHANGER</div>'));
                 const $cexGrid = $('<div style="display:flex; flex-wrap:wrap; gap:6px;"></div>');
                 getEnabledCEXs().forEach(cx => {
                     const id = `modal-fc-cex-${cx}`; const cnt = byCex[cx] || 0; if (cnt === 0) return; const checked = cexSel.includes(cx.toUpperCase());
                     const col = CONFIG_CEX[cx].WARNA || '#333';
                     $cexGrid.append($(`
-                        <label class="fc-cex" data-val="${cx}" data-color="${col}" for="${id}" style="display:flex; align-items:center; gap:3px; padding:3px 8px; border-radius:3px; cursor:pointer; border:2px solid ${checked ? col : 'transparent'}; background:${checked ? '#f8f8f8' : 'white'};">
-                            <input type="checkbox" id="${id}" ${checked ? 'checked' : ''} style="width:11px; height:11px; margin:0;">
-                            <span style="font-weight:600; font-size:10px; color:${col};">${cx}</span>
-                            <span style="font-size:9px; opacity:0.7; color:#555;">[${cnt}]</span>
+                        <label class="fc-cex filter-chip" data-val="${cx}" data-color="${col}" for="${id}" style="border-color: ${checked ? col : 'transparent'};">
+                            <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
+                            <span class="chip-label" style="color:${col};">${cx}</span>
+                            <span class="chip-count">[${cnt}]</span>
                         </label>
                     `));
                 });
@@ -2233,7 +2239,7 @@ async function deferredInit() {
             // Column 1: EXCHANGER (only show if NOT in CEX mode)
             if (!isCEXMode) {
                 const $cexCol = $('<div></div>');
-                $cexCol.append($('<div style="font-weight:700; color:#333; margin-bottom:10px; font-size:13px; border-bottom:2px solid #e5e5e5; padding-bottom:6px;">EXCHANGER</div>'));
+                $cexCol.append($('<div class="filter-section-title">EXCHANGER</div>'));
                 const $cexList = $('<div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;"></div>');
                 let relevantCexs = (CONFIG_CHAINS[chain] && CONFIG_CHAINS[chain].WALLET_CEX) ? Object.keys(CONFIG_CHAINS[chain].WALLET_CEX) : [];
                 const enabledCexList = (typeof getEnabledCEXs === 'function') ? getEnabledCEXs() : [];
@@ -2250,10 +2256,10 @@ async function deferredInit() {
 
                     $cexList.append($(`
                         <div style="display:flex; align-items:center; gap:4px;">
-                            <label class="sc-cex" data-val="${cx}" data-color="${cexColor}" for="${cexId}" style="display:flex; align-items:center; gap:3px; padding:2px 6px; border-radius:3px; cursor:pointer; border:2px solid ${cexChecked ? cexColor : 'transparent'}; background:${cexChecked ? '#f8f8f8' : 'white'};">
-                                <input type="checkbox" id="${cexId}" ${cexChecked ? 'checked' : ''} style="width:11px; height:11px; margin:0;">
-                                <span style="font-weight:600; font-size:10px; color:${cexColor};">${cx}</span>
-                                <span style="font-size:9px; opacity:0.7; color:#555;">[${cexCnt}]</span>
+                            <label class="sc-cex filter-chip" data-val="${cx}" data-color="${cexColor}" for="${cexId}" style="border-color: ${cexChecked ? cexColor : 'transparent'};">
+                                <input type="checkbox" id="${cexId}" ${cexChecked ? 'checked' : ''}>
+                                <span class="chip-label" style="color:${cexColor};">${cx}</span>
+                                <span class="chip-count">[${cexCnt}]</span>
                             </label>
                             <span style="font-size:9px; color:#888; font-style:italic;">${cexPairs}</span>
                         </div>
@@ -2265,7 +2271,7 @@ async function deferredInit() {
 
             // Column 2: PAIR
             const $pairCol = $('<div></div>');
-            $pairCol.append($('<div style="font-weight:700; color:#333; margin-bottom:10px; font-size:13px; border-bottom:2px solid #e5e5e5; padding-bottom:6px;">PAIR</div>'));
+            $pairCol.append($('<div class="filter-section-title">PAIR</div>'));
             const $pairList = $('<div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;"></div>');
             const allPairs = Array.from(new Set([...Object.keys(pairDefs), 'NON']));
             const chainColor = (CONFIG_CHAINS[chain] && CONFIG_CHAINS[chain].WARNA) || '#2563eb';
@@ -2276,10 +2282,10 @@ async function deferredInit() {
                 const pairColor = (p === 'NON') ? '#6b7280' : chainColor;
                 const id = `modal-sc-pair-${p}`;
                 $pairList.append($(`
-                    <label class="sc-pair" data-val="${p}" data-color="${pairColor}" for="${id}" style="display:flex; align-items:center; gap:3px; padding:2px 6px; border-radius:3px; cursor:pointer; border:2px solid ${checked ? pairColor : 'transparent'}; background:${checked ? '#f8f8f8' : 'white'};">
-                        <input type="checkbox" id="${id}" ${checked ? 'checked' : ''} style="width:10px; height:10px; margin:0;">
-                        <span style="font-weight:500; font-size:10px; color:${pairColor};">${p}</span>
-                        <span style="font-size:9px; opacity:0.7; color:#555;">[${cnt}]</span>
+                    <label class="sc-pair filter-chip" data-val="${p}" data-color="${pairColor}" for="${id}" style="border-color: ${checked ? pairColor : 'transparent'};">
+                        <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
+                        <span class="chip-label" style="color:${pairColor};">${p}</span>
+                        <span class="chip-count">[${cnt}]</span>
                     </label>
                 `));
             });
@@ -2290,7 +2296,7 @@ async function deferredInit() {
 
             // Row 2: DEX (horizontal, flex-wrap) — DEX biasa saja (bukan MetaDEX)
             const $dexSection = $('<div></div>');
-            $dexSection.append($('<div style="font-weight:700; color:#333; margin-bottom:10px; font-size:13px; border-bottom:2px solid #e5e5e5; padding-bottom:6px;">DEX</div>'));
+            $dexSection.append($('<div class="filter-section-title">DEX</div>'));
             const $dexGrid = $('<div style="display:flex; flex-wrap:wrap; gap:6px; align-items:flex-start;"></div>');
             const dexAllowed = ((CONFIG_CHAINS[chain] || {}).DEXS || []).map(x => String(x).toLowerCase());
             const byDex = flatPair.reduce((a, t) => {
@@ -2306,10 +2312,10 @@ async function deferredInit() {
                 const col = (dexConfig.warna || dexConfig.WARNA) || '#333';
                 const id = `modal-sc-dex-${dx}`;
                 $dexGrid.append($(`
-                    <label class="sc-dex" data-val="${dx}" data-color="${col}" for="${id}" style="display:flex; align-items:center; gap:3px; padding:3px 8px; border-radius:3px; cursor:pointer; border:2px solid ${checked ? col : 'transparent'}; background:${checked ? '#f8f8f8' : 'white'};">
-                        <input type="checkbox" id="${id}" ${checked ? 'checked' : ''} style="width:11px; height:11px; margin:0;">
-                        <span style="font-weight:500; font-size:10px; color:${col};">${(dexConfig.label || dx).toUpperCase()}</span>
-                        <span style="font-size:9px; opacity:0.7; color:#555;">[${cnt}]</span>
+                    <label class="sc-dex filter-chip" data-val="${dx}" data-color="${col}" for="${id}" style="border-color: ${checked ? col : 'transparent'};">
+                        <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
+                        <span class="chip-label" style="color:${col};">${(dexConfig.label || dx).toUpperCase()}</span>
+                        <span class="chip-count">[${cnt}]</span>
                     </label>
                 `));
             });
@@ -2319,7 +2325,7 @@ async function deferredInit() {
             // Row 3: META-DEX (terpisah, section sendiri)
             if (window.CONFIG_APP?.APP?.META_DEX === true) {
                 const $metaDexSc = $('<div style="margin-top:14px;"></div>');
-                $metaDexSc.append($('<div style="font-weight:700; color:#7c3aed; margin-bottom:8px; font-size:13px; border-bottom:2px solid #e5e5e5; padding-bottom:6px;">META-DEX <span style="font-size:10px;font-weight:400;color:#888;"></span></div>'));
+                $metaDexSc.append($('<div class="filter-section-title" style="color:#7c3aed;">META-DEX <span style="font-size:10px;font-weight:400;color:#888;"></span></div>'));
                 const $metaGrid = $('<div style="display:flex; flex-wrap:wrap; gap:6px;"></div>');
                 const metaKeys = Object.keys(CONFIG_DEXS || {}).filter(k => {
                     const dcfg = CONFIG_DEXS[k];
@@ -3073,7 +3079,8 @@ async function deferredInit() {
             }
         } catch (_) { /* fallthrough to confirm */ }
 
-        if (!confirm("APAKAH ANDA INGIN UPDATE WALLET EXCHANGER?")) { try { setLastAction('UPDATE WALLET EXCHANGER', 'warning', { reason: 'CANCELLED' }); } catch (_) { } return; }
+        const walletOk = await FlatDialog.confirm('APAKAH ANDA INGIN UPDATE WALLET EXCHANGER?', 'Update Wallet', 'question');
+        if (!walletOk) { try { setLastAction('UPDATE WALLET EXCHANGER', 'warning', { reason: 'CANCELLED' }); } catch (_) { } return; }
 
         // Ensure any running scan stops before updating wallets
         try {
@@ -3104,7 +3111,7 @@ async function deferredInit() {
     // Root cause: duplicate handler captured already-modified button HTML (spinner)
     // then restored it back to the spinner, overriding the correct restore.
 
-    $(document).on('click', '#HapusEditkoin', function (e) {
+    $(document).on('click', '#HapusEditkoin', async function (e) {
         e.preventDefault();
         const id = $('#multiTokenIndex').val();
         if (!id) return (typeof toast !== 'undefined' && toast.error) ? toast.error('ID token tidak ditemukan.') : undefined;
@@ -3128,7 +3135,8 @@ async function deferredInit() {
             `- CEX  : ${cexList}\n` +
             `- DEX  : ${dexList}`;
 
-        if (confirm(detailMsg)) {
+        const hapusOk = await FlatDialog.confirm(detailMsg, '🗑️ Hapus Koin', 'danger');
+        if (hapusOk) {
             deleteTokenById(id);
             if (typeof toast !== 'undefined' && toast.success) toast.success(`KOIN TERHAPUS`);
             if (window.UIkit?.modal) UIkit.modal('#FormEditKoinModal').hide();
@@ -6846,7 +6854,8 @@ $(document).on('click', '#histDeleteSelected', async function () {
 });
 $(document).on('click', '#histClearAll', async function () {
     try {
-        if (!confirm('Bersihkan semua riwayat?')) return;
+        const okConfirm = await FlatDialog.confirm('Bersihkan semua riwayat?', 'Bersihkan Riwayat', 'danger');
+        if (!okConfirm) return;
         const ok = await (window.clearHistoryLog ? window.clearHistoryLog() : Promise.resolve(false));
         if (ok) { if (typeof toast !== 'undefined' && toast.success) toast.success('Riwayat dibersihkan.'); renderHistoryTable(); }
         else { if (typeof toast !== 'undefined' && toast.error) toast.error('Gagal membersihkan riwayat.'); }
@@ -7274,7 +7283,7 @@ $(document).on('click', '#histClearAll', async function () {
             return;
         }
 
-        const profileName = prompt('Masukkan nama profil:');
+        const profileName = await FlatDialog.prompt('Masukkan nama profil:', '', 'Simpan Profil Modal');
         if (!profileName || profileName.trim() === '') {
             if (typeof toast !== 'undefined' && toast.warning) {
                 toast.warning('Nama profil tidak boleh kosong');
@@ -7299,8 +7308,8 @@ $(document).on('click', '#histClearAll', async function () {
 
         if (existingIndex >= 0) {
             // Update existing profile
-            const confirm = window.confirm(`Profil "${profileName}" sudah ada. Timpa profil yang ada?`);
-            if (!confirm) return;
+            const confirmed = await FlatDialog.confirm(`Profil "${profileName}" sudah ada. Timpa profil yang ada?`, 'Profil Sudah Ada', 'warning');
+            if (!confirmed) return;
 
             profiles[existingIndex] = newProfile;
             if (typeof toast !== 'undefined' && toast.success) {
@@ -7373,8 +7382,8 @@ $(document).on('click', '#histClearAll', async function () {
         const profile = profiles[parseInt(selectedIndex)];
         if (!profile) return;
 
-        const confirm = window.confirm(`Hapus profil "${profile.name}"?`);
-        if (!confirm) return;
+        const confirmed = await FlatDialog.confirm(`Hapus profil "${profile.name}"?`, 'Hapus Profil', 'danger');
+        if (!confirmed) return;
 
         profiles.splice(parseInt(selectedIndex), 1);
         await saveProfiles(chainKey, profiles);
@@ -7475,14 +7484,37 @@ $(document).on('click', '#histClearAll', async function () {
         }
 
         // Confirm before applying
-        let confirmLines = Object.entries(dexInputs).map(([dex, vals]) => `- ${dex.toUpperCase()}: KIRI=${vals.left}, KANAN=${vals.right}`);
-        if (Object.keys(metaInputs).length > 0) {
-            confirmLines.push('--- META-DEX ---');
-            Object.entries(metaInputs).forEach(([agg, vals]) => confirmLines.push(`- [META] ${agg.toUpperCase()}: KIRI=${vals.left}, KANAN=${vals.right}`));
-        }
-        const confirmMsg = `DEX yang diubah Modalnya:\n${confirmLines.join('\n')}\nLanjutkan?\n\n`;
+        const buildRow = (dex, vals, isMeta = false) => {
+            const config = (typeof CONFIG_DEXS !== 'undefined' ? CONFIG_DEXS[dex.toLowerCase()] : {}) || {};
+            const warna = config.warna || '#374151';
+            const label = config.label || dex.toUpperCase();
+            const prefix = isMeta ? '<span style="color:#94a3b8;font-size:10px;font-weight:500;">META</span> ' : '';
+            return `<tr>
+                <td style="padding:4px 6px;white-space:nowrap;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${warna};margin-right:5px;vertical-align:middle;"></span>${prefix}<b style="color:${warna};font-size:13px;">${label}</b></td>
+                <td style="padding:4px 6px;text-align:center;"><span style="background:#eff6ff;color:#2563eb;padding:2px 8px;border-radius:3px;font-weight:700;font-size:12px;border:1px solid #dbeafe;">${vals.left}</span></td>
+                <td style="padding:4px 6px;text-align:center;"><span style="background:#fffbeb;color:#d97706;padding:2px 8px;border-radius:3px;font-weight:700;font-size:12px;border:1px solid #fef3c7;">${vals.right}</span></td>
+            </tr>`;
+        };
 
-        if (!confirm(confirmMsg)) return;
+        const dexRows = Object.entries(dexInputs).map(([dex, vals]) => buildRow(dex, vals)).join('');
+        const metaRows = Object.entries(metaInputs).map(([agg, vals]) => buildRow(agg, vals, true)).join('');
+
+        const confirmBody = `Profil modal yang akan diterapkan:`;
+        const confirmDetails = `
+            <table style="width:100%;border-collapse:collapse;font-family:Inter,sans-serif;">
+                <thead><tr style="border-bottom:2px solid #e2e8f0;">
+                    <th style="padding:4px 6px;text-align:left;font-size:11px;color:#64748b;font-weight:600;">DEX</th>
+                    <th style="padding:4px 6px;text-align:center;font-size:11px;color:#2563eb;font-weight:600;">KIRI</th>
+                    <th style="padding:4px 6px;text-align:center;font-size:11px;color:#d97706;font-weight:600;">KANAN</th>
+                </tr></thead>
+                <tbody>${dexRows}${metaRows ? '<tr><td colspan="3" style="padding:5px 6px 2px;font-size:10px;color:#94a3b8;font-weight:700;letter-spacing:0.05em;border-top:1px dashed #e2e8f0;">─ META-DEX ─</td></tr>' + metaRows : ''}</tbody>
+            </table>`;
+
+        const okConfirm = await FlatDialog.confirm(confirmBody, 'Apply Modal Profil', 'question', {
+            allowHTML: true,
+            details: confirmDetails
+        });
+        if (!okConfirm) return;
 
         try {
             // Disable button during processing

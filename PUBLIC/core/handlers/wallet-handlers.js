@@ -61,7 +61,8 @@
             }
         } catch(_) { /* fallthrough to confirm */ }
 
-        if (!confirm("APAKAH ANDA INGIN UPDATE WALLET EXCHANGER?")) { try { setLastAction('UPDATE WALLET EXCHANGER', 'warning', { reason: 'CANCELLED' }); } catch(_) {} return; }
+        const ok = await FlatDialog.confirm("APAKAH ANDA INGIN UPDATE WALLET EXCHANGER?", "Update Wallet", "question");
+        if (!ok) { try { setLastAction('UPDATE WALLET EXCHANGER', 'warning', { reason: 'CANCELLED' }); } catch(_) {} return; }
 
         // Ensure any running scan stops before updating wallets
         try {
