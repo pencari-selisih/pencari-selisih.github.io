@@ -32,7 +32,7 @@
      * Global delegated delete handler
      * Resilient during scanning and rerenders
      */
-    $(document).off('click.globalDelete').on('click.globalDelete', '.delete-token-button', function () {
+    $(document).off('click.globalDelete').on('click.globalDelete', '.delete-token-button', async function () {
         try {
             const $el = $(this);
             const id = String($el.data('id'));
@@ -42,7 +42,7 @@
             const chain = String($el.data('chain') || '').toUpperCase();
             const cex = String($el.data('cex') || '').toUpperCase();
             const detail = `• Token: ${symIn || '-'}/${symOut || '-'}\n• Chain: ${chain || '-'}\n• CEX: ${cex || '-'}`;
-            const ok = confirm(`🗑️ Hapus Koin Ini?\n\n${detail}\n\n⚠️ Tindakan ini tidak dapat dibatalkan. Lanjutkan?`);
+            const ok = await FlatDialog.confirm(`🗑️ Hapus Koin Ini?\n\n${detail}\n\n⚠️ Tindakan ini tidak dapat dibatalkan. Lanjutkan?`, 'Konfirmasi Hapus', 'danger');
             if (!ok) return;
 
             // Cek apakah scanning sedang berjalan
@@ -405,7 +405,7 @@
     /**
      * Delete token from modal handler
      */
-    $(document).on('click', '#HapusEditkoin', function (e) {
+    $(document).on('click', '#HapusEditkoin', async function (e) {
         e.preventDefault();
         const id = $('#multiTokenIndex').val();
         if (!id) return (typeof toast !== 'undefined' && toast.error) ? toast.error('ID token tidak ditemukan.') : undefined;
@@ -429,7 +429,8 @@
             `- CEX  : ${cexList}\n` +
             `- DEX  : ${dexList}`;
 
-        if (confirm(detailMsg)) {
+        const confirmed = await FlatDialog.confirm(detailMsg, '🗑️ Hapus Koin', 'danger');
+        if (confirmed) {
             deleteTokenById(id);
             if (typeof toast !== 'undefined' && toast.success) toast.success(`KOIN TERHAPUS`);
             if (window.UIkit?.modal) UIkit.modal('#FormEditKoinModal').hide();
@@ -443,11 +444,7 @@
         }
     });
 
-    /**
-     * Copy token to multichain handler
-     * Only available in per-chain edit modal
-     */
-    $(document).on('click', '#CopyToMultiBtn', function () {
+    $(document).on('click', '#CopyToMultiBtn', async function () {
         try {
             const mode = getAppMode();
             if (mode.type !== 'single') {
@@ -523,7 +520,7 @@
                     `DEX MERGED  : ${mergedDexs.join(', ')}\n\n` +
                     `✅ Lanjutkan MERGE?`;
 
-                proceed = confirm(detailMsg);
+                proceed = await FlatDialog.confirm(detailMsg, '📦 Merge Token', 'question');
                 if (!proceed) return;
 
                 // MERGE: Update token with merged CEX/DEX lists
@@ -570,7 +567,7 @@
     });
 
     // ⭐ Star shortcut: import token to multichain from monitoring table
-    $(document).on('click', '.import-multi-btn', function () {
+    $(document).on('click', '.import-multi-btn', async function () {
         try {
             const $star = $(this);
             const mode = getAppMode();
@@ -601,6 +598,8 @@
 
             const alreadyExists = matchIdx !== -1;
             let confirmMsg;
+            let title = '⭐ Import ke Multichain / Jadikan Favorit ?';
+            let type = 'question';
 
             if (alreadyExists) {
                 const existingCexs = (multi[matchIdx].selectedCexs || []).map(c => String(c).toUpperCase());
@@ -613,17 +612,19 @@
                     `CEX Import   : ${newCexs.join(', ')}\n` +
                     `CEX Merged   : ${mergedCexs.join(', ')}\n\n` +
                     `Lanjutkan MERGE CEX & DEX?`;
+                title = '⭐ Merge Token';
             } else {
                 const cexList = (token.selectedCexs || []).map(c => String(c).toUpperCase()).join(', ');
                 confirmMsg =
-                    `⭐ Import ke Multichain?\n\n` +
+                    `⭐ Import ke Multichain / Jadikan Favorit ?\n\n` +
                     `Token : ${symbolIn}/${symbolOut}\n` +
                     `Chain : ${chainKey.toUpperCase()}\n` +
                     `CEX   : ${cexList || '-'}\n\n` +
                     `Lanjutkan?`;
             }
 
-            if (!confirm(confirmMsg)) return;
+            const confirmed = await FlatDialog.confirm(confirmMsg, title, type);
+            if (!confirmed) return;
 
             // Build token object for multichain
             const tokenObj = { ...token, chain: chainKey };

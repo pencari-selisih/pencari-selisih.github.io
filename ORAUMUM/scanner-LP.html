@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LP SCANNER KOIN</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="js/flat-dialog.js"></script>
     <style>
         :root {
             --primary:    #2563eb;
@@ -783,7 +784,10 @@ async function fetchDex(sc, dexNetwork, networkId, csvRow) {
 // ══════════════════════════════════════════════════════════════════════
 async function startScan() {
     const file = $("#csvFile")[0].files[0];
-    if (!file) { alert("Pilih file CSV dulu!"); return; }
+    if (!file) {
+        await FlatDialog.alert("Pilih file CSV dulu!", "Peringatan", "warning");
+        return;
+    }
 
     const netVal     = $("#network").val();                // e.g. "bsc|56"
     const [dexNet, codexNetStr] = netVal.split("|");
@@ -792,7 +796,10 @@ async function startScan() {
     const useDex     = $("#useDex").is(":checked");
     const batchSize  = parseInt($("#concurrency").val());
 
-    if (!useCodex && !useDex) { alert("Aktifkan minimal satu sumber data!"); return; }
+    if (!useCodex && !useDex) {
+        await FlatDialog.alert("Aktifkan minimal satu sumber data!", "Peringatan", "warning");
+        return;
+    }
 
     // Reset
     allRows      = [];

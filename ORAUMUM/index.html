@@ -12,6 +12,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+  <script src="js/flat-dialog.js"></script>
   <script src="js/notify-shim.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.70.0/lib/index.iife.min.js"></script>
@@ -555,7 +556,7 @@
       <div class="uk-flex uk-flex-middle uk-margin-small" id="judulmodal">
         <div class="uk-width-expand"></div>
         <div class="uk-text-center uk-width-auto">
-          <h4 class="uk-margin-remove">FORM KOIN [TOKEN & PAIR]</h4>
+          <h4 class="uk-margin-remove">FORM EDITOR KOIN [TOKEN & PAIR]</h4>
         </div>
         <div class="uk-width-expand uk-text-right">
 
@@ -629,24 +630,22 @@
           </div>
         </div>
 
-        <!-- Card: DEX Regular (left) + MetaDEX (right) -->
+        <!-- Card: DEX Regular (atas, full width 2-col) + MetaDEX (bawah, full width) -->
         <div class="uk-card uk-card-default uk-card-small uk-card-body uk-margin-small-top">
-          <div class="uk-grid-small" uk-grid>
-            <!-- Kolom DEX Regular -->
-            <div class="uk-width-1-2@m">
-              <label class="uk-form-label uk-text-bold">
-                Pilih DEX & Modal {KIRI, KANAN}
-              </label>
-              <div id="dex-checkbox-koin" class="uk-margin-small-top"></div>
-            </div>
+          <!-- DEX Regular — full width, grid 2 kolom -->
+          <div>
+            <label class="uk-form-label uk-text-bold">
+              Pilih DEX & Modal {KIRI, KANAN}
+            </label>
+            <div id="dex-checkbox-koin" class="uk-margin-small-top"></div>
+          </div>
 
-            <!-- Kolom MetaDEX -->
-            <div class="uk-width-1-2@m" id="metadex-column-koin">
-              <label class="uk-form-label uk-text-bold" style="color:#7c3aed;">
-                ⚡ Meta-DEX & Modal {KIRI, KANAN}
-              </label>
-              <div id="metadex-checkbox-koin" class="uk-margin-small-top"></div>
-            </div>
+          <!-- MetaDEX — full width, tampil bila META_DEX aktif -->
+          <div id="metadex-column-koin" style="margin-top:8px;border-top:1px solid #eee;padding-top:8px;">
+            <label class="uk-form-label uk-text-bold" style="color:#7c3aed;">
+              ⚡ Meta-DEX & Modal {KIRI, KANAN}
+            </label>
+            <div id="metadex-checkbox-koin" class="uk-margin-small-top"></div>
           </div>
 
           <input type="hidden" id="multiTokenIndex">

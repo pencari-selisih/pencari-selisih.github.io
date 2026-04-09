@@ -1250,73 +1250,42 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                 } catch (_) { }
                                 // Append success details (rich format)
                                 try {
+                                    // ✅ SYNC TOOLTIP WITH COLUMN DATA (Single Source of Truth)
+                                    // Gunakan data dari objek 'update' (hasil calculateResult) agar 100% konsisten
                                     const chainCfg = (window.CONFIG_CHAINS || {})[String(token.chain).toLowerCase()] || {};
                                     const chainName = (chainCfg.Nama_Chain || token.chain || '').toString().toUpperCase();
                                     const ce = String(token.cex || '').toUpperCase();
                                     const dx = String((finalDexRes?.dexTitle) || dex || '').toUpperCase();
-                                    // Sumber nilai: jika alternatif dipakai tampilkan 'via DZAP' atau 'via SWOOP'
-                                    const viaText = (function () {
-                                        try {
-                                            if (isFallback === true) {
-                                                // Jika fallback DZAP (memiliki routeTool dari services), tampilkan via DZAP
-                                                if (finalDexRes && typeof finalDexRes.routeTool !== 'undefined') return ' via DZAP';
-                                                // Selain itu fallback dianggap SWOOP
-                                                return ' via SWOOP';
-                                            }
-                                        } catch (_) { }
-                                        return '';
-                                    })();
                                     const nameIn = String(isKiri ? token.symbol_in : token.symbol_out).toUpperCase();
                                     const nameOut = String(isKiri ? token.symbol_out : token.symbol_in).toUpperCase();
-                                    const modal = Number(isKiri ? modalKiri : modalKanan) || 0;
-                                    const amtIn = Number(isKiri ? amount_in_token : amount_in_pair) || 0;
-                                    const outAmt = Number(finalDexRes.amount_out) || 0;
-                                    const feeSwap = Number(finalDexRes.FeeSwap || 0);
-                                    // ✅ NEW: Extract feeSource dari DEX response untuk label di tooltip
+                                    
+                                    // Ambil data dari hasil kalkulasi resmi (calculateResult)
+                                    const modal = update.Modal || 0;
+                                    const amtIn = update.amount_in || 0;
+                                    const outAmt = update.amount_out || 0;
+                                    const totalFee = update.totalFee || 0;
+                                    const totalValue = update.totalValue || 0;
+                                    const profitLoss = update.profitLoss || 0;
+                                    const pnlPct = update.profitLossPercent || 0;
+                                    const effDexPerToken = update.dexUsdRate || 0;
+                                    
+                                    // Fee data from update
+                                    const feeSwap = update.FeeSwap || 0;
+                                    const feeWD = update.FeeWD || 0;
+                                    // feeTrade dihitung di calculateResult tapi tidak di-expose sebagai field terpisah yang jelas
+                                    // kita hitung sisanya saja untuk kejelasan tooltip
+                                    const feeTrade = (totalFee - feeSwap - feeWD - (update.feeTransfer || 0));
+                                    const feeTransfer = update.feeTransfer || 0;
+
                                     const feeSrc = String(finalDexRes.feeSource || 'fallback').toLowerCase();
                                     const feeSrcLbl = feeSrc === 'api'  ? '✅ dari API'
                                                     : feeSrc === 'calc' ? 'dari kalkulasi gas'
                                                     :                     '⚠️ estimasi fallback';
 
-
-                                    // ✅ FIX: Fee calculation berbeda per arah
-                                    // CEX to DEX (isKiri=true): withdraw fee dari CEX
-                                    // DEX to CEX (isKiri=false): transfer/deposit fee ke CEX wallet (gas fee)
-                                    const feeWD = isKiri ? Number(DataCEX.feeWDToken || 0) : 0;
-
-                                    // ✅ REFACTORED: Gas transfer onchain 65000 units (bukan feeSwap*0.5)
-                                    const feeTransfer = !isKiri
-                                        ? ((typeof getTransferFeeUSD === 'function') ? getTransferFeeUSD(token.chain) : 0)
-                                        : 0;
-
-                                    // ✅ REFACTORED: Per-CEX fee dari getCexTradeFee() + getCexFeeMultiplier()
-                                    // INDODAX: pair IDR → selalu 2x (IDR→USDT→KOIN)
-                                    const _logPairIsStable = isKiri ? (nameOut === 'USDT') : (nameIn === 'USDT');
-                                    const _logFeeRate = (typeof getCexTradeFee === 'function') ? getCexTradeFee(token.cex) : 0.001;
-                                    const _logFeeMulti = (typeof getCexFeeMultiplier === 'function') ? getCexFeeMultiplier(token.cex, _logPairIsStable) : (_logPairIsStable ? 1 : 2);
-                                    const feeTrade = _logFeeRate * modal * _logFeeMulti;
-
-                                    // Harga efektif DEX (USDT/token)
-                                    let effDexPerToken = 0;
-                                    if (isKiri) {
-                                        if (nameOut === 'USDT') effDexPerToken = (amtIn > 0) ? (outAmt / amtIn) : 0;
-                                        else effDexPerToken = (amtIn > 0) ? (outAmt / amtIn) * Number(DataCEX.priceSellPair || 0) : 0;
-                                    } else {
-                                        if (nameIn === 'USDT') effDexPerToken = (outAmt > 0) ? (amtIn / outAmt) : 0;
-                                        else effDexPerToken = (outAmt > 0) ? (amtIn / outAmt) * Number(DataCEX.priceBuyPair || 0) : 0;
-                                    }
-                                    // Total value hasil (USDT)
-                                    const totalValue = isKiri
-                                        ? outAmt * Number(DataCEX.priceSellPair || 0)
-                                        : outAmt * Number(DataCEX.priceSellToken || 0);
-                                    const bruto = totalValue - modal;
-
-                                    // ✅ FIX: Total fee include transfer fee untuk DEX to CEX
-                                    const totalFee = feeSwap + feeWD + feeTransfer + feeTrade;
-                                    const profitLoss = totalValue - (modal + totalFee);
-                                    const pnlPct = modal > 0 ? (bruto / modal) * 100 : 0;
                                     const toIDR = (v) => { try { return (typeof formatIDRfromUSDT === 'function') ? formatIDRfromUSDT(Number(v) || 0) : ''; } catch (_) { return ''; } };
-                                    const buyPriceCEX = Number(DataCEX.priceBuyToken || 0);
+                                    const buyPriceCEX = Number(update.priceBuyToken_CEX || 0);
+                                    const sellPriceCEX = Number(update.priceSellToken_CEX || 0);
+
                                     const buyLine = isKiri
                                         ? `    🛒 Beli di ${ce} @ $${buyPriceCEX.toFixed(6)} → ${amtIn.toFixed(6)} ${nameIn}`
                                         : `    🛒 Beli di ${dx} @ ~$${effDexPerToken.toFixed(6)} / ${nameOut}`;
@@ -1325,74 +1294,43 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                         : `    💱 Harga Beli (${dx}): ~$${effDexPerToken.toFixed(6)} USDT | ${toIDR(effDexPerToken)}`;
                                     const sellIdrLine = isKiri
                                         ? `    💱 Harga Jual (${dx}): ~$${effDexPerToken.toFixed(6)} USDT | ${toIDR(effDexPerToken)}`
-                                        : `    💱 Harga Jual (${ce}): $${Number(DataCEX.priceSellToken || 0).toFixed(6)} USDT | ${toIDR(Number(DataCEX.priceSellToken || 0))}`;
-                                    // Header block (selalu tampil di awal tooltip)
+                                        : `    💱 Harga Jual (${ce}): $${sellPriceCEX.toFixed(6)} USDT | ${toIDR(sellPriceCEX)}`;
+                                    
                                     const nowStr = (new Date()).toLocaleTimeString();
                                     const viaName = (function () {
                                         try {
-                                            // Check routeTool first (for provider transparency)
                                             const routeTool = String(finalDexRes?.routeTool || '').trim();
                                             if (routeTool && routeTool.length > 0) {
-                                                // Extract provider name after "via" keyword
-                                                // "FLYTRADE via LIFI" → "LIFI"
-                                                // "MATCHA" → "MATCHA" (no "via", use as-is)
                                                 const viaMatch = routeTool.match(/via\s+(.+)/i);
-                                                if (viaMatch && viaMatch[1]) {
-                                                    return viaMatch[1].trim().toUpperCase();
-                                                } else {
-                                                    return routeTool.toUpperCase();
-                                                }
+                                                if (viaMatch && viaMatch[1]) return viaMatch[1].trim().toUpperCase();
+                                                return routeTool.toUpperCase();
                                             }
-                                            // Fallback compatibility: Check isFallback flag
                                             if (isFallback === true) return 'SWOOP';
-                                        } catch (err) {
-                                            console.error(`[SCANNER VIA] Error extracting routeTool:`, err);
-                                        }
-                                        return dx;  // Default: show DEX name if no routeTool
+                                        } catch (_) { }
+                                        return dx;
                                     })();
 
-                                    const prosesLine = isKiri
-                                        ? `PROSES : ${ce} => ${dx} (VIA ${viaName})`
-                                        : `PROSES : ${dx} => ${ce} (VIA ${viaName})`;
-
-                                    // REFACTORED: Jika fallback berhasil, statusnya TETAP "OK"
-                                    // Tidak perlu menampilkan error dari primary DEX karena sudah berhasil via fallback
-                                    let statusLine = 'STATUS DEX : OK';
                                     const headerBlock = [
                                         '======================================',
                                         `Time: ${nowStr}`,
-                                        // `ID CELL: ${idCELL}`,
                                         `PROSES : ${isKiri ? `${ce} => ${dx}` : `${dx} => ${ce}`} (VIA ${viaName})`,
-                                        statusLine
+                                        'STATUS DEX : OK'
                                     ].join('\n');
-                                    // Token info untuk debugging
-                                    const tokenInInfo = isKiri
-                                        ? `    📥 Token IN  : ${nameIn} (${String(token.sc_in).substring(0, 10)}...)`
-                                        : `    📥 Token IN  : ${nameIn} (${String(token.sc_out).substring(0, 10)}...)`;
-                                    const tokenOutInfo = isKiri
-                                        ? `    📤 Token OUT : ${nameOut} (${String(token.sc_out).substring(0, 10)}...)`
-                                        : `    📤 Token OUT : ${nameOut} (${String(token.sc_in).substring(0, 10)}...)`;
-                                    // Info sumber alternatif untuk console log
+
+                                    const tokenInInfo = `    📥 Token IN  : ${nameIn} (${String(update.sc_input).substring(0, 10)}...)`;
+                                    const tokenOutInfo = `    📤 Token OUT : ${nameOut} (${String(update.sc_output).substring(0, 10)}...)`;
+
                                     const sourceInfo = (function () {
                                         try {
                                             if (isFallback === true) {
                                                 const routeTool = String(finalDexRes?.routeTool || '').toUpperCase();
-                                                if (routeTool) {
-                                                    // DZAP dengan provider spesifik
-                                                    if (/DZAP|PARASWAP|1INCH|0X|KYBER/i.test(routeTool)) {
-                                                        return `    🔄 SUMBER: DZAP (Provider: ${routeTool})`;
-                                                    }
-                                                    return `    🔄 SUMBER: ${routeTool}`;
-                                                }
-                                                // Default SWOOP
+                                                if (routeTool) return `    🔄 SUMBER: ${routeTool}`;
                                                 return `    🔄 SUMBER: SWOOP`;
                                             }
                                         } catch (_) { }
-                                        return ''; // Tidak ada info sumber jika bukan fallback
+                                        return '';
                                     })();
 
-                                    // ✅ FIX: Fee breakdown berbeda per arah
-                                    // ✅ NEW: Sertakan feeSource label di baris Fee Swap agar identik dengan MetaDex tooltip
                                     const feeBreakdown = isKiri
                                         ? [
                                             `    🏦 Fee WD (CEX): $${feeWD.toFixed(4)}`,
@@ -1405,9 +1343,12 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                             `    💼 Fee Trade (CEX): $${feeTrade.toFixed(4)}`,
                                         ];
 
+                                    // Bruto = totalValue - modal (sebelum fee)
+                                    const brutoValue = totalValue - modal;
+
                                     const lines = [
                                         headerBlock,
-                                        sourceInfo, // Tambahkan info sumber di bawah header
+                                        sourceInfo,
                                         tokenInInfo,
                                         tokenOutInfo,
                                         `    🪙 Modal: $${modal.toFixed(2)}`,
@@ -1416,17 +1357,17 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                         '',
                                         `    💰 Swap di ${dx}:`,
                                         `    - Harga Swap Efektif: ~$${effDexPerToken.toFixed(6)} / ${nameIn}`,
-                                        `    - Hasil: $${Number(totalValue || 0).toFixed(6)}`,
+                                        `    - Hasil: $${totalValue.toFixed(6)}`,
                                         sellIdrLine,
                                         '',
                                         ...feeBreakdown,
                                         `    🧾 Total Fee: ~$${totalFee.toFixed(4)}`,
                                         '',
-                                        `    📈 PNL: ${bruto >= 0 ? '+' : ''}${bruto.toFixed(2)} USDT (${pnlPct.toFixed(2)}%)`,
+                                        `    📈 PNL: ${brutoValue >= 0 ? '+' : ''}${brutoValue.toFixed(2)} USDT (${pnlPct.toFixed(2)}%)`,
                                         `    🚀 PROFIT : ${profitLoss >= 0 ? '+' : ''}${profitLoss.toFixed(2)} USDT`,
                                         `idCELL: ${idCELL}`,
-                                    ].filter(Boolean).join('\n'); // filter(Boolean) menghapus string kosong
-                                    // FIX: Gunakan setCellTitleById untuk replace (bukan append) agar tidak ada header [LOG...]
+                                    ].filter(Boolean).join('\n');
+                                    
                                     setCellTitleById(idCELL, lines);
                                     try { if (window.SCAN_LOG_ENABLED) console.log(lines); } catch (_) { }
                                 } catch (_) { }

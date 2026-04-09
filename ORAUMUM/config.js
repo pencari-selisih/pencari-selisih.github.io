@@ -3,7 +3,7 @@ const CONFIG_APP = {
         NAME: "PENCARI SELISIH",
         // NAME: "WATCHMARKET",
         // NAME: "APP PRIVATE",
-        VERSION: "2026.04.10",
+        VERSION: "2026.04.14",
         SCAN_LIMIT: false,
         AUTORUN: true,
         AUTO_VOLUME: true,  // cek volume otomatis untuk filter dan alert
@@ -338,7 +338,7 @@ const CONFIG_CHAINS = {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BSC' },
             BINANCE: { address: '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3', address2: '0xe2fc31F816A9b94326492132018C3aEcC4a93aE1', chainCEX: 'BSC' },
             MEXC: { address: '0x4982085C9e2F89F2eCb8131Eca71aFAD896e89CB', chainCEX: 'BSC' },
-            INDODAX: { address: '0xaBa3002AB1597433bA79aBc48eeAd54DC10A45F2',  address2: '0x91Dca37856240E5e1906222ec79278b16420Dc92', chainCEX: 'BSC' },
+            INDODAX: { address: '0xaBa3002AB1597433bA79aBc48eeAd54DC10A45F2', address2: '0x91Dca37856240E5e1906222ec79278b16420Dc92', chainCEX: 'BSC' },
             KUCOIN: { address: '0x58edF78281334335EfFa23101bBe3371b6a36A51', address2: '0xD6216fC19DB775Df9774a6E33526131dA7D19a2c', chainCEX: 'BEP20' },
             BITGET: { address: '0x0639556F03714A74a5fEEaF5736a4A64fF70D206', address2: '0xBDf5bAfEE1291EEc45Ae3aadAc89BE8152D4E673', address3: '0x1AB4973a48dc892Cd9971ECE8e01DcC7688f8F23', chainCEX: 'BEP20' },
             BYBIT: { address: '0xf89d7b9c864f589bbf53a82105107622b35eaa40', chainCEX: 'BSC' },
@@ -1042,17 +1042,17 @@ const CONFIG_DEXS = {
         builder: () => `https://app.odos.xyz`,
         // ⚡ MODE: SECONDARY (Rotation) - bergantian antara primary dan secondary
         fetchdex: {
-             primary: {
-                tokentopair: 'odos3',          
-                pairtotoken: 'hinkal1-odos'   
+            primary: {
+                tokentopair: 'odos3',
+                pairtotoken: 'hinkal1-odos'
             },
             secondary: {
-                tokentopair: 'hinkal2-odos',          
-                pairtotoken: 'lifi-odos'     
+                tokentopair: 'hinkal2-odos',
+                pairtotoken: 'lifi-odos'
             },
-            alternative: {                     
-                tokentopair: 'swoop-odos',     
-                pairtotoken: 'swoop-odos'       
+            alternative: {
+                tokentopair: 'swoop-odos',
+                pairtotoken: 'swoop-odos'
             }
         },
         allowFallback: true,  // ✅ Jika yang dipilih gagal, coba yang lain

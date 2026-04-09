@@ -1,26 +1,65 @@
 /* ==========================================================================
-   MULTIPLUS-SCANNER - Minimal Flat Design
+   MULTIPLUS-SCANNER — Flat Minimalist Design System
    ========================================================================== */
 
 :root {
+    /* — Semantic colors (konsisten dengan config.js) — */
     --bs-primary: #2563eb;
     --bs-secondary: #64748b;
-    --bs-success: #165d06;
+    --bs-success: #16a34a;
     --bs-danger: #ef4444;
     --bs-warning: #f59e0b;
-    --bs-info: #06b6d4;
-    --bs-light: #f1f5f9;
-    --bs-dark: #1e293b;
+    --bs-info: #0891b2;
+    --bs-light: #f3f4f6;
+    --bs-dark: #656870;
 
-    /* Modern design variables */
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.1);
-    --border-radius: 8px;
-    --border-radius-sm: 6px;
-    --border-radius-lg: 12px;
-    --border-color: #e2e8f0;
-    --transition-smooth: all 0.2s ease;
+    /* — Surface palette (clean neutral) — */
+    --surface-0: #ffffff;
+    --surface-1: #f9fafb;
+    --surface-2: #f3f4f6;
+    --surface-3: #e5e7eb;
+
+    /* — Border — */
+    --border-color: #e5e7eb;
+    --border-strong: #d1d5db;
+    --border-focus: var(--bs-primary);
+
+    /* — Flat: NO shadows — */
+    --shadow-xs: none;
+    --shadow-sm: none;
+    --shadow-md: none;
+    --shadow-lg: none;
+    --shadow-focus: 0 0 0 2px rgba(37, 99, 235, 0.2);
+
+    /* — Accent border (left-border pattern) — */
+    --accent-width: 3px;
+    --accent-color: var(--bs-primary);
+
+    /* — Radii — sangat tipis untuk flat modern — */
+    --radius-xs: 2px;
+    --radius-sm: 3px;
+    --radius-md: 4px;
+    --radius-lg: 6px;
+    --radius-xl: 8px;
+
+    /* Aliased for compatibility */
+    --border-radius: var(--radius-md);
+    --border-radius-sm: var(--radius-sm);
+    --border-radius-lg: var(--radius-lg);
+
+    /* — Transitions (fast & purposeful) — */
+    --transition-fast: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+    --transition-smooth: background-color 0.15s ease, border-color 0.15s ease;
+    --transition-slow: all 0.2s ease;
+
+    /* — Dark mode: solid, no blur — */
+    --glass-blur: 0px;
+
+    /* — Spacing rhythm — */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
 }
 
 /* ==========================================================================
@@ -55,7 +94,7 @@
 }
 
 .uk-text-muted {
-    color: #030367 !important;
+    color: #3b3e43 !important;
 }
 
 .uk-text-dark {
@@ -68,9 +107,9 @@
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     padding: 1px;
-    background-color: #f8fafc;
-    color: #0f172a;
-    transition: var(--transition-smooth);
+    background-color: var(--surface-1);
+    color: #111827;
+    transition: background-color 0.15s ease, color 0.15s ease;
     min-height: 100vh;
     font-size: 13px;
     line-height: 1.5;
@@ -106,34 +145,44 @@ a:hover,
 }
 
 /* ==========================================================================
-   Flat Card Components
+   Flat Card Components — Zero shadow, accent border pattern
    ========================================================================== */
 
-/* Flat card design */
 .header-card,
 #scanner-config,
 #filter-card,
 #token-management,
 .uk-card-default,
 .uk-modal-dialog {
-    background: #ffffff !important;
+    background: var(--surface-0) !important;
     border: 1px solid var(--border-color) !important;
-    border-radius: var(--border-radius) !important;
-    box-shadow: none;
+    border-radius: var(--radius-md) !important;
+    box-shadow: none !important;
     transition: var(--transition-smooth);
 }
 
+/* Header card: accent top + left untuk hierarki visual */
+.header-card {
+    padding: 8px 14px !important;
+    border-top: var(--accent-width) solid var(--accent-color) !important;
+    border-left: var(--accent-width) solid var(--accent-color) !important;
+    border-radius: var(--radius-md) !important;
+}
+
+/* Scanner config: accent left tipis */
+#scanner-config {
+    border-left: var(--accent-width) solid var(--surface-3) !important;
+}
+
+/* Hover: hanya border color berubah, NO transform, NO shadow */
 .header-card:hover,
 #scanner-config:hover,
 #filter-card:hover,
 .uk-card-hover:hover {
-    border-color: var(--bs-primary);
-    box-shadow: none;
-    transform: none;
-}
-
-.header-card {
-    padding: 8px 14px !important;
+    border-color: var(--border-strong) !important;
+    background: var(--surface-0) !important;
+    box-shadow: none !important;
+    transform: none !important;
 }
 
 /* ==========================================================================
@@ -142,12 +191,11 @@ a:hover,
 .uk-overflow-auto,
 #monitoring-scroll {
     max-height: calc(100vh - 220px);
-    background: #ffffff !important;
+    background: var(--surface-0) !important;
     border: 1px solid var(--border-color) !important;
-    border-radius: var(--border-radius) !important;
-    box-shadow: none;
+    border-radius: var(--radius-md) !important;
+    box-shadow: none !important;
     overflow: auto;
-    -webkit-overflow-scrolling: touch;
 }
 
 .uk-table {
@@ -156,19 +204,22 @@ a:hover,
 }
 
 .uk-table thead th {
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 2px solid var(--border-strong);
     color: inherit;
-    font-weight: bold;
+    font-weight: 700;
     position: sticky;
     top: 0;
     z-index: 10;
     padding: 8px 10px;
-    font-size: 12.5px;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
 .uk-table:not(.wallet-cex-table) thead th {
-    background: #f1f5f9 !important;
-    color: #0f172a !important;
+    background: var(--surface-2) !important;
+    color: #374151 !important;
+    border-right: 1px solid var(--border-color);
 }
 
 .uk-table tbody td {
@@ -176,41 +227,45 @@ a:hover,
     padding: 6px;
     white-space: normal;
     vertical-align: middle;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.1s ease;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .uk-table tbody tr {
-    background-color: #ffffff;
-    transition: var(--transition-smooth);
+    background-color: var(--surface-0);
+    transition: background-color 0.1s ease;
 }
 
 .uk-table tbody tr:nth-child(even) {
-    background-color: #f8fafc;
+    background-color: var(--surface-2);
 }
 
 .uk-table tbody tr:hover {
-    background-color: #f1f5f9 !important;
+    background-color: #eff6ff !important;
+    border-left: 2px solid var(--bs-primary);
 }
 
 /* Table column widths */
 .th-orderbook {
     width: auto !important;
     min-width: 140px;
-    border-left: 2px solid rgba(24, 24, 24, 0.35) !important;
-    border-right: 2px solid rgba(24, 24, 24, 0.35) !important;
+    border-left: 2px solid var(--bs-primary) !important;
+    border-right: 2px solid var(--bs-primary) !important;
+    background: #eff6ff !important;
+    color: var(--bs-primary) !important;
 }
 
 /* DETAIL column - Fixed width untuk menampilkan semua info tanpa terpotong */
 .th-detail {
-    width: 170px !important;
-    min-width: 170px !important;
-    max-width: 170px !important;
+    width: 230px !important;
+    min-width: 230px !important;
+    max-width: 230px !important;
 }
 
 .td-detail {
-    width: 170px !important;
-    min-width: 170px !important;
-    max-width: 170px !important;
+    width: 230px !important;
+    min-width: 230px !important;
+    max-width: 230px !important;
     white-space: normal !important;
     word-wrap: break-word !important;
     vertical-align: top !important;
@@ -228,8 +283,9 @@ a:hover,
 
 .td-orderbook {
     min-width: 100px;
-    border-left: 2px solid rgba(24, 24, 24, 0.35)!important;
-    border-right: 2px solid rgba(24, 24, 24, 0.35) !important;
+    border-left: 2px solid rgba(37, 99, 235, 0.2) !important;
+    border-right: 2px solid rgba(37, 99, 235, 0.2) !important;
+    background: rgba(239, 246, 255, 0.4);
 }
 
 /* Orderbook scrollable content */
@@ -257,7 +313,7 @@ a:hover,
 
 #tabel-monitoring {
     min-width: 1640px;
-    /* Total: 8 DEX x 115px (920px) + 2 ORDERBOOK x 160px (220px) + 1 DETAIL x 220px (220px) + borders/padding */
+    /* Total: 8 DEX x 115px (920px) + 2 ORDERBOOK x 160px (220px) + 1 DETAIL x 255px (255px) + borders/padding */
     table-layout: auto;
 }
 
@@ -271,21 +327,27 @@ a:hover,
     line-height: 1.2;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    white-space: nowrap;
 }
 
 .dex-price-link {
     text-decoration: none;
 }
 
+.dark-mode .dex-price-link:hover {
+    text-decoration: underline;
+}
+
 /* DEX status styling */
 .dex-slot-empty {
-    background-color: rgba(145, 148, 152, 0.3);
-    backdrop-filter: blur(5px);
+    background-color: #f1f3f6;
     text-align: center;
     vertical-align: middle;
-    color: #5a5c5f;
-    border-radius: 6px;
+    color: #94a3b8;
+    border-radius: var(--radius-sm);
     padding: 4px;
+    font-size: 11px;
+    letter-spacing: 0.5px;
 }
 
 .dex-status {
@@ -311,14 +373,12 @@ a:hover,
 }
 
 .dex-error {
-    background-color: rgba(247, 160, 160, 0.7) !important;
-    backdrop-filter: blur(8px);
+    background-color: #fee2e2 !important;
+    border: 2px solid #fca5a5 !important;
 }
 
 .dex-skip {
-    background-color: #fce0e0 !important;
-    backdrop-filter: blur(8px);
-    color: rgb(127, 2, 2);
+    background-color: #e6e6e4 !important;
 }
 
 .row-hidden {
@@ -350,7 +410,7 @@ select:focus,
 .uk-select:focus {
     outline: none;
     border-color: var(--bs-primary);
-    box-shadow: none;
+    box-shadow: var(--shadow-focus);
 }
 
 input[type="checkbox"],
@@ -418,7 +478,7 @@ input[type="radio"],
 }
 
 .scanner-control input[type="checkbox"]:checked {
-    accent-color: #22c55e;
+    accent-color: var(--bs-success);
 }
 
 .scanner-control span {
@@ -474,60 +534,70 @@ input[type="radio"],
     font-size: 13px;
 }
 
-/* Flat button styles */
+/* Modern button styles */
 .uk-button-default {
-    background: #f1f5f9;
-    color: #0f172a;
+    background: var(--surface-2);
+    color: #374151;
     border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-xs);
 }
 
 .uk-button-default:hover {
-    background: #e2e8f0;
-    border-color: #cbd5e1;
+    background: var(--surface-3);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-sm);
 }
 
 .uk-button-primary {
     background: var(--bs-primary);
     border: 1px solid var(--bs-primary);
     color: #fff;
+    box-shadow: none;
 }
 
 .uk-button-primary:hover {
     background: #1d4ed8;
     border-color: #1d4ed8;
+    box-shadow: none;
 }
 
 .uk-button-secondary {
     background: var(--bs-secondary);
     border: 1px solid var(--bs-secondary);
     color: #fff;
+    box-shadow: none;
 }
 
 .uk-button-secondary:hover {
     background: #475569;
     border-color: #475569;
+    box-shadow: none;
 }
 
 .uk-button-danger {
     background: var(--bs-danger);
     border: 1px solid var(--bs-danger);
     color: #fff;
+    box-shadow: none;
 }
 
 .uk-button-danger:hover {
     background: #dc2626;
     border-color: #dc2626;
+    box-shadow: none;
 }
 
 .uk-button-success {
     background: var(--bs-success);
     border: 1px solid var(--bs-success);
     color: #fff;
+    box-shadow: none;
 }
 
 .uk-button-success:hover {
-    background: #059669;
-    border-color: #059669;
+    background: #15803d;
+    border-color: #15803d;
+    box-shadow: none;
 }
 
 /* Force START button green */
@@ -535,11 +605,15 @@ input[type="radio"],
     background: var(--bs-success) !important;
     border: 1px solid var(--bs-success) !important;
     color: #ffffff !important;
+    box-shadow: none !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px;
 }
 
 #startSCAN.uk-button:hover:not(.uk-button-disabled):not([disabled]) {
-    background: #059669 !important;
-    border-color: #059669 !important;
+    background: #15803d !important;
+    border-color: #15803d !important;
+    box-shadow: none !important;
 }
 
 .uk-button-xxsmall {
@@ -556,9 +630,10 @@ input[type="radio"],
 }
 
 .toggle-radio.active {
-    background-color: #0a951e;
+    background-color: var(--bs-success);
     color: #fff;
-    font-weight: bold;
+    font-weight: 700;
+    box-shadow: none;
 }
 
 /* ==========================================================================
@@ -566,14 +641,14 @@ input[type="radio"],
    ========================================================================== */
 .icon {
     cursor: pointer;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    transition: transform 0.15s ease, opacity 0.12s ease;
+    opacity: 0.8;
 }
 
 .icon:hover {
-    /* Scale dengan transform origin center agar tidak dorong icon lain */
-    transform: scale(1.15) rotate(5deg);
+    transform: scale(1.1);
     transform-origin: center center;
+    opacity: 1;
 }
 
 .toolbar-scroll {
@@ -603,11 +678,11 @@ input[type="radio"],
     width: 9px;
     height: 9px;
     border-radius: 50%;
-    background: #2ea043;
+    background: var(--bs-success);
     border: 2px solid #ffffff;
-    box-shadow: 0 0 8px rgba(46, 160, 67, 0.6);
+    box-shadow: none;
     z-index: 2;
-    animation: pulse-dot 2s infinite;
+    animation: pulse-dot 2s ease-in-out infinite;
 }
 
 @keyframes pulse-dot {
@@ -625,42 +700,56 @@ input[type="radio"],
 }
 
 /* ==========================================================================
-   Progress Bar - Modern Glass
+   Progress Bar - Flat
    ========================================================================== */
 #progress-container {
     width: 100%;
-    background: rgba(233, 235, 238, 0.6);
-    backdrop-filter: blur(8px);
-    border-radius: var(--border-radius);
+    background: var(--surface-3);
+    border-radius: var(--radius-xs);
     margin-top: 8px;
     overflow: hidden;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+    box-shadow: none;
 }
 
 #progress-bar {
-    height: 8px;
+    position: relative;
+    height: 10px;
     width: 0%;
-    border-radius: var(--border-radius-sm);
-    background-color: var(--theme-accent, #42b72a);
-    background-image: repeating-linear-gradient(45deg,
-            var(--theme-accent, #42b72a) 0px,
-            var(--theme-accent, #42b72a) 8px,
-            rgba(255, 255, 255, 0.25) 8px,
-            rgba(255, 255, 255, 0.25) 16px);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
-    background-size: 16px 16px;
-    animation: none;
+    border-radius: var(--radius-xs);
+    background: var(--theme-accent, var(--bs-success));
+    background-image: linear-gradient(45deg,
+            rgba(255, 255, 255, 0.15) 25%,
+            transparent 25%,
+            transparent 50%,
+            rgba(255, 255, 255, 0.15) 50%,
+            rgba(255, 255, 255, 0.15) 75%,
+            transparent 75%,
+            transparent);
+    background-size: 1rem 1rem;
+    animation: progress-bar-stripes 1s linear infinite;
+    box-shadow: none;
+    overflow: hidden;
     transition: width 0.3s ease;
 }
 
 #progress-text {
     color: white;
     text-align: center;
-    line-height: 8px;
+    line-height: 10px;
     display: block;
-    font-weight: 600;
-    font-size: 8px;
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+    font-weight: 700;
+    font-size: 9px;
+    letter-spacing: 0.4px;
+}
+
+@keyframes progress-bar-stripes {
+    0% {
+        background-position: 1rem 0;
+    }
+
+    100% {
+        background-position: 0 0;
+    }
 }
 
 /* ==========================================================================
@@ -672,32 +761,28 @@ input[type="radio"],
 }
 
 .signal-card {
-    background: rgba(255, 255, 255, 0.8) !important;
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    border: 1px solid rgba(0, 0, 0, 0.15) !important;
-    border-radius: var(--border-radius) !important;
-    box-shadow: var(--shadow-md);
+    background: #ffffff !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: none;
     overflow: hidden;
     transition: var(--transition-smooth);
 }
 
 .signal-card:hover {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
+    box-shadow: none;
+    border-color: var(--border-strong) !important;
+    transform: none;
 }
 
 .signal-card .uk-card-header {
-    filter: brightness(1.0) saturate(1.1);
     color: #ffffff !important;
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
 }
 
 .signal-card .uk-card-body {
-    background: rgba(255, 255, 255, 0.5) !important;
-    backdrop-filter: blur(10px);
-    color: #000000 !important;
+    background: var(--surface-1) !important;
+    color: #111827 !important;
 }
 
 .signal-card__header {
@@ -729,9 +814,33 @@ input[type="radio"],
 }
 
 .uk-modal-header {
-    background: #f8fafc;
+    background: var(--surface-1);
     border-bottom: 1px solid var(--border-color);
-    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+/* Modern scrollbar — global */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.35);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.6);
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
 }
 
 /* ==========================================================================
@@ -1225,48 +1334,109 @@ input[type="radio"],
     width: 100%;
 }
 
+/* ─── Filter Scanner Modal Titles & Chips ────────────────────────────────── */
+.filter-section-title {
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 12px;
+    border-bottom: 2px solid #e5e5e5;
+    padding-bottom: 4px;
+}
+
+.filter-chip {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    background: white;
+    border: 2px solid transparent;
+    transition: var(--transition-smooth);
+}
+
+.filter-chip:hover {
+    background: #f1f5f9;
+}
+
+.filter-chip input[type="checkbox"] {
+    width: 11px;
+    height: 11px;
+    margin: 0;
+}
+
+.filter-chip .chip-label {
+    font-weight: 600;
+    font-size: 10px;
+}
+
+.filter-chip .chip-count {
+    font-size: 9px;
+    opacity: 0.7;
+    color: #555;
+}
+
 /* ─── Dark mode additions ────────────────────────────────────────────────── */
 .dark-mode .bulk-dex-scroll::-webkit-scrollbar-thumb {
     background: #475569;
 }
 
 .dark-mode .bulk-section-title {
+    color: #f1f5f9 !important;
     border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
+/* Override inline colors for specific headers in dark mode */
+.dark-mode .bulk-section-title[style*="color"] {
+    color: #f8fafc !important;
+}
+
 .dark-mode .bulk-field-label {
-    color: #94a3b8;
+    color: #cbd5e1;
+}
+
+.dark-mode #bulk-modal-editor .uk-alert-primary {
+    background: rgba(37, 99, 235, 0.2) !important;
+    border: 1px solid rgba(37, 99, 235, 0.4) !important;
+    color: #f1f5f9 !important;
+}
+
+.dark-mode #bulk-modal-editor .uk-alert-primary strong,
+.dark-mode #bulk-modal-editor .uk-alert-primary .uk-text-bold {
+    color: #bfdbfe !important;
 }
 
 /* ==========================================================================
    Utility Classes
    ========================================================================== */
 .uk-background {
-    background-color: rgba(212, 216, 222, 0.6) !important;
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+    background-color: var(--surface-2) !important;
+    border-bottom: 1px solid var(--border-color) !important;
 }
 
 .buy {
-    color: #42b72a;
+    color: #16a34a;
     font-weight: 600;
 }
 
 .sell {
-    color: #fa383e;
+    color: #ef4444;
     font-weight: 600;
 }
 
 /* ==========================================================================
-   DARK MODE - Glassmorphism Enhanced
+   DARK MODE — Flat Solid Surfaces
+   Depth hierarchy (L = luminance %):
+     Layer 0  body              #14172a  L≈11%  deepest  (bukan hitam pekat)
+     Layer 1  container/scroll  #1a1d2e  L≈14%  above body
+     Layer 2  table even rows   #141720  L≈10%  darker stripe
+     Layer 3  table odd rows    #1e2136  L≈15%  lighter stripe
+     Layer 4  card / modal      #424450  L≈18%  elevated surface
+     Layer 5  thead / elevated  #2b2f4e  L≈22%  header — always above rows
    ========================================================================== */
 body.dark-mode {
-    background-color: #0f1115;
-    background-image:
-        radial-gradient(circle at 15% 25%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 85% 75%, rgba(139, 92, 246, 0.06) 0%, transparent 40%),
-        linear-gradient(135deg, #1a1b1e 0%, #16171a 50%, #0f1115 100%);
-    background-attachment: fixed;
+    background-color: #14172a;
     color: #e5e7eb;
 }
 
@@ -1281,11 +1451,14 @@ body.dark-mode {
 .dark-mode #filter-card,
 .dark-mode #token-management,
 .dark-mode .uk-modal-dialog {
-    background: rgba(44, 44, 46, 0.85) !important;
-    backdrop-filter: blur(var(--glass-blur)) saturate(150%);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+    background: #424450 !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
     color: #e5e7eb;
+    box-shadow: none;
+}
+
+.dark-mode .header-card {
+    border-top: 3px solid #60a5fa !important;
 }
 
 .dark-mode h1,
@@ -1295,82 +1468,107 @@ body.dark-mode {
 .dark-mode h5,
 .dark-mode h6,
 .dark-mode .uk-modal-title {
-    color: #101113 !important;
+    color: #f1f5f9 !important;
 }
 
 .dark-mode .uk-overflow-auto,
 .dark-mode #monitoring-scroll {
-    background: rgba(31, 33, 38, 0.7) !important;
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
+    background: #1a1d2e !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: none;
 }
 
 .dark-mode .uk-table thead th {
-    background: rgba(28, 28, 30, 0.95) !important;
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-    color: #f3f4f6 !important;
+    background: #2b2f4e !important;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.14) !important;
+    color: #e2e8f0 !important;
+    letter-spacing: 0.4px;
+}
+
+.dark-mode .th-orderbook {
+    background: #1e3464 !important;
+    color: #93c5fd !important;
+    border-left: 2px solid #3b82f6 !important;
+    border-right: 2px solid #3b82f6 !important;
+}
+
+.dark-mode .td-orderbook {
+    background: rgba(59, 130, 246, 0.07) !important;
+    border-left: 2px solid rgba(59, 130, 246, 0.22) !important;
+    border-right: 2px solid rgba(59, 130, 246, 0.22) !important;
 }
 
 .dark-mode .uk-table tbody tr {
-    background-color: rgba(55, 55, 56, 0.6);
-    backdrop-filter: blur(8px);
+    background-color: #3c3c41;
 }
 
 .dark-mode .uk-table tbody tr:nth-child(even) {
-    background-color: rgba(20, 20, 22, 0.6);
+    background-color: #4b4b51;
 }
 
 .dark-mode .uk-table tbody tr:hover {
-    background-color: rgba(73, 73, 75, 0.8) !important;
-    box-shadow: 0 2px 12px rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border-left: 2px solid #959799;
+    box-shadow: none;
 }
 
 .dark-mode .uk-table tbody td {
-    border-color: rgba(255, 255, 255, 0.05);
-    color: #e5e7eb;
+    border-color: rgba(255, 255, 255, 0.04);
+    color: #e2e8f0;
 }
 
 .dark-mode .uk-button-default {
-    background: rgba(58, 58, 60, 0.8);
-    backdrop-filter: blur(8px);
-    color: #e5e7eb;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #252840;
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: none;
 }
 
 .dark-mode .uk-button-default:hover {
-    background: rgba(72, 72, 74, 0.9);
-    box-shadow: var(--shadow-sm);
+    background: #616269;
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: none;
 }
 
 .dark-mode .uk-button-primary {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: #2563eb;
+    border-color: #2563eb;
+    box-shadow: none;
+}
+
+.dark-mode .uk-button-primary:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
 }
 
 .dark-mode .uk-button-secondary {
-    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    background: #4b5563;
+    border-color: #4b5563;
+    box-shadow: none;
+}
+
+.dark-mode .uk-button-secondary:hover {
+    background: #374151;
+    border-color: #374151;
 }
 
 .dark-mode .signal-card {
-    background: rgba(44, 44, 46, 0.85) !important;
-    backdrop-filter: blur(var(--glass-blur)) saturate(150%);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+    background: #424450 !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: none;
 }
 
 .dark-mode .signal-card .uk-card-body {
-    background: #3a3d45 !important;
-    backdrop-filter: blur(10px);
-    color: #e5e7eb !important;
+    background: #232638 !important;
+    color: #e2e8f0 !important;
 }
 
 .dark-mode .signal-card .uk-card-header {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
 .dark-mode .signal-item .uk-text-success {
-    color: #047c2c !important;
+    color: #4ade80 !important;
 }
 
 .dark-mode .signal-item .uk-text-danger {
@@ -1378,12 +1576,76 @@ body.dark-mode {
 }
 
 .dark-mode .signal-item .uk-text-muted {
-    color: #131212 !important;
+    color: #94a3b8 !important;
+}
+
+.dark-mode .filter-section-title {
+    color: #ffffff !important;
+    border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark-mode .filter-chip {
+    background: #334155 !important;
+    border-color: transparent;
+}
+
+.dark-mode .filter-chip:hover {
+    background: #475569 !important;
+}
+
+.dark-mode .filter-chip span[style*="color:#555"] {
+    color: #cbd5e1 !important;
+}
+
+.dark-mode .filter-chip[style*="background:#f8f8f8"],
+.dark-mode .filter-chip[style*="background:white"] {
+    background: #334155 !important;
+}
+
+/* ── Global text color overrides for dark mode ── */
+/* uk-text-dark dipakai di dom-renderer untuk counter badge & SW fee */
+.dark-mode .uk-text-dark {
+    color: #cbd5e1 !important;
+}
+
+/* Primary: #2563eb terlalu gelap di dark bg, ganti ke biru terang */
+.dark-mode .uk-text-primary {
+    color: #60a5fa !important;
+}
+
+/* Success: #16a34a kontras ~3.2:1 di dark, ganti ke hijau terang */
+.dark-mode .uk-text-success {
+    color: #4ade80 !important;
+}
+
+/* Danger: #ef4444 kontras OK, sedikit lebih terang agar konsisten */
+.dark-mode .uk-text-danger {
+    color: #f87171 !important;
+}
+
+/* Warning: #f59e0b OK tapi sedikit lebih terang */
+.dark-mode .uk-text-warning {
+    color: #fbbf24 !important;
+}
+
+/* Info: #0891b2 kontras ~2.5:1 di dark — terlalu gelap */
+.dark-mode .uk-text-info {
+    color: #22d3ee !important;
+}
+
+.dark-mode .uk-text-muted {
+    color: #94a3b8 !important;
+}
+
+.dark-mode span.uk-text-secondary,
+.dark-mode .uk-text-secondary {
+    color: #9ca3af !important;
 }
 
 .dark-mode .uk-badge {
-    background: rgba(75, 85, 99, 0.8);
-    backdrop-filter: blur(5px);
+    background: #252840;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #e2e8f0;
 }
 
 .dark-mode .uk-label.uk-label-warning {
@@ -1402,51 +1664,51 @@ body.dark-mode {
 }
 
 .dark-mode .dex-error {
-    background-color: rgba(127, 29, 29, 0.7) !important;
-    backdrop-filter: blur(8px);
+    background-color: #5a1515 !important;
+    border-left: 2px solid rgba(248, 113, 113, 0.5) !important;
 }
 
 .dark-mode .dex-skip {
-    background-color: rgba(120, 113, 60, 0.5) !important;
-    backdrop-filter: blur(8px);
+    background-color: #46401e !important;
+    border-left: 2px solid rgba(234, 179, 8, 0.4) !important;
+    color: #fbbf24;
 }
 
 .dark-mode .dex-slot-empty {
-    background-color: rgba(58, 58, 60, 0.4);
-    backdrop-filter: blur(5px);
-    color: #9ca3af;
+    background-color: #1e2136;
+    color: #64748b;
 }
 
 .dark-mode .scanner-control:hover {
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: rgba(255, 255, 255, 0.06);
 }
 
 .dark-mode .scanner-label {
-    color: #e5e7eb;
+    color: #e2e8f0;
 }
 
 .dark-mode .dex-cell-highlight {
     background-color: rgba(255, 255, 255, 0.95) !important;
-    color: #000 !important;
-    font-weight: bolder;
+    color: #0f172a !important;
+    font-weight: 700;
 }
 
 .dark-mode #progress-container {
-    background: rgba(68, 68, 68, 0.6);
-    backdrop-filter: blur(8px);
+    background: #1a1d2e;
+    box-shadow: none;
 }
 
 .dark-mode #progress-bar {
-    background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+    background: #3b82f6;
+    box-shadow: none;
 }
 
 .dark-mode .buy {
-    color: #4caf50;
+    color: #4ade80;
 }
 
 .dark-mode .sell {
-    color: #f44336;
+    color: #f87171;
 }
 
 .dark-mode #infoAPP {
@@ -1454,27 +1716,26 @@ body.dark-mode {
 }
 
 .dark-mode .uk-background {
-    background-color: rgba(82, 82, 84, 0.6) !important;
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background-color: #424450 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 .dark-mode .toggle-radio.active {
     background-color: #3b82f6;
-    color: #ffffff;
+    color: #fff;
+    box-shadow: none;
 }
 
 .dark-mode .run-dot {
-    border-color: #1c1c1e;
-    box-shadow: 0 0 8px rgba(46, 160, 67, 0.8);
+    border-color: #0d0f12;
+    box-shadow: none;
 }
 
 /* .dark-mode #pageLoadingOverlay - REMOVED: Using AppOverlay instead */
 
 .dark-mode .uk-modal-header {
-    background: rgba(28, 28, 30, 0.8);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: #252840;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .dark-mode input:not([type="checkbox"]):not([type="radio"]),
@@ -1482,10 +1743,9 @@ body.dark-mode {
 .dark-mode select,
 .dark-mode .uk-input,
 .dark-mode .uk-select {
-    background: rgba(55, 55, 56, 0.8);
-    backdrop-filter: blur(5px);
-    color: #e5e7eb;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #1a1d2e;
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .dark-mode input:focus,
@@ -1497,6 +1757,70 @@ body.dark-mode {
 
 .dark-mode .td-orderbook .orderbook-scroll::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.25);
+}
+
+/* Form labels */
+.dark-mode .uk-form-label,
+.dark-mode label {
+    color: #cbd5e1;
+}
+
+/* Select option background (for OS-native dropdowns) */
+.dark-mode select option {
+    background: #1e2026;
+    color: #e2e8f0;
+}
+
+/* Nav & Tabs */
+.dark-mode .uk-nav-default>li>a,
+.dark-mode .uk-navbar-nav>li>a {
+    color: #cbd5e1;
+}
+
+.dark-mode .uk-nav-default>li>a:hover,
+.dark-mode .uk-navbar-nav>li>a:hover {
+    color: #f1f5f9;
+}
+
+.dark-mode .uk-tab>li>a {
+    color: #94a3b8;
+    border-bottom-color: transparent;
+}
+
+.dark-mode .uk-tab>li.uk-active>a {
+    color: #60a5fa;
+    border-bottom: 2px solid #60a5fa;
+}
+
+/* Horizontal rule */
+.dark-mode hr,
+.dark-mode .uk-divider-small::after,
+.dark-mode .uk-divider-icon::before,
+.dark-mode .uk-divider-icon::after {
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Tooltip */
+.dark-mode .uk-tooltip {
+    background: #262830;
+    color: #e2e8f0;
+}
+
+/* Modal footer */
+.dark-mode .uk-modal-footer {
+    background: #424450;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Close button */
+.dark-mode .uk-modal-close-default,
+.dark-mode .uk-close {
+    color: #94a3b8;
+}
+
+.dark-mode .uk-modal-close-default:hover,
+.dark-mode .uk-close:hover {
+    color: #f1f5f9;
 }
 
 /* ==========================================================================
@@ -1514,9 +1838,9 @@ body.dark-mode {
 
     .th-detail,
     .td-detail {
-        width: 155px !important;
-        min-width: 155px !important;
-        max-width: 155px !important;
+        width: 240px !important;
+        min-width: 240px !important;
+        max-width: 240px !important;
     }
 }
 
@@ -1529,9 +1853,9 @@ body.dark-mode {
 
     .th-detail,
     .td-detail {
-        width: 140px !important;
-        min-width: 140px !important;
-        max-width: 140px !important;
+        width: 215px !important;
+        min-width: 215px !important;
+        max-width: 215px !important;
         font-size: 11.5px;
     }
 
@@ -1586,12 +1910,12 @@ body.dark-mode {
     }
 
     #progress-bar {
-        height: 12px;
+        height: 14px;
     }
 
     #progress-text {
-        line-height: 12px;
-        font-size: 9px;
+        line-height: 14px;
+        font-size: 10px;
     }
 
     .signal-card__content {
@@ -1742,24 +2066,24 @@ body.dark-mode {
 
 /* Dark mode adjustments */
 body.dark-mode .filter-groups-inline label {
-    background: rgba(55, 55, 56, 0.6);
+    background: #252840;
     border-color: rgba(255, 255, 255, 0.15);
     color: #e5e7eb;
 }
 
 body.dark-mode .filter-groups-inline label:hover {
-    background: rgba(72, 72, 74, 0.8);
+    background: #2e3254;
     border-color: #60a5fa;
 }
 
 body.dark-mode .filter-groups-inline label:has(input:checked) {
-    /* Colors are set by JS from config - just enhance shadow in dark mode */
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+    /* Colors are set by JS from config */
+    box-shadow: none;
 }
 
 body.dark-mode #filter-right-group {
-    background: rgba(59, 130, 246, 0.15);
-    border-color: rgba(59, 130, 246, 0.3);
+    background: #172554;
+    border-color: #2563eb;
 }
 
 body.dark-mode #filter-summary {
@@ -1822,10 +2146,6 @@ body.dark-mode #filter-summary {
     line-height: inherit;
 }
 
-.dark-mode span.uk-text-secondary {
-    color: #9ca3af !important;
-}
-
 #sinyal-container .no-signal-placeholder {
     border: 0;
     background: transparent;
@@ -1884,6 +2204,7 @@ body.dark-mode .signal-card {
     border-radius: 6px;
     margin-bottom: 10px;
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -1982,21 +2303,21 @@ body.dark-mode .signal-card {
 
 /* Dark mode adjustments */
 body.dark-mode .wallet-cex-card {
-    background: rgba(30, 30, 30, 0.9);
+    background: #424450;
     border-color: rgba(255, 255, 255, 0.1);
 }
 
 body.dark-mode .wallet-cex-card.selected {
-    background: rgba(13, 110, 253, 0.15);
+    background: #172554;
     border-color: var(--bs-primary);
 }
 
 body.dark-mode .wallet-cex-header {
-    background: rgba(255, 255, 255, 0.05);
+    background: #252840;
 }
 
 body.dark-mode .wallet-cex-header:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: #2e3252;
 }
 
 body.dark-mode .wallet-cex-table-wrapper {
@@ -2010,7 +2331,7 @@ body.dark-mode .wallet-cex-table td {
 }
 
 body.dark-mode .wallet-cex-table tbody tr:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 #sync-overlay {
@@ -2121,6 +2442,7 @@ body.dark-mode .wallet-cex-table tbody tr:hover {
     padding: 10px 14px;
     background: rgba(0, 0, 0, 0.02);
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
     border-bottom: 1px solid transparent;
     transition: border-color 0.3s ease;
@@ -2185,6 +2507,7 @@ body.dark-mode .db-table-card.expanded .db-table-title strong.multichain-highlig
 
 .db-data-table thead th {
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -2216,11 +2539,11 @@ body.dark-mode .db-stat-item .value {
 }
 
 body.dark-mode .db-toolbar {
-    background: rgba(40, 40, 40, 0.5);
+    background: #282828;
 }
 
 body.dark-mode .db-table-card {
-    background: rgba(44, 44, 46, 0.8);
+    background: #2c2c2e;
     border-color: rgba(255, 255, 255, 0.1);
     border-left-color: var(--card-accent-color, #667eea);
 }
@@ -2267,11 +2590,7 @@ body.dark-mode .db-table-title .uk-badge {
     color: white !important;
 }
 
-/* Rango badge color */
-.bg-rango {
-    background-color: #00d4ff !important;
-    color: white !important;
-}
+/* Rango: definitive di bawah — duplikat dihapus */
 
 /* Relay badge color */
 .bg-relay {
@@ -2279,11 +2598,7 @@ body.dark-mode .db-table-title .uk-badge {
     color: white !important;
 }
 
-/* Rubic badge color */
-.bg-rubic {
-    background-color: #00e28d !important;
-    color: #1a1a1a !important;
-}
+/* Rubic: definitive di bawah — duplikat dihapus */
 
 /* Jupiter badge color (Solana DEX) */
 .bg-jupiter {
@@ -2349,7 +2664,8 @@ body.dark-mode .db-table-title .uk-badge {
 /* META-DEX cell dengan sub-kolom horizontal (LIFI, RANGO, METAX, dll) */
 .td-dex-multi {
     min-width: 230px !important;
-    width: auto !important;     /* biarkan konten menentukan lebar */
+    width: auto !important;
+    /* biarkan konten menentukan lebar */
     padding: 4px !important;
 }
 
@@ -2447,7 +2763,7 @@ body.dark-mode .sub-dex-name {
    Scanner Filter Modal - Compact Styling
    ========================================================================== */
 #scanner-filter-modal .uk-modal-dialog {
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    box-shadow: none;
 }
 
 #modal-filter-sections label {
@@ -2468,6 +2784,37 @@ body.dark-mode .sub-dex-name {
 #modal-filter-sections>div {
     gap: 6px !important;
     margin-bottom: 10px;
+}
+
+/* ── Dark mode overrides for JS-generated inline styles ──────────────────── */
+
+/* Section titles: color:#333 hardcoded di JS → invisible on dark bg */
+.dark-mode #modal-filter-sections>div>div:first-child {
+    color: #93c5fd !important;
+    border-bottom-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* META-DEX title uses color:#7c3aed (purple) — brighten agar terbaca */
+.dark-mode #modal-filter-sections>div>div:first-child[style*="7c3aed"] {
+    color: #c4b5fd !important;
+}
+
+/* Chip labels: background:white hardcoded di JS → putih di dark mode */
+.dark-mode #modal-filter-sections label.fc-chain,
+.dark-mode #modal-filter-sections label.fc-cex,
+.dark-mode #modal-filter-sections label.fc-dex,
+.dark-mode #modal-filter-sections label.sc-cex,
+.dark-mode #modal-filter-sections label.sc-pair,
+.dark-mode #modal-filter-sections label.sc-dex {
+    background: #252840 !important;
+    border-width: 2px;
+    border-style: solid;
+}
+
+/* Chip label count "[n]": color:#555 borderline di dark */
+.dark-mode #modal-filter-sections label span:last-child {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
 }
 
 #modal-summary-bar span {
@@ -2607,6 +2954,12 @@ body.dark-mode .sub-dex-name {
 
 .bg-indodax {
     background-color: #1285b5 !important;
+    color: white !important;
+}
+
+/* HTX — dari CONFIG_CEX.HTX.WARNA = #008cd6 */
+.bg-htx {
+    background-color: #008cd6 !important;
     color: white !important;
 }
 
@@ -2768,21 +3121,16 @@ input[type="radio"] {
     animation: pulse-success 0.5s ease-out;
 }
 
-/* Pulse animation for success */
+/* Pulse animation for success (opacity-only = Composite, GPU-safe) */
 @keyframes pulse-success {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+
+    0%,
+    100% {
+        opacity: 1;
     }
 
     50% {
-        transform: scale(1.02);
-        box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2);
-    }
-
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+        opacity: 0.75;
     }
 }
 
@@ -2896,6 +3244,7 @@ body.cex-mode .uk-card-default,
 body.cex-mode .header-card,
 body.cex-mode #scanner-config {
     background: rgba(255, 255, 255, 0.98) !important;
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
@@ -2937,6 +3286,37 @@ body.cex-mode-active .scanner-cex-btn {
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
+}
+
+/* Override inline styles neon pada Import/Export — konsisten dengan palet app */
+#scannerImportBtn {
+    background: var(--bs-success) !important;
+    border: 1px solid #15803d !important;
+    color: #fff !important;
+    font-size: 13px !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: 0 1px 3px rgba(22, 163, 74, 0.3) !important;
+    transition: opacity 0.15s ease, transform 0.15s ease !important;
+}
+
+#scannerImportBtn:hover {
+    opacity: 0.9;
+    transform: scale(1.08);
+}
+
+#scannerExportBtn {
+    background: var(--bs-primary) !important;
+    border: 1px solid #1d4ed8 !important;
+    color: #fff !important;
+    font-size: 13px !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3) !important;
+    transition: opacity 0.15s ease, transform 0.15s ease !important;
+}
+
+#scannerExportBtn:hover {
+    opacity: 0.9;
+    transform: scale(1.08);
 }
 
 /* Header customization in CEX mode */

@@ -780,7 +780,7 @@ function uploadTokenScannerCSV(event) {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function (e) {
+    reader.onload = async function (e) {
         try {
             const csvText = e.target.result.trim();
             const rows = csvText.split("\n").filter(r => r.trim());
@@ -1018,7 +1018,7 @@ function uploadTokenScannerCSV(event) {
                     const confirmMsg = _isCEXImport
                         ? `📦 Import CEX Mode (Multi-Chain)\n\nFile CSV berisi ${tokenData.length} token dari ${uniqueChains.length} chain:\n${chainCounts}\n\nSetiap chain disimpan ke database chain-nya masing-masing.\n\nLanjutkan import?`
                         : `📦 Deteksi CSV MULTICHAIN\n\nFile CSV berisi ${tokenData.length} token dari ${uniqueChains.length} chain:\n${chainCounts}\n\nData akan disimpan ke: TOKEN_MULTICHAIN\n\nLanjutkan import?`;
-                    const confirmed = confirm(confirmMsg);
+                    const confirmed = await FlatDialog.confirm(confirmMsg, 'Import Multichain', 'question');
                     if (!confirmed) {
                         if (typeof toast !== 'undefined' && toast.info) toast.info('Import dibatalkan oleh user');
                         return;
@@ -1042,7 +1042,7 @@ function uploadTokenScannerCSV(event) {
                         `Data akan disimpan ke: ${targetKey}\n\n` +
                         `Lanjutkan import?`;
 
-                    const confirmed = confirm(confirmMsg);
+                    const confirmed = await FlatDialog.confirm(confirmMsg, 'Deteksi Chain', 'question');
                     if (!confirmed) {
                         if (typeof toast !== 'undefined' && toast.info) {
                             toast.info('Import dibatalkan oleh user');
@@ -1055,13 +1055,12 @@ function uploadTokenScannerCSV(event) {
                 targetKey = getActiveTokenKeyLocal();
                 chainLabel = getActiveChainLabel();
 
-                const confirmMsg = `⚠️ Chain tidak terdeteksi dari CSV\n\n` +
-                    `Data akan disimpan ke: ${chainLabel}\n` +
-                    `(berdasarkan halaman saat ini)\n\n` +
-                    `Total: ${tokenData.length} token\n\n` +
-                    `Lanjutkan?`;
+                const confirmBody = `Apakah Anda ingin melanjutkan proses import data?`;
+                const confirmDetails = `Chain: ${chainLabel}\nTotal: ${tokenData.length} koin\n\n(Berdasarkan deteksi otomatis atau halaman aktif)`;
 
-                const confirmed = confirm(confirmMsg);
+                const confirmed = await FlatDialog.confirm(confirmBody, 'Konfirmasi Import', 'warning', {
+                    details: confirmDetails
+                });
                 if (!confirmed) {
                     if (typeof toast !== 'undefined' && toast.info) {
                         toast.info('Import dibatalkan oleh user');

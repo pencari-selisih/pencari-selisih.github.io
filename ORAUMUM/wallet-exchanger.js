@@ -946,7 +946,9 @@
             return;
         }
 
-        if (!confirm(`Fetch data wallet dari ${selectedCexList.length} exchanger?\n\n${selectedCexList.join(', ')}\n\nProses ini akan memakan waktu beberapa saat.`)) {
+        const confirmMsg = `Fetch data wallet dari ${selectedCexList.length} exchanger?\n\n${selectedCexList.join(', ')}\n\nProses ini akan memakan waktu beberapa saat.`;
+        const walletOk = await FlatDialog.confirm(confirmMsg, 'Konfirmasi Update Wallet', 'question');
+        if (!walletOk) {
             return;
         }
 

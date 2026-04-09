@@ -912,7 +912,7 @@ function renderTokenManagementList() {
     ];
     // ADD COIN and FILTER only for single chain mode; multichain management uses import/export only
     if (m.type === 'single') {
-      base.push(`<button id=\"btnNewToken\" class=\"uk-button uk-button-default uk-button-small\" title=\"Tambah Data Koin\"><span uk-icon=\"plus-circle\"></span> ADD COIN</button>`);
+      base.push(`<button id=\"btnNewToken\" class=\"uk-button uk-button-success uk-button-small\" title=\"Tambah Data Koin\"><span uk-icon=\"plus-circle\"></span> ADD COIN</button>`);
       base.push(`<button id=\"btnToggleMgrFilter\" class=\"uk-button uk-button-small uk-button-primary\" title=\"Toggle Filter Setting\"><span uk-icon=\"settings\"></span> FILTER</button>`);
     }
     base.push(`<button id=\"btnExportTokens\" data-feature=\"export\" class=\"uk-button uk-button-small uk-button-secondary\" title=\"Export CSV\"><span uk-icon=\"download\"></span> Export</button>`);
@@ -922,7 +922,7 @@ function renderTokenManagementList() {
       </button>  `);
     // Add SYNC button only for single chain mode (after ADD COIN + FILTER = index 3)
     if (m.type === 'single') {
-      base.splice(3, 0, `<button id=\"sync-tokens-btn\" class=\"uk-button uk-button-small uk-button-primary\" title=\"Sinkronisasi Data Koin\"><span uk-icon=\"database\"></span> SYNC</button>`);
+      base.splice(3, 0, `<button id=\"sync-tokens-btn\" class=\"uk-button uk-button-small uk-button-warning\" title=\"Sinkronisasi Data Koin\"><span uk-icon=\"database\"></span> SYNC</button>`);
     }
     return base.join('\n');
   })();
@@ -1647,10 +1647,40 @@ function DisplayPNL(data) {
         const _tokenInAddr  = _scIn  ? `(${_scIn}...)` : '';
         const _tokenOutAddr = _scOut ? `(${_scOut}...)` : '';
 
-        // Harga efektif DEX (USDT per token input)
-        const _effDexPerToken = isKiri
-          ? (amtIn > 0 ? (amtOut / amtIn) : 0)         // pair out / token in
-          : (amtOut > 0 ? (baseModal / amtOut) : 0);   // USDT spent / token received
+        // ✅ FIX: Harga efektif DEX (USDT per token) — logika IDENTIK dengan calculateResult() di dom-renderer.js
+        // Menggunakan stableSet → baseSym/baseUsd → priceBuyPair (bukan sellPairCEX) agar konsisten dengan kolom DEX
+        const _mStableSet = (typeof getStableSymbols === 'function') ? getStableSymbols() : ['USDT', 'USDC', 'DAI'];
+        const _mBaseSym   = (typeof getBaseTokenSymbol === 'function') ? getBaseTokenSymbol(nameChain) : '';
+        const _mBaseUsd   = (typeof getBaseTokenUSD === 'function') ? getBaseTokenUSD(nameChain) : 0;
+        const _mRateT2P   = amtIn > 0 ? (amtOut / amtIn) : 0;  // raw swap rate
+        let _effDexPerToken = 0;
+        if (isKiri) {
+          // CEX→DEX (TokentoPair): USD per 1 token_in
+          if (_mStableSet.includes(upper(Name_out))) {
+            _effDexPerToken = _mRateT2P;
+          } else if (_mBaseSym && upper(Name_out) === _mBaseSym && _mBaseUsd > 0) {
+            _effDexPerToken = _mRateT2P * _mBaseUsd;
+          } else if (buyPairCEX > 0) {
+            _effDexPerToken = _mRateT2P * buyPairCEX;  // IDENTIK dengan calculateResult (priceBuyPair)
+          } else {
+            _effDexPerToken = _mRateT2P * sellPairCEX;  // fallback
+          }
+        } else {
+          // DEX→CEX (PairtoToken): USD per 1 token_out
+          if (_mRateT2P > 0) {
+            if (_mStableSet.includes(upper(Name_in))) {
+              _effDexPerToken = 1 / _mRateT2P;
+            } else if (_mBaseSym && upper(Name_in) === _mBaseSym && _mBaseUsd > 0) {
+              _effDexPerToken = _mBaseUsd / _mRateT2P;
+            } else if (buyPairCEX > 0) {
+              _effDexPerToken = buyPairCEX / _mRateT2P;  // IDENTIK dengan calculateResult (priceBuyPair)
+            } else {
+              _effDexPerToken = sellTokenCEX;  // fallback
+            }
+          } else {
+            _effDexPerToken = sellTokenCEX;
+          }
+        }
         const _totalValue = isKiri
           ? (upper(Name_out) === 'USDT' ? amtOut : amtOut * sellPairCEX)
           : amtOut * sellTokenCEX;
@@ -2028,40 +2058,15 @@ function DisplayPNL(data) {
   const volOK = n(vol) >= n(Modal);
   const isHighlight = (!checkVol && passPNL) || (checkVol && passPNL && volOK);
 
-  // Normalisasi harga DEX → USDT/TOKEN
-  const quote = upper(Name_out);
-  const isUSDTQuote = quote === 'USDT';
-
-  let q2u = 0;
-  if (isUSDTQuote) q2u = 1;
-  else if (Number.isFinite(+quoteToUSDT_in)) q2u = n(quoteToUSDT_in);
-  else if (cexInfo && cexInfo[`${quote}ToUSDT`]) q2u = n(cexInfo[`${quote}ToUSDT`].buy || cexInfo[`${quote}ToUSDT`].sell || 0);
-  else if (rates && rates[quote]) q2u = n(rates[quote].toUSDT);
-
+  // ✅ FIX: Gunakan dexUsdRate langsung sebagai dexUsdtPerToken
+  // dexUsdRate = displayRate dari calculateResult() yang SAMA PERSIS dengan nilai kolom DEX.
+  // Sebelumnya logika candA/candB bisa menghasilkan nilai berbeda → tooltip tidak konsisten.
   const dexRateRaw = n(dexUsdRate);
-
-  let candA = dexRateRaw;
-  let candB = dexRateRaw;
-  if (!isUSDTQuote) {
-    candA = (q2u > 0) ? (dexRateRaw * q2u) : dexRateRaw;           // QUOTE/TOKEN → USDT/TOKEN
-    candB = (q2u > 0 && dexRateRaw > 0) ? (q2u / dexRateRaw) : 0;  // TOKEN/QUOTE → USDT/TOKEN
-  }
-
-  const refCexBuy = n(displayPriceBuyToken);
+  const refCexBuy  = n(displayPriceBuyToken);
   const refCexSell = n(displayPriceSellToken);
 
-
-
-  let dexUsdtPerToken;
-  if (lower(trx) === 'tokentopair') {
-    if (refCexBuy > 0 && candA > 0 && candB > 0) {
-      dexUsdtPerToken = (Math.abs(candA - refCexBuy) <= Math.abs(candB - refCexBuy)) ? candA : candB;
-    } else dexUsdtPerToken = candA || candB || dexRateRaw;
-  } else {
-    if (refCexSell > 0 && candA > 0 && candB > 0) {
-      dexUsdtPerToken = (Math.abs(candA - refCexSell) <= Math.abs(candB - refCexSell)) ? candA : candB;
-    } else dexUsdtPerToken = candA || candB || dexRateRaw;
-  }
+  // dexUsdtPerToken = rate USDT/Token yang IDENTIK dengan angka di kolom DEX
+  const dexUsdtPerToken = dexRateRaw;
 
   // Tampilkan harga + link
   const CEX = upper(cex);
@@ -2074,7 +2079,7 @@ function DisplayPNL(data) {
   // REFACTORED: Tambahkan info sumber alternatif ke label DEX
   const dexLabel = isFallback && fallbackSource ? `${DEX} via ${fallbackSource}` : DEX;
 
-  // ✅ NEW: Fee info label for tooltip — tampilkan nilai fee dan sumbernya
+  // ✅ Fee info label for tooltip — tampilkan nilai fee dan sumbernya
   const _feeVal = n(FeeSwap);
   const _feeSrcLabel = (() => {
     const src = String(feeSource || 'fallback').toLowerCase();
@@ -2085,23 +2090,23 @@ function DisplayPNL(data) {
   const _feeInfo = `💸 Fee Swap: $${_feeVal.toFixed(4)} (${_feeSrcLabel})`;
 
   if (direction === 'tokentopair') {
-    buyPrice = refCexBuy;
-    sellPrice = n(dexUsdtPerToken);
-    buyLink = cexLinks.trade;      // TOKEN
-    sellLink = linkDEX || '#';
+    buyPrice  = refCexBuy;
+    sellPrice = dexUsdtPerToken;
+    buyLink   = cexLinks.trade;   // TOKEN
+    sellLink  = linkDEX || '#';
 
-    tipBuy = `USDT -> ${Name_in} | ${CEX} | ${fmtIDR(buyPrice)} | ${fmtUSD(buyPrice)} USDT/${Name_in}`;
-    const inv = sellPrice > 0 ? (1 / sellPrice) : 0;
-    tipSell = `${Name_in} -> ${Name_out} | ${dexLabel} | ${fmtIDR(sellPrice)} | ${inv > 0 && isFinite(inv) ? inv.toFixed(6) : 'N/A'} ${Name_in}/${Name_out}\n${_feeInfo}`;
+    // ✅ Tooltip konsisten: fmtUSD(sellPrice) = angka yang sama dengan kolom DEX ⬇
+    tipBuy  = `USDT -> ${Name_in} | ${CEX} | ${fmtIDR(buyPrice)} | ${fmtUSD(buyPrice)} USDT/${Name_in}`;
+    tipSell = `${Name_in} -> ${Name_out} | ${dexLabel} | ${fmtIDR(sellPrice)} | ${fmtUSD(sellPrice)} USDT/${Name_in}\n${_feeInfo}`;
   } else {
-    buyPrice = n(dexUsdtPerToken);
+    buyPrice  = dexUsdtPerToken;
     sellPrice = refCexSell;
-    buyLink = linkDEX || '#';
-    sellLink = cexLinks.trade;      // PAIR
+    buyLink   = linkDEX || '#';
+    sellLink  = cexLinks.trade;   // PAIR
 
-    tipBuy = `${Name_in} -> ${Name_out} | ${dexLabel} | ${fmtIDR(buyPrice)} | ${fmtUSD(buyPrice)} USDT/${Name_in}\n${_feeInfo}`;
-    const inv = sellPrice > 0 ? (1 / sellPrice) : 0;
-    tipSell = `${Name_out} -> USDT | ${CEX} | ${fmtIDR(sellPrice)} | ${inv > 0 && isFinite(inv) ? inv.toFixed(6) : 'N/A'} ${Name_in}/${Name_out}`;
+    // ✅ Tooltip konsisten: fmtUSD(buyPrice) = angka yang sama dengan kolom DEX ⬆
+    tipBuy  = `${Name_in} -> ${Name_out} | ${dexLabel} | ${fmtIDR(buyPrice)} | ${fmtUSD(buyPrice)} USDT/${Name_in}\n${_feeInfo}`;
+    tipSell = `${Name_out} -> USDT | ${CEX} | ${fmtIDR(sellPrice)} | ${fmtUSD(sellPrice)} USDT/${Name_out}`;
   }
 
 

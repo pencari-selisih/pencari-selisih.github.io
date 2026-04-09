@@ -232,7 +232,7 @@
 
     // Open calculator modal handler - Always active, even during scan
     // Using event delegation to ensure it works even if icon is dynamically loaded
-    $(document).on('click', '#openCalculatorModal', function(event) {
+    $(document).on('click', '#openCalculatorModal', async function(event) {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
@@ -244,7 +244,7 @@
             console.log('✅ Calculator modal opened');
         } catch (error) {
             console.error('❌ Error opening calculator modal:', error);
-            alert('Gagal membuka kalkulator. Silakan refresh halaman.');
+            await FlatDialog.alert('Gagal membuka kalkulator. Silakan refresh halaman.', 'Error', 'danger');
         }
 
         return false;

@@ -171,7 +171,8 @@
      */
     $(document).on('click', '#histClearAll', async function(){
       try {
-        if (!confirm('Bersihkan semua riwayat?')) return;
+        const okConfirm = await FlatDialog.confirm('Bersihkan semua riwayat?', 'Bersihkan Riwayat', 'danger');
+        if (!okConfirm) return;
         const ok = await (window.clearHistoryLog ? window.clearHistoryLog() : Promise.resolve(false));
         if (ok) { if (typeof toast !== 'undefined' && toast.success) toast.success('Riwayat dibersihkan.'); renderHistoryTable(); }
         else { if (typeof toast !== 'undefined' && toast.error) toast.error('Gagal membersihkan riwayat.'); }
