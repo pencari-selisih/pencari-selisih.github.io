@@ -1231,7 +1231,6 @@
 
   dexStrategies.lifi = {
     buildRequest: ({ codeChain, sc_input, sc_output, sc_input_in, sc_output_in, amount_in_big, SavedSettingData, chainName }) => {
-      const apiKey = (typeof getRandomApiKeyLIFI === 'function') ? getRandomApiKeyLIFI() : '';
       const chainConfig = (root.CONFIG_CHAINS || {})[String(chainName || '').toLowerCase()];
       const lifiChainId = chainConfig?.LIFI_CHAIN_ID || Number(codeChain);
       const isSolana = String(chainName || '').toLowerCase() === 'solana';
@@ -1239,16 +1238,23 @@
       const toToken = isSolana ? sc_output_in : sc_output.toLowerCase();
       const userAddr = isSolana ? (SavedSettingData?.walletSolana || 'So11111111111111111111111111111111111111112') : (SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000');
       const body = {
-        fromChainId: lifiChainId,
-        toChainId: lifiChainId,
-        fromTokenAddress: fromToken,
-        toTokenAddress: toToken,
-        fromAmount: amount_in_big.toString(),
         fromAddress: userAddr,
-        toAddress: userAddr,
-        options: { slippage: parseFloat(getSlippageValue()) / 100, order: 'RECOMMENDED', allowSwitchChain: false }  // USER-CONFIGURABLE (fraction)
+        fromAmount: amount_in_big.toString(),
+        fromChainId: lifiChainId,
+        fromTokenAddress: fromToken,
+        toChainId: lifiChainId,
+        toTokenAddress: toToken,
+        options: {
+          integrator: 'jumper.exchange',
+          order: 'CHEAPEST',
+          slippage: parseFloat(getSlippageValue()) / 100,  // USER-CONFIGURABLE (fraction)
+          maxPriceImpact: 0.4,
+          jitoBundle: true,
+          allowSwitchChain: true,
+          executionType: 'all'
+        }
       };
-      return { url: 'https://li.quest/v1/advanced/routes', method: 'POST', data: JSON.stringify(body), headers: { 'Content-Type': 'application/json', 'x-lifi-api-key': apiKey } };
+      return { url: 'https://lifi.wallet.brave.com/v1/advanced/routes', method: 'POST', data: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } };
     },
     parseResponse: (response, { des_output, chainName }) => {
       const routes = response?.routes;
@@ -1303,32 +1309,39 @@
   function createFilteredLifiStrategy(dexKey, dexTitle) {
     return {
       buildRequest: ({ codeChain, sc_input, sc_output, sc_input_in, sc_output_in, amount_in_big, SavedSettingData, chainName }) => {
-        const apiKey = (typeof getRandomApiKeyLIFI === 'function') ? getRandomApiKeyLIFI() : '';
         const chainConfig = (root.CONFIG_CHAINS || {})[String(chainName || '').toLowerCase()];
         const lifiChainId = chainConfig?.LIFI_CHAIN_ID || Number(codeChain);
         const isSolana = String(chainName || '').toLowerCase() === 'solana';
         const fromToken = isSolana ? sc_input_in : sc_input.toLowerCase();
         const toToken = isSolana ? sc_output_in : sc_output.toLowerCase();
         const userAddr = isSolana ? (SavedSettingData?.walletSolana || 'So11111111111111111111111111111111111111112') : (SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000');
-        const params = new URLSearchParams({
-          fromChain: lifiChainId.toString(),
-          toChain: lifiChainId.toString(),
-          fromToken: fromToken,
-          toToken: toToken,
-          fromAmount: amount_in_big.toString(),
+        const body = {
           fromAddress: userAddr,
-          allowExchanges: dexKey,
-          slippage: String(parseFloat(getSlippageValue()) / 100),  // USER-CONFIGURABLE (fraction)
-          order: 'RECOMMENDED'
-        });
-        return { url: `https://li.quest/v1/quote?${params.toString()}`, method: 'GET', headers: { 'x-lifi-api-key': apiKey } };
+          fromAmount: amount_in_big.toString(),
+          fromChainId: lifiChainId,
+          fromTokenAddress: fromToken,
+          toChainId: lifiChainId,
+          toTokenAddress: toToken,
+          options: {
+            integrator: 'jumper.exchange',
+            order: 'CHEAPEST',
+            slippage: parseFloat(getSlippageValue()) / 100,  // USER-CONFIGURABLE (fraction)
+            maxPriceImpact: 0.4,
+            jitoBundle: true,
+            allowSwitchChain: true,
+            executionType: 'all',
+            allowExchanges: [dexKey]
+          }
+        };
+        return { url: 'https://lifi.wallet.brave.com/v1/advanced/routes', method: 'POST', data: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } };
       },
       parseResponse: (response, { des_output, chainName }) => {
-        if (!response?.estimate?.toAmount) throw new Error(`LIFI-${dexTitle}: No valid quote received`);
-        const amount_out = parseFloat(response.estimate.toAmount) / Math.pow(10, des_output);
-        let gasCostUsd = 0;
-        if (response.estimate.gasCosts) gasCostUsd = response.estimate.gasCosts.reduce((sum, gc) => sum + parseFloat(gc.amountUSD || 0), 0);
-        const { FeeSwap, feeSource } = resolveFeeSwap(gasCostUsd, 0, chainName);
+        const routes = response?.routes;
+        if (!routes || !Array.isArray(routes) || routes.length === 0) throw new Error(`LIFI-${dexTitle}: No valid routes received`);
+        const bestRoute = routes[0];
+        if (!bestRoute?.toAmount) throw new Error(`LIFI-${dexTitle}: Invalid route structure`);
+        const amount_out = parseFloat(bestRoute.toAmount) / Math.pow(10, des_output);
+        const { FeeSwap, feeSource } = resolveFeeSwap(parseFloat(bestRoute.gasCostUSD || 0), 0, chainName);
         return { amount_out, FeeSwap, feeSource, dexTitle, routeTool: `${dexTitle} via LIFI` };
       }
     };
