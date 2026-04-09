@@ -3,7 +3,7 @@ const CONFIG_APP = {
         NAME: "PENCARI SELISIH",
         // NAME: "WATCHMARKET",
         // NAME: "APP PRIVATE",
-        VERSION: "2026.04.14",
+        VERSION: "88.88",
         SCAN_LIMIT: false,
         AUTORUN: true,
         AUTO_VOLUME: true,  // cek volume otomatis untuk filter dan alert
@@ -594,7 +594,7 @@ const CONFIG_UI = {
             'odos': 6000,            // ODOS: 6s (1 RPS public limit, can timeout)
             'odos2': 6000,           // ODOS v2: 6s
             'odos3': 6000,           // ODOS v3: 6s
-            'hinkal-odos': 4000,     // Hinkal ODOS Proxy: 4s (typically faster)
+            'hinkal-odos': 5000,     // Hinkal ODOS Proxy: 4s (typically faster)
 
             // ========== Solana DEXes ==========
             // Fast Solana APIs
@@ -603,10 +603,10 @@ const CONFIG_UI = {
 
             // ========== Filtered Strategies (Wildcard) ==========
             // Meta-aggregators filtered for specific DEX
-            'lifi-*': 6000,          // LIFI filtered: 6s (cross-chain, needs time)
-            'rabby-*': 6000,         // RABBY filtered: 6s (api.rabby.io, stable)
+            'lifi-*': 5000,          // LIFI filtered: 6s (cross-chain, needs time)
+            'rabby-*': 5000,         // RABBY filtered: 6s (api.rabby.io, stable)
             'rainbow-*': 5000,       // RAINBOW filtered: 5s (swap.p.rainbow.me, fast)
-            'swoop-*': 10000,        // SWOOP filtered: 10s (railway.app slower, prevent cancel)
+            'swoop-*': 7000,        // SWOOP filtered: 10s (railway.app slower, prevent cancel)
             'swing-*': 6000,         // SWING filtered: 6s
             'dzap-*': 6000,          // DZAP filtered: 6s (WARNING: 429 rate limit issues)
             'rango-*': 6000,         // Rango filtered: 6s (WARNING: 403 forbidden issues)
@@ -624,10 +624,10 @@ const CONFIG_UI = {
             'rubic': 6000,           // Rubic multi-quote: 6s
             'rocketx': 8000,         // RocketX standalone (unused as column, reserved)
             'rocketx-velora': 8000,  // RocketX filtered → Velora/ParaSwap route (backend transport)
-            'metax': 7000,          // MetaMask Bridge: SSE stream, collect all quotes
-            'onekey': 10000,         // OneKey Swap: SSE stream (OKX, 1inch, 0x) — 10s
-            'onekey-1inch': 10000,   // OneKey filtered → 1inch provider only
-            'onekey-lifidex': 10000, // OneKey filtered → LiFi/SwapLifi provider only
+            'metax': 7500,          // MetaMask Bridge: SSE stream, collect all quotes
+            'onekey': 7000,         // OneKey Swap: SSE stream (OKX, 1inch, 0x) — 10s
+            'onekey-1inch': 7000,   // OneKey filtered → 1inch provider only
+            'onekey-lifidex': 8000, // OneKey filtered → LiFi/SwapLifi provider only
 
             // ========== Default Fallback ==========
             'default': 5000          // Default: 5s (balanced)
@@ -992,8 +992,12 @@ const CONFIG_DEXS = {
                 tokentopair: 'flytrade',        // CEX→DEX: Flytrade aggregator
                 pairtotoken: 'flytrade'         // DEX→CEX: Flytrade aggregator
             },
+            secondary: {
+                tokentopair: 'rabby-flytrade',   // CEX→DEX: LiFi filtered → Fly route (Brave)
+                pairtotoken: 'lifi-flytrade'    // DEX→CEX: LiFi filtered → Fly route (Brave)
+            },
             alternative: {
-                tokentopair: 'rabby-flytrade',  // CEX→DEX: Rabby filtered → Magpie route
+                tokentopair: 'lifi-flytrade',  // CEX→DEX: Rabby filtered → Magpie route
                 pairtotoken: 'rabby-flytrade'   // DEX→CEX: Rabby filtered → Magpie route
             }
         },
