@@ -3,7 +3,7 @@ const CONFIG_APP = {
         NAME: "PENCARI-SELISIH",
         // NAME: "WATCHMARKET",
         // NAME: "APP PRIVATE",
-        VERSION: "2026.04.10",
+        VERSION: "77.77",
         SCAN_LIMIT: true,
         AUTORUN: false,
         AUTO_VOLUME: false,  // cek volume otomatis untuk filter dan alert
@@ -16,7 +16,7 @@ const CONFIG_APP = {
         // Berbeda dari DEX regular (single-quote). Berjalan TERPISAH dari scan DEX regular.
         // Jika true → Settings menampilkan panel: Modal DEX, Filter Scanner, Card Signal, Jeda DEX.
         META_DEX: true,
-        LIMIT_METADEX: 1,
+        LIMIT_METADEX: 2,
     },
     // ========================================================================
     // META-DEX CONFIGURATION
@@ -34,7 +34,7 @@ const CONFIG_APP = {
         // Daftar aggregator META-DEX yang tersedia.
         // Setiap aggregator mengembalikan BANYAK quote dari berbagai DEX sekaligus.
         aggregators: {
-           // lifi: { enabled: true, evmOnly: false, jedaDex: 600, label: 'JUMPER' },       // EVM + Solana multi-route
+            //lifi: { enabled: true, evmOnly: false, jedaDex: 600, label: 'JUMPER' },       // EVM + Solana multi-route
             // dzap: { enabled: true, evmOnly: false, jedaDex: 500, label: 'DZAP' },       // EVM + Solana multi-route
             // rubic: { enabled: true, evmOnly: false, jedaDex: 500, label: 'Rubic' },     // EVM + Solana multi-quote
             // rango: { enabled: true, evmOnly: false, jedaDex: 500, label: 'RANGO' },       // EVM + Solana multi-quote
@@ -338,7 +338,7 @@ const CONFIG_CHAINS = {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BSC' },
             BINANCE: { address: '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3', address2: '0xe2fc31F816A9b94326492132018C3aEcC4a93aE1', chainCEX: 'BSC' },
             MEXC: { address: '0x4982085C9e2F89F2eCb8131Eca71aFAD896e89CB', chainCEX: 'BSC' },
-            INDODAX: { address: '0xaBa3002AB1597433bA79aBc48eeAd54DC10A45F2', address2: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6', chainCEX: 'BSC' },
+            INDODAX: { address: '0xaBa3002AB1597433bA79aBc48eeAd54DC10A45F2', address2: '0x91Dca37856240E5e1906222ec79278b16420Dc92', chainCEX: 'BSC' },
             KUCOIN: { address: '0x58edF78281334335EfFa23101bBe3371b6a36A51', address2: '0xD6216fC19DB775Df9774a6E33526131dA7D19a2c', chainCEX: 'BEP20' },
             BITGET: { address: '0x0639556F03714A74a5fEEaF5736a4A64fF70D206', address2: '0xBDf5bAfEE1291EEc45Ae3aadAc89BE8152D4E673', address3: '0x1AB4973a48dc892Cd9971ECE8e01DcC7688f8F23', chainCEX: 'BEP20' },
             BYBIT: { address: '0xf89d7b9c864f589bbf53a82105107622b35eaa40', chainCEX: 'BSC' },
@@ -594,7 +594,7 @@ const CONFIG_UI = {
             'odos': 6000,            // ODOS: 6s (1 RPS public limit, can timeout)
             'odos2': 6000,           // ODOS v2: 6s
             'odos3': 6000,           // ODOS v3: 6s
-            'hinkal-odos': 4000,     // Hinkal ODOS Proxy: 4s (typically faster)
+            'hinkal-odos': 5000,     // Hinkal ODOS Proxy: 4s (typically faster)
 
             // ========== Solana DEXes ==========
             // Fast Solana APIs
@@ -603,10 +603,10 @@ const CONFIG_UI = {
 
             // ========== Filtered Strategies (Wildcard) ==========
             // Meta-aggregators filtered for specific DEX
-            'lifi-*': 6000,          // LIFI filtered: 6s (cross-chain, needs time)
-            'rabby-*': 6000,         // RABBY filtered: 6s (api.rabby.io, stable)
+            'lifi-*': 5000,          // LIFI filtered: 6s (cross-chain, needs time)
+            'rabby-*': 5000,         // RABBY filtered: 6s (api.rabby.io, stable)
             'rainbow-*': 5000,       // RAINBOW filtered: 5s (swap.p.rainbow.me, fast)
-            'swoop-*': 10000,        // SWOOP filtered: 10s (railway.app slower, prevent cancel)
+            'swoop-*': 7000,        // SWOOP filtered: 10s (railway.app slower, prevent cancel)
             'swing-*': 6000,         // SWING filtered: 6s
             'dzap-*': 6000,          // DZAP filtered: 6s (WARNING: 429 rate limit issues)
             'rango-*': 6000,         // Rango filtered: 6s (WARNING: 403 forbidden issues)
@@ -624,10 +624,10 @@ const CONFIG_UI = {
             'rubic': 6000,           // Rubic multi-quote: 6s
             'rocketx': 8000,         // RocketX standalone (unused as column, reserved)
             'rocketx-velora': 8000,  // RocketX filtered → Velora/ParaSwap route (backend transport)
-            'metax': 7000,          // MetaMask Bridge: SSE stream, collect all quotes
-            'onekey': 10000,         // OneKey Swap: SSE stream (OKX, 1inch, 0x) — 10s
-            'onekey-1inch': 10000,   // OneKey filtered → 1inch provider only
-            'onekey-lifidex': 10000, // OneKey filtered → LiFi/SwapLifi provider only
+            'metax': 7500,          // MetaMask Bridge: SSE stream, collect all quotes
+            'onekey': 7000,         // OneKey Swap: SSE stream (OKX, 1inch, 0x) — 10s
+            'onekey-1inch': 7000,   // OneKey filtered → 1inch provider only
+            'onekey-lifidex': 8000, // OneKey filtered → LiFi/SwapLifi provider only
 
             // ========== Default Fallback ==========
             'default': 5000          // Default: 5s (balanced)
@@ -992,8 +992,12 @@ const CONFIG_DEXS = {
                 tokentopair: 'flytrade',        // CEX→DEX: Flytrade aggregator
                 pairtotoken: 'flytrade'         // DEX→CEX: Flytrade aggregator
             },
+            secondary: {
+                tokentopair: 'rabby-flytrade',   // CEX→DEX: LiFi filtered → Fly route (Brave)
+                pairtotoken: 'lifi-flytrade'    // DEX→CEX: LiFi filtered → Fly route (Brave)
+            },
             alternative: {
-                tokentopair: 'rabby-flytrade',  // CEX→DEX: Rabby filtered → Magpie route
+                tokentopair: 'lifi-flytrade',  // CEX→DEX: Rabby filtered → Magpie route
                 pairtotoken: 'rabby-flytrade'   // DEX→CEX: Rabby filtered → Magpie route
             }
         },
@@ -1042,17 +1046,17 @@ const CONFIG_DEXS = {
         builder: () => `https://app.odos.xyz`,
         // ⚡ MODE: SECONDARY (Rotation) - bergantian antara primary dan secondary
         fetchdex: {
-              primary: {
-                tokentopair: 'odos3',          
-                pairtotoken: 'hinkal1-odos'   
+            primary: {
+                tokentopair: 'odos3',
+                pairtotoken: 'lifi-odos'
             },
             secondary: {
-                tokentopair: 'hinkal2-odos',          
-                pairtotoken: 'lifi-odos3'     
+                tokentopair: 'hinkal2-odos',
+                pairtotoken: 'hinkal1-odos'
             },
-            alternative: {                     
-                tokentopair: 'swoop-odos',     
-                pairtotoken: 'swoop-odos'       
+            alternative: {
+                tokentopair: 'swoop-odos',
+                pairtotoken: 'swoop-odos'
             }
         },
         allowFallback: true,  // ✅ Jika yang dipilih gagal, coba yang lain
@@ -1075,6 +1079,10 @@ const CONFIG_DEXS = {
                 tokentopair: 'velora6',        // CEX→DEX: Official Velora v6.2
                 pairtotoken: 'velora5'         // DEX→CEX: Official Velora v5
             },
+            secondary: {
+                tokentopair: 'lifi-velora',    // CEX→DEX: LiFi filtered → ParaSwap route (Brave)
+                pairtotoken: 'lifi-velora'     // DEX→CEX: LiFi filtered → ParaSwap route (Brave)
+            },
             alternative: {
                 tokentopair: 'rocketx-velora', // CEX→DEX: RocketX filtered → ParaSwap route
                 pairtotoken: 'swing-velora'     // DEX→CEX: SWING filtered → ParaSwap route
@@ -1096,7 +1104,7 @@ const CONFIG_DEXS = {
                 pairtotoken: 'rainbow-1inch'      // DEX→CEX: Rainbow API (source=1inch)
             },
             secondary: {
-                tokentopair: 'enkrypt-1inch',    // CEX→DEX: Enkrypt 1inch proxy
+                tokentopair: 'lifi-1inch',    // CEX→DEX: Enkrypt 1inch proxy
                 pairtotoken: 'enkrypt-1inch'     // DEX→CEX: Enkrypt 1inch proxy
             },
             alternative: {
