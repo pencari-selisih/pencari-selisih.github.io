@@ -19,6 +19,8 @@
     <script src="secrets.js"></script>
     <script src="utils/cex-helpers.js"></script>
     <script src="utils/chain-toggle-helpers.js"></script>
+    <script src="app-namespace.js"></script>
+    <script src="services/cex.js"></script>
 </head>
 <style>
     body {
@@ -761,22 +763,38 @@ $(document).ready(async function () {
     }
 
     // ══════════════════════════════════════════════════
+    //  CEX SELL-PRICE CACHE  (from each CEX's own API)
+    // ══════════════════════════════════════════════════
+    const _cexPriceCache = {};       // { BINANCE: { map: {...}, ts: epoch }, ... }
+    const _cexPriceFetching = {};    // guard: 1 fetch per CEX at a time
+
+    async function getCEXPriceOverrides(cexName) {
+        const key = String(cexName).toUpperCase();
+        const cached = _cexPriceCache[key];
+        if (cached && (Date.now() - cached.ts) < 60000) return cached.map;
+        if (_cexPriceFetching[key]) return _cexPriceFetching[key];
+
+        _cexPriceFetching[key] = (async () => {
+            try {
+                const fetchFn = App?.Services?.CEX?.fetchAllCEXPrices;
+                if (typeof fetchFn !== 'function') return {};
+                const priceMap = await fetchFn(key);
+                _cexPriceCache[key] = { map: priceMap, ts: Date.now() };
+                return priceMap;
+            } catch(e) {
+                console.warn(`[CEXPrice] ${key} failed, fallback to Binance:`, e.message);
+                return {};
+            } finally {
+                delete _cexPriceFetching[key];
+            }
+        })();
+        return _cexPriceFetching[key];
+    }
+
+    // ══════════════════════════════════════════════════
     //  CEX ASSET RENDERING
     // ══════════════════════════════════════════════════
-    const MIN_DISPLAY_USDT = 1.0;
-    const ALLOWED_TOKENS = new Set([
-        'USDT','USDC','BUSD','TUSD','USDP','FDUSD','DAI','USDD','PYUSD','EURC',
-        'BTC','ETH','BNB','WBTC','WETH',
-        'XRP','ADA','DOGE','SOL','DOT','SHIB','AVAX','LINK','TRX','UNI',
-        'ATOM','LTC','ETC','XLM','NEAR','FIL','APT','ALGO','VET','ICP',
-        'AAVE','GRT','FTM','SAND','MANA','AXS','THETA','EGLD','HBAR','XTZ',
-        'EOS','FLOW','CHZ','CAKE','ZIL','ENJ','BAT','CRV','LDO','COMP',
-        'SNX','MKR','SUSHI','1INCH','YFI','DYDX','GMX','INJ','SUI','SEI',
-        'ARB','OP','WLD','PEPE','FLOKI','BONK','WIF','JUP','TIA','STX',
-        'RENDER','FET','RNDR','TAO','JASMY','IMX','PENDLE','RUNE','ORDI',
-        'TON','NOT','DOGS','KAS','TWT','GALA','ROSE','CELO','ONE','ZRX',
-        'POL','MATIC','CRO','KLAY','MOVR','GLMR','IDR'
-    ]);
+    const MIN_DISPLAY_USDT = 1.0; // sembunyikan koin berHARGA tapi nilainya < $1 (dust)
 
     function escapeHtml(v) {
         if (typeof v !== 'string') return v;
@@ -831,17 +849,19 @@ $(document).ready(async function () {
 
         const assetsWithValues = [];
         for (const asset of aggregated) {
-            if (!ALLOWED_TOKENS.has(asset.symbol.toUpperCase())) continue;
-            const overrideRate = overrides[asset.symbol];
-            let rate = typeof overrideRate === 'number' ? overrideRate : await getUsdtRate(asset.symbol);
-            if (!isFinite(rate)||rate<0) rate = 0;
-            assetsWithValues.push({ symbol:asset.symbol, amount:asset.amount, rate, usdtValue: rate ? asset.amount*rate : 0 });
+            const symUp = asset.symbol.toUpperCase();
+            // Lookup harga jual: coba overrides (dari CEX sendiri) dulu, lalu Binance fallback
+            const overrideRate = overrides[symUp] ?? overrides[asset.symbol];
+            let rate = typeof overrideRate === 'number' ? overrideRate : await getUsdtRate(symUp);
+            // Stablecoin IDR: rate bisa sangat kecil tapi valid
+            if (!isFinite(rate) || rate < 0) rate = 0;
+            assetsWithValues.push({ symbol: symUp, amount: asset.amount, rate, usdtValue: rate ? asset.amount * rate : 0 });
         }
-        assetsWithValues.sort((a,b)=>(b.usdtValue||0)-(a.usdtValue||0));
+        assetsWithValues.sort((a,b) => (b.usdtValue||0) - (a.usdtValue||0));
 
-        const visibleAssets  = assetsWithValues.filter(i => i.rate>0 && i.usdtValue>=MIN_DISPLAY_USDT);
-        const filteredCount  = aggregated.length - assetsWithValues.length;
-        const hiddenCount    = assetsWithValues.length - visibleAssets.length;
+        // Hanya tampilkan koin yang punya harga dan nilainya >= $1
+        const visibleAssets  = assetsWithValues.filter(i => i.rate > 0 && i.usdtValue >= MIN_DISPLAY_USDT);
+        const hiddenDust     = assetsWithValues.filter(i => i.rate === 0 || i.usdtValue < MIN_DISPLAY_USDT);
 
         if (!visibleAssets.length) {
             saldoEl.innerHTML = `<span class="uk-text-muted ${exClass}">Tidak Ada</span>`;
@@ -850,12 +870,14 @@ $(document).ready(async function () {
             return;
         }
 
-        const totalUsdt = visibleAssets.reduce((s,i)=>s+i.usdtValue, 0);
+        const totalUsdt = visibleAssets.reduce((s,i) => s + i.usdtValue, 0);
         const detail = {
-            total: parseFloat(totalUsdt.toFixed(2)), filteredCount, hiddenCount,
+            total: parseFloat(totalUsdt.toFixed(2)),
+            filteredCount: 0,
+            hiddenCount: hiddenDust.length,
             assets: visibleAssets.map(i=>({
-                symbol:i.symbol, amount:parseFloat(i.amount.toFixed(8)),
-                rate:parseFloat(i.rate.toFixed(8)), usdtValue:parseFloat(i.usdtValue.toFixed(2))
+                symbol: i.symbol, amount: parseFloat(i.amount.toFixed(8)),
+                rate: parseFloat(i.rate.toFixed(8)), usdtValue: parseFloat(i.usdtValue.toFixed(2))
             }))
         };
 
@@ -868,15 +890,19 @@ $(document).ready(async function () {
         if (!detail||!Array.isArray(detail.assets)||!detail.assets.length)
             return `<span class="uk-text-muted">Tidak ada aset</span>`;
         const exClass = exchangeId ? `text-cex-${String(exchangeId).toLowerCase()}` : '';
-        const lines = detail.assets.map(item=>`
+        const lines = detail.assets.map(item => {
+            const hasRate = item.rate > 0;
+            const rateStr = hasRate ? `@ ${formatRate(item.rate)} USDT` : `<span class="uk-text-muted" style="font-size:11px;">harga tdk tersedia</span>`;
+            const valStr  = hasRate ? `${formatUsdtValue(item.usdtValue)} $` : `<span class="uk-text-muted">?</span>`;
+            return `
             <div class="asset-line uk-flex uk-flex-between uk-flex-wrap">
                 <span><b>${escapeHtml(item.symbol)}</b> ${formatTokenAmount(item.amount)}</span>
-                <span>@ ${formatRate(item.rate)} USDT</span>
-                <span>${item.rate ? formatUsdtValue(item.usdtValue)+' $' : 'N/A'}</span>
-            </div>`).join('');
+                <span>${rateStr}</span>
+                <span>${valStr}</span>
+            </div>`;
+        }).join('');
         const notes = [];
-        //if ((detail.filteredCount||0) > 0) notes.push(`${detail.filteredCount} token tidak dihitung `);
-        if ((detail.hiddenCount||0) > 0)   notes.push(`${detail.hiddenCount} token disembunyikan (< $1)`);
+        if ((detail.hiddenCount||0) > 0) notes.push(`${detail.hiddenCount} token disembunyikan (< $1 / tdk ada harga)`);
         const note = notes.length ? `<div class="uk-text-muted uk-text-small" style="margin-top:3px;">ⓘ ${notes.join(' · ')}</div>` : '';
         return `${lines}<hr class="uk-margin-small-top uk-margin-small-bottom">
             <b class="${exClass}">Total ${formatUsdtValue(detail.total||0)} {USDT}</b>${note}`;
@@ -932,7 +958,8 @@ $(document).ready(async function () {
             const r = await fetch(url,{headers:{'X-MBX-APIKEY':creds.ApiKey}});
             const d = await r.json();
             if (!r.ok||d?.code) throw new Error(d?.msg||`HTTP ${r.status}`);
-            await renderExchangeAssets('BINANCE', d.balances.map(i=>({symbol:i.asset,amount:(parseFloat(i.free||0))+(parseFloat(i.locked||0))})));
+            const binancePrices = await getCEXPriceOverrides('BINANCE');
+            await renderExchangeAssets('BINANCE', d.balances.map(i=>({symbol:i.asset,amount:(parseFloat(i.free||0))+(parseFloat(i.locked||0))})), {overrides: binancePrices});
         } catch(e) {
             setCEXStatus('BINANCE','error',e.message);
             localStorage.setItem('MULTI_BINANCESaldo','0');
@@ -954,7 +981,8 @@ $(document).ready(async function () {
             const r = await fetch(url,{method,headers:{'Accept':'application/json','Content-Type':'application/json','Timestamp':ts,'KEY':creds.ApiKey,'SIGN':sign}});
             if (!r.ok) throw new Error(`HTTP ${r.status}`);
             const d = await r.json();
-            await renderExchangeAssets('GATE', d.map(i=>({symbol:i.currency,amount:(parseFloat(i.available||0))+(parseFloat(i.locked||0))})));
+            const gatePrices = await getCEXPriceOverrides('GATE');
+            await renderExchangeAssets('GATE', d.map(i=>({symbol:i.currency,amount:(parseFloat(i.available||0))+(parseFloat(i.locked||0))})), {overrides: gatePrices});
         } catch(e) {
             setCEXStatus('GATE','error',e.message);
             localStorage.setItem('MULTI_GATESaldo','0');
@@ -972,7 +1000,8 @@ $(document).ready(async function () {
             const r = await fetch('https://api.bitget.com/api/v2/spot/account/assets',{headers:{'ACCESS-KEY':creds.ApiKey,'ACCESS-SIGN':sign,'ACCESS-TIMESTAMP':ts,'ACCESS-PASSPHRASE':creds.Passphrase||''}});
             const d = await r.json();
             if (!r.ok) throw new Error(d?.msg||`HTTP ${r.status}`);
-            await renderExchangeAssets('BITGET', (d.data||[]).map(i=>({symbol:i.coin,amount:(parseFloat(i.available||0))+(parseFloat(i.frozen||0))})));
+            const bitgetPrices = await getCEXPriceOverrides('BITGET');
+            await renderExchangeAssets('BITGET', (d.data||[]).map(i=>({symbol:i.coin,amount:(parseFloat(i.available||0))+(parseFloat(i.frozen||0))})), {overrides: bitgetPrices});
         } catch(e) {
             setCEXStatus('BITGET','error',e.message);
             localStorage.setItem('MULTI_BITGETSaldo','0');
@@ -992,7 +1021,8 @@ $(document).ready(async function () {
             const r = await fetch(url,{headers:{'KC-API-KEY':creds.ApiKey,'KC-API-SIGN':sign,'KC-API-TIMESTAMP':ts,'KC-API-PASSPHRASE':pp,'KC-API-KEY-VERSION':'3','Content-Type':'application/json'}});
             const d = await r.json();
             if (!r.ok) throw new Error(d?.msg||`HTTP ${r.status}`);
-            await renderExchangeAssets('KUCOIN', (d.data||[]).map(i=>({symbol:i.currency,amount:parseFloat(i.balance||i.available||0)||0})));
+            const kucoinPrices = await getCEXPriceOverrides('KUCOIN');
+            await renderExchangeAssets('KUCOIN', (d.data||[]).map(i=>({symbol:i.currency,amount:parseFloat(i.balance||i.available||0)||0})), {overrides: kucoinPrices});
         } catch(e) {
             setCEXStatus('KUCOIN','error',e.message);
             localStorage.setItem('MULTI_KUCOINSaldo','0');
@@ -1013,7 +1043,8 @@ $(document).ready(async function () {
             const d = await r.json();
             if (!r.ok) throw new Error(`HTTP ${r.status}`);
             const coins = d?.result?.list?.[0]?.coin||[];
-            await renderExchangeAssets('BYBIT', coins.map(i=>({symbol:i.coin,amount:parseFloat(i.equity||i.walletBalance||0)||0})));
+            const bybitPrices = await getCEXPriceOverrides('BYBIT');
+            await renderExchangeAssets('BYBIT', coins.map(i=>({symbol:i.coin,amount:parseFloat(i.equity||i.walletBalance||0)||0})), {overrides: bybitPrices});
         } catch(e) {
             setCEXStatus('BYBIT','error',e.message);
             localStorage.setItem('MULTI_BYBITSaldo','0');
@@ -1033,7 +1064,8 @@ $(document).ready(async function () {
             const r = await fetch(url,{headers:{'X-MEXC-APIKEY':creds.ApiKey,'Content-Type':'application/json'}});
             const d = await r.json();
             if (!r.ok||d?.code) throw new Error(d?.msg||`HTTP ${r.status}`);
-            await renderExchangeAssets('MEXC', (d.balances||[]).map(i=>({symbol:i.asset,amount:(parseFloat(i.free||0))+(parseFloat(i.locked||0))})));
+            const mexcPrices = await getCEXPriceOverrides('MEXC');
+            await renderExchangeAssets('MEXC', (d.balances||[]).map(i=>({symbol:i.asset,amount:(parseFloat(i.free||0))+(parseFloat(i.locked||0))})), {overrides: mexcPrices});
         } catch(e) {
             setCEXStatus('MEXC','error',e.message);
             localStorage.setItem('MULTI_MEXCSaldo','0');
@@ -1056,7 +1088,8 @@ $(document).ready(async function () {
             Object.entries(bal).forEach(([s,v])=>{ const a=parseFloat(v||0); if(a>0) combined[s]=a; });
             Object.entries(hold).forEach(([s,v])=>{ const a=parseFloat(v||0); if(a>0) combined[s]=(combined[s]||0)+a; });
             const rateIDR = await USDTIDR(1);
-            const overrides = rateIDR > 0 ? { IDR: 1/rateIDR } : {};
+            const indodaxPrices = await getCEXPriceOverrides('INDODAX');
+            const overrides = Object.assign({}, indodaxPrices, rateIDR > 0 ? { IDR: 1/rateIDR } : {});
             await renderExchangeAssets('INDODAX', Object.entries(combined).map(([s,a])=>({symbol:s.toUpperCase(),amount:a})), {overrides});
         } catch(e) {
             setCEXStatus('INDODAX','error',e.message||String(e));
@@ -1092,7 +1125,8 @@ $(document).ready(async function () {
             if (bResp.status!=='ok'||!bResp.data?.list) throw new Error(bResp['err-msg']||'HTX balance failed');
             const balMap = new Map();
             bResp.data.list.forEach(i=>{ const c=String(i.currency||'').toUpperCase(); const b=parseFloat(i.balance||0)||0; balMap.set(c,(balMap.get(c)||0)+b); });
-            await renderExchangeAssets('HTX', Array.from(balMap.entries()).map(([s,a])=>({symbol:s,amount:a})));
+            const htxPrices = await getCEXPriceOverrides('HTX');
+            await renderExchangeAssets('HTX', Array.from(balMap.entries()).map(([s,a])=>({symbol:s,amount:a})), {overrides: htxPrices});
         } catch(e) {
             setCEXStatus('HTX','error',e.message);
             localStorage.setItem('MULTI_HTXSaldo','0');
@@ -1114,7 +1148,8 @@ $(document).ready(async function () {
             const d = await r.json();
             if (d?.code!=='0') throw new Error(d?.msg||'OKX failed');
             const details = d.data?.[0]?.details||[];
-            await renderExchangeAssets('OKX', details.map(i=>({symbol:String(i.ccy||'').toUpperCase(),amount:parseFloat(i.cashBal||i.availBal||0)+parseFloat(i.frozenBal||0)})));
+            const okxPrices = await getCEXPriceOverrides('OKX');
+            await renderExchangeAssets('OKX', details.map(i=>({symbol:String(i.ccy||'').toUpperCase(),amount:parseFloat(i.cashBal||i.availBal||0)+parseFloat(i.frozenBal||0)})), {overrides: okxPrices});
         } catch(e) {
             setCEXStatus('OKX','error',e.message);
             localStorage.setItem('MULTI_OKXSaldo','0');
