@@ -1044,11 +1044,11 @@ const CONFIG_DEXS = {
         fetchdex: {
             primary: {
                 tokentopair: 'odos3',
-                pairtotoken: 'hinkal1-odos'
+                pairtotoken: 'lifi-odos'
             },
             secondary: {
                 tokentopair: 'hinkal2-odos',
-                pairtotoken: 'lifi-odos'
+                pairtotoken: 'hinkal1-odos'
             },
             alternative: {
                 tokentopair: 'swoop-odos',
@@ -1075,6 +1075,10 @@ const CONFIG_DEXS = {
                 tokentopair: 'velora6',        // CEX→DEX: Official Velora v6.2
                 pairtotoken: 'velora5'         // DEX→CEX: Official Velora v5
             },
+            secondary: {
+                tokentopair: 'lifi-velora',    // CEX→DEX: LiFi filtered → ParaSwap route (Brave)
+                pairtotoken: 'lifi-velora'     // DEX→CEX: LiFi filtered → ParaSwap route (Brave)
+            },
             alternative: {
                 tokentopair: 'rocketx-velora', // CEX→DEX: RocketX filtered → ParaSwap route
                 pairtotoken: 'swing-velora'     // DEX→CEX: SWING filtered → ParaSwap route
@@ -1096,7 +1100,7 @@ const CONFIG_DEXS = {
                 pairtotoken: 'rainbow-1inch'      // DEX→CEX: Rainbow API (source=1inch)
             },
             secondary: {
-                tokentopair: 'enkrypt-1inch',    // CEX→DEX: Enkrypt 1inch proxy
+                tokentopair: 'lifi-1inch',    // CEX→DEX: Enkrypt 1inch proxy
                 pairtotoken: 'enkrypt-1inch'     // DEX→CEX: Enkrypt 1inch proxy
             },
             alternative: {
