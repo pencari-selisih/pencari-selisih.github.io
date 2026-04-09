@@ -601,11 +601,17 @@ function hasValidTokens() {
  * Dynamically render CEX API key input fields based on CONFIG_CEX
  * Now with per-CEX checkbox for enable/disable
  */
-function renderCEXAPIKeyInputs() {
+async function renderCEXAPIKeyInputs() {
     const container = document.getElementById('cex-api-keys-container');
     if (!container) {
         console.warn('[CEX Settings] Container #cex-api-keys-container not found');
         return;
+    }
+
+    // Tunggu cache IDB warm agar ENABLED_CEXS & CEX_API_KEYS terbaca dengan benar
+    // (terutama setelah restore backup + page reload)
+    if (window.whenStorageReady) {
+        try { await window.whenStorageReady; } catch (_) { }
     }
 
     container.innerHTML = ''; // Clear previous content
@@ -657,9 +663,9 @@ function renderCEXAPIKeyInputs() {
                 <!-- API Key inputs -->
                 <input type="text" class="uk-input uk-form-small cex-api-input" style="margin-bottom: 3px; font-size: 0.78rem;" 
                   id="cex_apikey_${cex}" placeholder="API Key" aria-label="${cex} API Key" ${!isEnabled ? 'disabled' : ''}>
-                <input type="password" class="uk-input uk-form-small cex-api-input" style="margin-bottom: ${needsPassphrase ? '3px' : '0'}; font-size: 0.78rem;" 
+                <input type="text" class="uk-input uk-form-small cex-api-input" style="margin-bottom: ${needsPassphrase ? '3px' : '0'}; font-size: 0.78rem;"
                   id="cex_secret_${cex}" placeholder="Secret Key" aria-label="${cex} Secret" ${!isEnabled ? 'disabled' : ''}>
-                ${needsPassphrase ? `<input type="password" class="uk-input uk-form-small cex-api-input" style="font-size: 0.78rem;" 
+                ${needsPassphrase ? `<input type="text" class="uk-input uk-form-small cex-api-input" style="font-size: 0.78rem;"
                   id="cex_passphrase_${cex}" placeholder="Passphrase (Required)" aria-label="${cex} Passphrase" ${!isEnabled ? 'disabled' : ''}>` : ''}
               </div>
             </div>

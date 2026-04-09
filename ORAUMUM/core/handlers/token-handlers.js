@@ -372,12 +372,18 @@
                 }
 
                 // ✅ Live refresh tabel scanner tanpa reload halaman
+                // Skip saat scanning aktif — rebuild tabel akan menghapus hasil scan yg sudah tampil.
+                // Scanner akan update cell secara otomatis pada siklus berikutnya.
                 try {
-                    const m = getAppMode();
-                    if (m.type === 'single') {
-                        if (typeof loadAndDisplaySingleChainTokens === 'function') loadAndDisplaySingleChainTokens();
-                    } else {
-                        if (typeof refreshTokensTable === 'function') refreshTokensTable();
+                    const isScanning = (typeof window.isThisTabScanning === 'function' && window.isThisTabScanning()) ||
+                        $('#stopSCAN').is(':visible');
+                    if (!isScanning) {
+                        const m = getAppMode();
+                        if (m.type === 'single') {
+                            if (typeof loadAndDisplaySingleChainTokens === 'function') loadAndDisplaySingleChainTokens();
+                        } else {
+                            if (typeof refreshTokensTable === 'function') refreshTokensTable();
+                        }
                     }
                 } catch (_) { }
 
