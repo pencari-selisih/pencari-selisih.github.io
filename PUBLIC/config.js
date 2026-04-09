@@ -1042,17 +1042,17 @@ const CONFIG_DEXS = {
         builder: () => `https://app.odos.xyz`,
         // ⚡ MODE: SECONDARY (Rotation) - bergantian antara primary dan secondary
         fetchdex: {
-            primary: {
-                tokentopair: 'odos3',          // CEX→DEX: Official ODOS v3 API (request ganjil)
-                pairtotoken: 'hinkal1-odos'     // DEX→CEX: Hinkal ODOS proxy (request ganjil)
+              primary: {
+                tokentopair: 'odos3',          
+                pairtotoken: 'hinkal1-odos'   
             },
             secondary: {
-                tokentopair: 'hinkal2-odos',          // CEX→DEX: Official ODOS v3 API (request ganjil)
-                pairtotoken: 'lifi-odos3'     // DEX→CEX: Hinkal ODOS proxy (request ganjil)
+                tokentopair: 'hinkal2-odos',          
+                pairtotoken: 'lifi-odos3'     
             },
-            alternative: {                       // ✅ ROTATION: bergantian dengan primary
-                tokentopair: 'swoop-odos',     // CEX→DEX: SWING filtered for ODOS (request genap)
-                pairtotoken: 'swoop-odos'      // DEX→CEX: SWING filtered for ODOS (request genap)
+            alternative: {                     
+                tokentopair: 'swoop-odos',     
+                pairtotoken: 'swoop-odos'       
             }
         },
         allowFallback: true,  // ✅ Jika yang dipilih gagal, coba yang lain
