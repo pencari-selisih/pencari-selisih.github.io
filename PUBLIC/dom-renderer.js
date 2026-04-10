@@ -1864,6 +1864,61 @@ function DisplayPNL(data) {
         el.classList.remove('dex-cell-highlight');
       }
 
+      // Icon multi-tab untuk sel Multi-DEX yang hijau
+      try { el.querySelector('.multi-tab-btn') && el.querySelector('.multi-tab-btn').remove(); } catch(_) {}
+      if (hasSignal) {
+        try {
+          const _mTkSym = (direction === 'tokentopair') ? upper(Name_in) : upper(Name_out);
+          const _mPrSym = (direction === 'tokentopair') ? upper(Name_out) : upper(Name_in);
+          const _mIsStd = _mPrSym === 'USDT';
+          const _mUrlsT = (typeof GeturlExchanger === 'function')
+            ? (GeturlExchanger(upper(cex), _mTkSym, _mPrSym) || {}) : {};
+          const _mUrlsP = (!_mIsStd && typeof GeturlExchanger === 'function')
+            ? (GeturlExchanger(upper(cex), _mPrSym, _mTkSym) || {}) : {};
+          const _mWdToken  = _mUrlsT.withdrawTokenUrl || _mUrlsT.withdrawUrl || '#';
+          const _mWdPair   = _mUrlsP.withdrawTokenUrl || _mUrlsP.withdrawUrl || '#';
+          const _mDpToken  = _mUrlsT.depositTokenUrl  || _mUrlsT.depositUrl  || '#';
+          const _mDpPair   = _mUrlsP.depositTokenUrl  || _mUrlsP.depositUrl  || '#';
+          const _mTradeTk  = _mUrlsT.tradeToken || _mUrlsT.tradeUrl || '#';
+          const _mTradePr  = _mUrlsP.tradeToken || _mUrlsP.tradeUrl || '#';
+          const _mSwap     = dexLink;
+          let _mTabs;
+          if (_mIsStd) {
+            _mTabs = direction === 'tokentopair'
+              ? [_mWdToken, _mTradeTk, _mSwap]
+              : [_mDpToken, _mTradeTk, _mSwap];
+          } else {
+            _mTabs = direction === 'tokentopair'
+              ? [_mTradeTk, _mTradePr, _mWdToken, _mDpPair, _mSwap]
+              : [_mTradeTk, _mTradePr, _mWdPair, _mDpToken, _mSwap];
+          }
+          const _mDirLbl = direction === 'tokentopair' ? 'CEX→DEX' : 'DEX→CEX';
+          const _mTypLbl = _mIsStd ? 'Standar' : 'Triangular';
+          let _mLabels;
+          if (_mIsStd) {
+            _mLabels = direction === 'tokentopair'
+              ? [`WD ${_mTkSym}`, `Trade ${_mTkSym}`, `Swap ${_mTkSym}→${_mPrSym}`]
+              : [`DP ${_mTkSym}`, `Trade ${_mTkSym}`, `Swap ${_mPrSym}→${_mTkSym}`];
+          } else {
+            _mLabels = direction === 'tokentopair'
+              ? [`Trade ${_mTkSym}`, `Trade ${_mPrSym}`, `WD ${_mTkSym}`, `DP ${_mPrSym}`, `Swap ${_mTkSym}→${_mPrSym}`]
+              : [`Trade ${_mTkSym}`, `Trade ${_mPrSym}`, `WD ${_mPrSym}`, `DP ${_mTkSym}`, `Swap ${_mPrSym}→${_mTkSym}`];
+          }
+          const _mIcon = document.createElement('span');
+          _mIcon.className = 'multi-tab-btn';
+          _mIcon.dataset.tabs = _mTabs.join('|||');
+          _mIcon.dataset.labels = _mLabels.join('|||');
+          _mIcon.dataset.dir = _mDirLbl;
+          _mIcon.dataset.pair = `${_mTkSym}/${_mPrSym}`;
+          _mIcon.title = `${_mDirLbl} · ${_mTypLbl} ${_mTkSym}/${_mPrSym}`;
+          _mIcon.style.cssText = 'cursor:pointer;display:inline-block;margin-right:3px;font-size:11px;user-select:none;border:1px solid #0a0;border-radius:3px;padding:0 3px;background:#e8fde8;color:#080;line-height:1.4;vertical-align:middle;';
+          _mIcon.textContent = '⚡';
+          _mIcon.onclick = function(e) { if (window.openMultiTabs) window.openMultiTabs(this, e); };
+          // Taruh di depan (sebelum flex container sub-kolom)
+          el.insertAdjacentElement('afterbegin', _mIcon);
+        } catch(_me) { /* ignore */ }
+      }
+
       // *** SIGNAL untuk DZAP/LIFI - kirim sinyal untuk SETIAP provider yang profit ***
       // NEW: Loop semua providers dan kirim signal individual ke card META-DEX
       if (hasSignal && typeof InfoSinyal === 'function') {
@@ -2243,6 +2298,72 @@ function DisplayPNL(data) {
   const lineBrut = `<span class="monitor-line uk-text-danger" title="BRUTO ~ TOTAL FEE">${bracket}</span>`;
   const linePNL = `<span class="monitor-line ${netClass}" title="PROFIT / LOSS">💰 PNL: ${pnl.toFixed(2)}</span>`;
 
+  // Icon multi-tab: hanya muncul saat ada sinyal (bg hijau / PNL > 0)
+  let lineMultiTab = '';
+  if (hasSignal) {
+    try {
+      // Tentukan TOKEN dan PAIR berdasarkan arah transaksi
+      const _tokenSym = (direction === 'tokentopair') ? upper(Name_in) : upper(Name_out);
+      const _pairSym  = (direction === 'tokentopair') ? upper(Name_out) : upper(Name_in);
+      const _isStd    = _pairSym === 'USDT';
+
+      // Ambil URL CEX untuk TOKEN dan PAIR
+      const _urlsT = (typeof GeturlExchanger === 'function')
+        ? (GeturlExchanger(upper(cex), _tokenSym, _pairSym) || {}) : {};
+      const _urlsP = (!_isStd && typeof GeturlExchanger === 'function')
+        ? (GeturlExchanger(upper(cex), _pairSym, _tokenSym) || {}) : {};
+
+      const _tradeToken   = _urlsT.tradeToken  || _urlsT.tradeUrl  || '#';
+      const _tradePair    = _urlsP.tradeToken  || _urlsP.tradeUrl  || '#';
+      const _wdToken      = _urlsT.withdrawTokenUrl || _urlsT.withdrawUrl || '#';
+      const _wdPair       = _urlsP.withdrawTokenUrl || _urlsP.withdrawUrl || '#';
+      const _dpToken      = _urlsT.depositTokenUrl  || _urlsT.depositUrl  || '#';
+      const _dpPair       = _urlsP.depositTokenUrl  || _urlsP.depositUrl  || '#';
+      const _swap         = linkDEX || '#';
+
+      let _tabs;
+      if (_isStd) {
+        // Koin Standar: 3 tab
+        if (direction === 'tokentopair') {
+          // KIRI (CEX→DEX): WD Token, Trade Token, Swap Token→Pair
+          _tabs = [_wdToken, _tradeToken, _swap];
+        } else {
+          // KANAN (DEX→CEX): DP Token, Trade Token, Swap Pair→Token
+          _tabs = [_dpToken, _tradeToken, _swap];
+        }
+      } else {
+        // Koin Triangular: 5 tab
+        if (direction === 'tokentopair') {
+          // KIRI: Trade Token, Trade Pair, WD Token, DP Pair, Swap Token→Pair
+          _tabs = [_tradeToken, _tradePair, _wdToken, _dpPair, _swap];
+        } else {
+          // KANAN: Trade Token, Trade Pair, WD Pair, DP Token, Swap Pair→Token
+          _tabs = [_tradeToken, _tradePair, _wdPair, _dpToken, _swap];
+        }
+      }
+
+      const _validTabs = _tabs.filter(u => u && u !== '#');
+      const _tabData   = _tabs.join('|||');
+      const _dirLabel  = (direction === 'tokentopair') ? 'CEX→DEX' : 'DEX→CEX';
+      const _typeLabel = _isStd ? 'Standar' : 'Triangular';
+
+      // Label deskriptif tiap link
+      let _labels;
+      if (_isStd) {
+        _labels = (direction === 'tokentopair')
+          ? [`WD ${_tokenSym}`, `Trade ${_tokenSym}`, `Swap ${_tokenSym}→${_pairSym}`]
+          : [`DP ${_tokenSym}`, `Trade ${_tokenSym}`, `Swap ${_pairSym}→${_tokenSym}`];
+      } else {
+        _labels = (direction === 'tokentopair')
+          ? [`Trade ${_tokenSym}`, `Trade ${_pairSym}`, `WD ${_tokenSym}`, `DP ${_pairSym}`, `Swap ${_tokenSym}→${_pairSym}`]
+          : [`Trade ${_tokenSym}`, `Trade ${_pairSym}`, `WD ${_pairSym}`, `DP ${_tokenSym}`, `Swap ${_pairSym}→${_tokenSym}`];
+      }
+
+      const _esc = s => s.replace(/"/g, '&quot;');
+      lineMultiTab = `<span class="multi-tab-btn" data-tabs="${_esc(_tabData)}" data-labels="${_esc(_labels.join('|||'))}" data-dir="${_dirLabel}" data-pair="${_tokenSym}/${_pairSym}" onclick="if(window.openMultiTabs)window.openMultiTabs(this,event);" title="${_dirLabel} · ${_typeLabel} ${_tokenSym}/${_pairSym}" style="cursor:pointer;display:inline-block;margin-right:3px;font-size:11px;vertical-align:middle;user-select:none;border:1px solid #0a0;border-radius:3px;padding:0 3px;background:#e8fde8;color:#080;line-height:1.4;" aria-label="Multi-tab">⚡</span>`;
+    } catch (_e) { /* ignore */ }
+  }
+
   const resultHtml = [lineBuy, lineSell, feeBlock1, '', feeBlock2, lineBrut, linePNL].filter(Boolean).join(' ');
 
   // ✅ FIXED: Sinyal hanya dikirim jika PNL > 0, highlight sesuai filter
@@ -2344,7 +2465,8 @@ function DisplayPNL(data) {
   const resultWrapClass = (lower(modeNow.type) === 'single') ? 'uk-text-dark' : 'uk-text-primary';
   const boldStyle = shouldHighlight ? 'font-weight:bolder;' : '';
 
-  $mainCell.html(`${dexNameAndModal ? dexNameAndModal + '<br>' : ''}<span class="${resultWrapClass}" style="${boldStyle}">${resultHtml}</span>`);
+  // Icon ⚡ ditempatkan di depan nama DEX (sebelum strong element)
+  $mainCell.html(`${dexNameAndModal ? lineMultiTab + dexNameAndModal + '<br>' : ''}<span class="${resultWrapClass}" style="${boldStyle}">${resultHtml}</span>`);
   try {
     el.dataset.final = '1';
     el.dataset.finalSuccess = '1';  // Mark as successful (cannot be overridden)
@@ -2746,4 +2868,24 @@ if (typeof window !== 'undefined' && window.App && typeof window.App.register ==
 // Expose updateTokenStatsOnly globally for access from event handlers
 if (typeof window !== 'undefined') {
   window.updateTokenStatsOnly = updateTokenStatsOnly;
+}
+
+// =================================================================================
+// MULTI-TAB OPENER
+// Dipanggil saat icon ⚡ pada kolom DEX (bg hijau) diklik.
+// Membuka semua URL yang tersimpan di data-tabs (dipisah oleh |||).
+// =================================================================================
+if (typeof window !== 'undefined') {
+  window.openMultiTabs = function(el, evt) {
+    try {
+      if (evt) { evt.stopPropagation(); evt.preventDefault(); }
+      const tabs = String(el.dataset.tabs || '').split('|||')
+        .map(function(u) { return (u || '').trim(); })
+        .filter(function(u) { return u && u !== '#'; });
+      if (!tabs.length) return;
+      tabs.forEach(function(url) { window.open(url, '_blank'); });
+    } catch (e) {
+      console.error('[openMultiTabs] Error:', e);
+    }
+  };
 }
