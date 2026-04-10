@@ -277,8 +277,9 @@ a:hover,
 }
 
 .td-dex {
-    width: 135px !important;
-    min-width: 115px;
+    width: auto !important;
+    min-width: 130px;
+    white-space: nowrap;
 }
 
 .td-orderbook {
@@ -319,6 +320,7 @@ a:hover,
 
 .monitor-line {
     display: block;
+    white-space: nowrap;
 }
 
 .detail-line {
@@ -348,6 +350,12 @@ a:hover,
     padding: 4px;
     font-size: 11px;
     letter-spacing: 0.5px;
+}
+
+.td-dex strong,
+.multi-sub strong {
+    display: inline-block;
+    white-space: nowrap;
 }
 
 .dex-status {
@@ -2672,6 +2680,7 @@ body.dark-mode .db-table-title .uk-badge {
 /* Setiap sub-kolom META-DEX — lebar minimal sama dengan DEX biasa (115px) */
 .multi-sub {
     min-width: 110px;
+    white-space: nowrap;
 }
 
 .dzap-header {
