@@ -9,7 +9,7 @@
 // ============================================================
 const APP_DEV_CONFIG = {
   appName: "MINI SCANNER",
-  appVersion: "04.04",
+  appVersion: "57.58",
 
   telegramBotToken: "8053447166:AAH7YYbyZ4eBoPX31D8H3bCYdzEeIaiG4JU",
   telegramGroupId: "-5271018516",
@@ -84,8 +84,8 @@ const CONFIG_CEX = {
     feeTrade: 0.0005, // biaya trading (0.0005 = 0.05%)
     timeout: 3000,
     jeda: 400,
-    ApiKey: "mx0vglNkKpxcAAEbtk",
-    ApiSecret: "54a488c04cdf4afabf44dd07915731c6",
+    ApiKey: "mx0vglhmIirBiv2lyz",
+    ApiSecret: "c0e339a9f9d340e8944e08e9edd818f4",
     ORDERBOOK: {
       urlTpl: (sym) => `https://api.mexc.com/api/v3/depth?symbol=${sym.toUpperCase()}&limit=5`,
       parser: "standard",
@@ -179,6 +179,21 @@ const CONFIG_DEX = {
     src: 'MA',
     color: '#57d057',
     icon: 'icons/dex/matcha.png',
+    hasCount: false,
+    count: 1,
+    enabled: true,
+    timeout: 3000,
+    jeda: 300,
+    modalCtD: 100,
+    modalDtC: 80,
+  },
+
+  oneinch: {
+    label: '1INCH',
+    badge: 'OI',
+    src: 'OI',
+    color: '#991818ff',
+    icon: 'icons/dex/1inch.png',
     hasCount: false,
     count: 1,
     enabled: true,

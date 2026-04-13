@@ -293,6 +293,10 @@ async function scanToken(tok) {
             ctd: () => fetchDexQuotesMatcha(tok.chain, tok.scToken, pairSc, _wCtD(dxCtD.matcha), pairDec, tok.decToken, 'ctd'),
             dtc: () => fetchDexQuotesMatcha(tok.chain, pairSc, tok.scToken, _wDtC(dxDtC.matcha), tok.decToken, pairDec, 'dtc')
         },
+        oneinch: {
+            ctd: () => fetchDexQuotes1inch(chainId, tok.scToken, pairSc, _wCtD(dxCtD.oneinch), pairDec),
+            dtc: () => fetchDexQuotes1inch(chainId, pairSc, tok.scToken, _wDtC(dxDtC.oneinch), tok.decToken)
+        },
         onekey: {
             ctd: () => fetchDexQuotesOnekey(chainId, tok.scToken, pairSc, _wCtD(dxCtD.onekey), pairDec, tok.decToken),
             dtc: () => fetchDexQuotesOnekey(chainId, pairSc, tok.scToken, _wDtC(dxDtC.onekey), tok.decToken, pairDec)
@@ -329,6 +333,7 @@ async function scanToken(tok) {
         okx:    q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
         lifidex:q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
         matcha: q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
+        oneinch: q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
         onekey: q => { if (!q) return null; q.name = _normDexName(q.name); return _isOff(q.name) ? null : q; },
     };
 
