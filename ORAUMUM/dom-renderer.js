@@ -24,11 +24,12 @@ function getMetaDexBadge(dexKey, size = '9px', style = 'solid') {
 
   // Per-provider badge definition
   const BADGES = {
-    metax:  { label: 'MT', color: '#ec7506' },  // MetaMask orange
-    lifi:   { label: 'JM', color: '#7c3aed' },  // Jumper purple
-    dzap:   { label: 'DZ', color: '#d9dc36' },  // DZAP yellow
-    rubic:  { label: 'RB', color: '#24cc59' },  // Rubic green
-    onekey: { label: 'KY', color: '#00b812' },  // OneKey green
+    metax:    { label: 'MT', color: '#ec7506' },  // MetaMask orange
+    lifi:     { label: 'JM', color: '#7c3aed' },  // Jumper purple
+    dzap:     { label: 'DZ', color: '#d9dc36' },  // DZAP yellow
+    rubic:    { label: 'RB', color: '#24cc59' },  // Rubic green
+    onekey:   { label: 'KY', color: '#00b812' },  // OneKey green
+    debridge: { label: 'DB', color: '#d7ca0e' },  // deBridge
   };
 
   const badge = BADGES[key] || { label: 'MT', color: '#888' };
@@ -483,17 +484,17 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
       const linkSCtoken = createHoverLink(urlScIn, '[SC]', 'uk-text-primary');
       const linkSCpair = createHoverLink(urlScOut, '[SC]', 'uk-text-primary');
 
-      const linkOKDEX = createHoverLink(`https://www.okx.com/web3/dex-swap?inputChain=${chainConfig.Kode_Chain}&inputCurrency=${data.sc_in}&outputChain=${chainConfig.Kode_Chain}&outputCurrency=${data.sc_out}`, '#OKX', 'uk-text-primary');
-      const linkDLX = createHoverLink(`https://app.1delta.io/swap?chain=${chainConfig.Nama_Chain}&inputCurrency=${data.sc_in}&outputCurrency=${data.sc_out}`, '#DLT', 'uk-text-secondary');
+      const linkOKDEX = createHoverLink(`https://www.okx.com/web3/dex-swap?inputChain=${chainConfig.Kode_Chain}&inputCurrency=${data.sc_in}&outputChain=${chainConfig.Kode_Chain}&outputCurrency=${data.sc_out}`, '#OKX', 'uk-text-success');
+      const linkDLX = createHoverLink(`https://app.1delta.io/swap?chain=${chainConfig.Nama_Chain}&inputCurrency=${data.sc_in}&outputCurrency=${data.sc_out}`, '#DLT', 'uk-text-warning');
 
-      const linkUNIDEX = createHoverLink(`https://app.unidex.exchange/?chain=${chainConfig.Nama_Chain}&from=${data.sc_in}&to=${data.sc_out}`, '#UNX', 'uk-text-success');
+       const linkDBX = createHoverLink(`https://app.debridge.com/?inputChain=${chainConfig.Kode_Chain}&outputChain=${chainConfig.Kode_Chain}&inputCurrency=${data.sc_in}&outputCurrency=${data.sc_out}&dlnMode=simple&referralCode=32935`, '#DBX', 'uk-text-primary');
       const linkDEFIL = createHoverLink(`https://swap.defillama.com/?chain=${chainConfig.Nama_Chain}&from=${data.sc_in}&to=${data.sc_out}`, '#DFL', 'uk-text-danger');
       // DZAP: Solana uses chain ID 7565164
       const dzapChainId = String(data.chain || '').toLowerCase() === 'solana' ? 7565164 : chainConfig.Kode_Chain;
-      const linkDZAP = createHoverLink(`https://app.dzap.io/trade?referral=d0d7E9b4&fromChain=${dzapChainId}&fromToken=${data.sc_in}&toChain=${dzapChainId}&toToken=${data.sc_out}`, '#DZP', 'uk-text-warning');
+      const linkDZAP = createHoverLink(`https://app.dzap.io/trade?referral=d0d7E9b4&fromChain=${dzapChainId}&fromToken=${data.sc_in}&toChain=${dzapChainId}&toToken=${data.sc_out}`, '#DZP', 'uk-text-secondary');
       // Jumper (LIFI): Solana uses chain ID 1151111081099710
       const jumperChainId = String(data.chain || '').toLowerCase() === 'solana' ? 1151111081099710 : chainConfig.Kode_Chain;
-      const linkJumper = createHoverLink(`https://jumper.exchange/?fromChain=${jumperChainId}&fromToken=${data.sc_in}&toChain=${jumperChainId}&toToken=${data.sc_out}`, '#JMX', 'uk-text-success');
+      const linkJumper = createHoverLink(`https://jumper.exchange/?fromChain=${jumperChainId}&fromToken=${data.sc_in}&toChain=${jumperChainId}&toToken=${data.sc_out}`, '#JMX', 'uk-text-secondary');
 
       // Rango: Multi-chain aggregator (requires blockchain name mapping)
       const rangoChainMap = { 'bsc': 'BSC', 'ethereum': 'ETH', 'polygon': 'POLYGON', 'arbitrum': 'ARBITRUM', 'base': 'BASE', 'optimism': 'OPTIMISM', 'avalanche': 'AVAX_CCHAIN', 'solana': 'SOLANA' };
@@ -569,7 +570,7 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
                 <span class="detail-line uk-text-bolder">${WD_TOKEN}~ ${DP_TOKEN} | ${WD_PAIR}~ ${DP_PAIR}</span>
                 <span class="detail-line"><span style="color:${warnaChain}; font-weight:bold;">${(data.symbol_in || '').toUpperCase()}</span> ${linkSCtoken} : ${linkStokToken}</span>
                 <span class="detail-line"><span style="color:${warnaChain}; font-weight:bold;">${(data.symbol_out || '').toUpperCase()}</span> ${linkSCpair} : ${linkStokPair}</span>
-                <span class="detail-line"> ${linkDLX} ${linkDEFIL} ${linkOKDEX} </span>
+                <span class="detail-line"> ${linkDLX} ${linkDBX} ${linkDEFIL} ${linkOKDEX} </span>
                 <span class="detail-line"> ${linkRango} ${linkJumper} ${linkRBX} ${linkDZAP}</span>
             </td>`;
 
@@ -2284,7 +2285,7 @@ function DisplayPNL(data) {
   // Apply highlight class dan background hanya jika profit melewati filter threshold
   if (shouldHighlight) {
     try { $mainCell.addClass('dex-cell-highlight'); } catch (_) { }
-    $mainCell.attr('style', `background-color:${hlBg}!important;font-weight:bolder!important;vertical-align:middle!important;text-align:center!important;`);
+    $mainCell.attr('style', `background-color:${hlBg}!important;font-weight:bolder!important;vertical-align:middle!important;text-align:center!important;border:2px solid black!important;`);
   } else {
     try { $mainCell.removeClass('dex-cell-highlight'); } catch (_) { }
     $mainCell.attr('style', 'text-align:center;vertical-align:middle;');

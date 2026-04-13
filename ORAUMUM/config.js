@@ -41,6 +41,7 @@ const CONFIG_APP = {
             //rocketx: { enabled: true, evmOnly: false, jedaDex: 600, label: 'ROCKET' },    // EVM + Solana multi-quote
             metax: { enabled: true, evmOnly: true, jedaDex: 800, label: 'METAX' },       // EVM only (no Solana support)
             onekey: { enabled: true, evmOnly: true, jedaDex: 800, label: 'ONEKEY' },       // EVM only — SSE streaming (OKX, 1inch, 0x)
+            debridge: { enabled: true, evmOnly: true, jedaDex: 800, label: 'DEBRIDGE' },  // EVM only — deBridge DLN swap
         },
 
         // Chain yang didukung semua META-DEX aggregators (EVM + Solana)
@@ -57,6 +58,9 @@ const CONFIG_APP = {
             filterScanner: {
                 minQuotes: 1,              // minimum jumlah sub-quote yang harus dikembalikan
                 showBestOnly: false,       // false = tampilkan semua quote; true = hanya terbaik
+                // ✅ Blacklist: provider yang TIDAK boleh muncul di hasil scan MetaDEX.
+                // Nama harus UPPERCASE. Berlaku untuk semua MetaDEX (LIFI, DZAP, RANGO, METAX, ONEKEY, dll).
+                offDexResultScan: ["OPENOCEAN", "MAYAN", "UNISWAP", "SUSHISWAP"],
             },
             // Card Signal DEX: tampilan card/signal untuk hasil META-DEX
             cardSignal: {
@@ -626,6 +630,7 @@ const CONFIG_UI = {
             'rocketx-velora': 8000,  // RocketX filtered → Velora/ParaSwap route (backend transport)
             'metax': 7500,          // MetaMask Bridge: SSE stream, collect all quotes
             'onekey': 7000,         // OneKey Swap: SSE stream (OKX, 1inch, 0x) — 10s
+            'debridge': 8000,       // deBridge DLN: REST GET single route
             'onekey-1inch': 7000,   // OneKey filtered → 1inch provider only
             'onekey-lifidex': 8000, // OneKey filtered → LiFi/SwapLifi provider only
 
@@ -1379,6 +1384,27 @@ const CONFIG_DEXS = {
         allowFallback: false
     },
 
+    debridge: {
+        label: 'DEBRIDGE',
+        badgeClass: 'bg-debridge',
+        disabled: false,
+        proxy: false,         // REST GET via proxy
+        warna: "#d7ca0eff",  // deBridge
+        isMetaDex: true,     // ✅ Meta-DEX: single-route aggregator
+        evmOnly: true,       // EVM only
+        delay: 800,
+        maxProviders: 3,
+        builder: ({ tokenAddress, pairAddress, codeChain }) =>
+            `https://app.debridge.finance/deswap?inputChain=${Number(codeChain)}&outputChain=${Number(codeChain)}&inputCurrency=${tokenAddress}&outputCurrency=${pairAddress}`,
+        fetchdex: {
+            primary: {
+                tokentopair: 'debridge',
+                pairtotoken: 'debridge'
+            }
+        },
+        allowFallback: false
+    },
+
 
 
 
@@ -1400,7 +1426,7 @@ const CHAIN_SYNONYMS = {
     bsc: ['BSC', 'BEP20', 'BINANCE SMART CHAIN', 'BNB SMART CHAIN', 'BEP-20', 'BSCMAINNET',
         'BNB', 'BSCBEP20', 'BNB CHAIN', 'BNBCHAIN'],
     polygon: ['POLYGON', 'MATIC', 'POLYGON POS', 'POLYGON \\(MATIC\\)', 'POL', 'POLYGONPOS',
-        'POLYGON_POS', 'POLYGONEVM', 'Polygon PoS'],
+        'POLYGON_POS', 'POLYGONEVM', 'Polygon PoS','polygon'],
     arbitrum: ['ARBITRUM', 'ARB', 'ARBITRUM ONE', 'ARBEVM', 'ARBITRUMONE', 'ARB-ETH', 'ARBMAINNET',
         'ARBONE', 'ARBITRUMEVM', 'ARBI'],
     base: ['BASE', 'Base', 'BASE MAINNET', 'BASEEVM', 'BASEMAINNET',

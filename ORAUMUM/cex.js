@@ -463,67 +463,84 @@
             }
 
             case 'INDODAX': {
-                const url = `https://indodax.com/api/summaries`;
-                const response = await $.ajax({ url });
-                const list = response?.tickers || {};
-                // Remove underscore and IDR suffix (e.g., "islm_idr" -> "ISLM")
-                const allCoins = Object.keys(list).map(k => k.toUpperCase().replace('_IDR', ''));
+                // FILTER STRATEGY (3 lapis):
+                // 1. Indodax coin list → hanya koin yg tradeable di Indodax
+                // 2. getInfo() network → Indodax officially support chain ini (BSC/ETH/dll)
+                // 3. DATAJSON recovery (snapshot-new.js) → contract ada di chain aktif
+                //
+                // Field `indodaxNetworks` dikirim ke fetchCexData agar bisa dipakai di step 2.
+                // Jika API key tidak ada → indodaxNetworks=[] → hanya filter DATAJSON (step 3)
 
-                // Try to fetch real withdrawal fee via Private API (only for coins in scan list)
-                const feeMap = {};
-                let indoCreds = null;
-                if (typeof getCEXCredentials === 'function') {
-                    indoCreds = getCEXCredentials('INDODAX');
+                // Step 1: Daftar koin tradeable via Public API
+                let publicList = {};
+                try {
+                    const pubResp = await $.ajax({ url: 'https://indodax.com/api/summaries' });
+                    publicList = pubResp?.tickers || {};
+                } catch (pubErr) {
+                    console.warn('[INDODAX] Failed to fetch /api/summaries:', pubErr?.message || pubErr);
                 }
-                if (indoCreds?.ApiKey && indoCreds?.ApiSecret) {
-                    // Get only coins that exist in user's token list (reduce API calls)
-                    const allTokens = (typeof getFromLocalStorage === 'function')
-                        ? getFromLocalStorage('TOKEN_MULTICHAIN', []) : [];
-                    const neededCoins = new Set();
-                    (Array.isArray(allTokens) ? allTokens : []).forEach(t => {
-                        if (t?.symbol_in) neededCoins.add(String(t.symbol_in).toUpperCase());
-                        if (t?.symbol_out) neededCoins.add(String(t.symbol_out).toUpperCase());
-                    });
-                    // Only fetch for coins that are both in Indodax and user's token list
-                    const targetCoins = allCoins.filter(c => neededCoins.size === 0 || neededCoins.has(c));
+                const allCoins = Object.keys(publicList).map(k => k.toUpperCase().replace('_IDR', ''));
 
-                    const indoKey = indoCreds.ApiKey;
-                    const indoSecret = indoCreds.ApiSecret;
-                    // Sequential with 250ms delay per coin to avoid rate limiting (429)
-                    for (let i = 0; i < targetCoins.length; i++) {
-                        const coin = targetCoins[i];
-                        try {
-                            const nonce = Date.now();
-                            const body = `method=withdrawFee&currency=${coin.toLowerCase()}&nonce=${nonce}`;
-                            const sign = CryptoJS.HmacSHA512(body, indoSecret).toString(CryptoJS.enc.Hex);
-                            const resp = await $.ajax({
-                                url: `https://proxykiri.awokawok.workers.dev/?https://indodax.com/tapi`,
-                                method: 'POST',
-                                headers: { 'Key': indoKey, 'Sign': sign },
-                                contentType: 'application/x-www-form-urlencoded',
-                                data: body,
-                            });
-                            if (resp?.success === 1) {
-                                feeMap[coin] = parseFloat(resp.return?.withdraw_fee || 0);
+                // Step 2: getInfo() untuk network per-koin (butuh API Key)
+                // network format: { "eth": "erc20", "1inch": "erc20", "bnb": "bep20", "eth": ["eth","arb"] }
+                let networkMap = {};
+                let hasNetworkInfo = false;
+                const indodaxCreds = (typeof getCEXCredentials === 'function')
+                    ? getCEXCredentials('INDODAX') : null;
+
+                if (indodaxCreds?.ApiKey && indodaxCreds?.ApiSecret) {
+                    try {
+                        const nonce = Date.now();
+                        const body = `method=getInfo&nonce=${nonce}`;
+                        // INDODAX pakai HMAC-SHA512
+                        const sign = CryptoJS.HmacSHA512(body, indodaxCreds.ApiSecret)
+                            .toString(CryptoJS.enc.Hex);
+                        const tapiResp = await $.ajax({
+                            url: 'https://indodax.com/tapi',
+                            method: 'POST',
+                            data: body,
+                            headers: {
+                                'Key': indodaxCreds.ApiKey,
+                                'Sign': sign,
+                                'Content-Type': 'application/x-www-form-urlencoded'
                             }
-                        } catch (_) { /* skip coin, fallback to 0 */ }
-                        // Delay between requests to avoid rate limiting
-                        if (i < targetCoins.length - 1) {
-                            await new Promise(r => setTimeout(r, 250));
+                        });
+                        if (tapiResp?.success === 1 && tapiResp?.return?.network) {
+                            networkMap = tapiResp.return.network || {};
+                            hasNetworkInfo = Object.keys(networkMap).length > 0;
+                            console.log(`[INDODAX] ✅ getInfo() OK — ${Object.keys(networkMap).length} coin networks`);
+                        } else {
+                            console.warn('[INDODAX] getInfo() error:', tapiResp?.error || 'Unknown');
                         }
+                    } catch (e) {
+                        console.warn('[INDODAX] getInfo() failed (CORS/key/network):', e?.message || e);
                     }
+                } else {
+                    console.warn('[INDODAX] No API key — chain filter hanya via DATAJSON (step 3 only)');
                 }
 
-                // depositEnable/withdrawEnable not available from Indodax API → default true
-                const arr = allCoins.map(tokenName => ({
-                    cex,
-                    tokenName,
-                    chain: 'INDODAX',
-                    feeWDs: feeMap[tokenName] ?? 0,
-                    depositEnable: true,
-                    withdrawEnable: true,
-                    trading: true
-                }));
+                // Step 3: Build token list dengan indodaxNetworks untuk filter di snapshot-new.js
+                const arr = allCoins.map(tokenName => {
+                    const coinKey = tokenName.toLowerCase();
+                    const rawNet = networkMap[coinKey];
+                    // Normalisasi ke array uppercase: ['ERC20'], ['BEP20'], ['ETH','ARB'], dll
+                    const indodaxNetworks = rawNet
+                        ? (Array.isArray(rawNet) ? rawNet : [rawNet]).map(n => String(n).toUpperCase())
+                        : [];
+                    return {
+                        cex,
+                        tokenName,
+                        chain: 'INDODAX',   // special marker → DATAJSON recovery di snapshot-new.js
+                        indodaxNetworks,     // dari getInfo(): network resmi Indodax per koin
+                        hasNetworkInfo,      // true jika getInfo() berhasil (API key ada)
+                        feeWDs: 0,
+                        depositEnable: true,
+                        withdrawEnable: true,
+                        trading: true
+                    };
+                });
+
+                console.log(`[INDODAX] ✅ ${arr.length} coins (hasNetworkInfo=${hasNetworkInfo})`);
                 return arr;
             }
 
@@ -1302,10 +1319,10 @@
                         const priceMap = {};
                         tickers.forEach(ticker => {
                             const symbol = String(ticker.symbol || '').toUpperCase();
-                            // Only USDT pairs
                             if (symbol.endsWith('USDT')) {
                                 const base = symbol.replace('USDT', '');
-                                const price = parseFloat(ticker.lastPrice || 0);
+                                // Gunakan bid1Price (harga jual = harga yg didapat saat sell)
+                                const price = parseFloat(ticker.bid1Price || ticker.lastPrice || 0);
                                 if (price > 0) {
                                     priceMap[base] = price;
                                 }
@@ -1324,12 +1341,13 @@
                         const priceMap = {};
                         tickers.forEach(ticker => {
                             const pair = String(ticker.currency_pair || '').toUpperCase();
-                            // Format: BTC_USDT
                             if (pair.endsWith('_USDT')) {
-                                const base = pair.replace('_USDT', '');
-                                const price = parseFloat(ticker.last || 0);
+                                const baseFull = pair.replace('_USDT', '');
+                                // Gunakan highest_bid (harga jual = harga yg didapat saat sell)
+                                const price = parseFloat(ticker.highest_bid || ticker.last || 0);
                                 if (price > 0) {
-                                    priceMap[base] = price;
+                                    priceMap[baseFull] = price;
+
                                 }
                             }
                         });
@@ -1338,17 +1356,17 @@
                     break;
 
                 case 'BINANCE':
-                    // Binance API - Get all ticker prices
-                    url = 'https://api.binance.com/api/v3/ticker/price';
+                    // Binance API - Get best bid prices (harga jual)
+                    url = 'https://api.binance.com/api/v3/ticker/bookTicker';
                     parseResponse = (data) => {
                         const tickers = Array.isArray(data) ? data : [];
                         const priceMap = {};
                         tickers.forEach(ticker => {
                             const symbol = String(ticker.symbol || '').toUpperCase();
-                            // Only USDT pairs
                             if (symbol.endsWith('USDT')) {
                                 const base = symbol.replace('USDT', '');
-                                const price = parseFloat(ticker.price || 0);
+                                // Gunakan bidPrice (harga jual = harga yg didapat saat sell)
+                                const price = parseFloat(ticker.bidPrice || 0);
                                 if (price > 0) {
                                     priceMap[base] = price;
                                 }
@@ -1359,17 +1377,17 @@
                     break;
 
                 case 'MEXC':
-                    // MEXC API - Get all ticker prices (Binance-compatible)
-                    url = 'https://api.mexc.com/api/v3/ticker/price';
+                    // MEXC API - Get best bid prices (harga jual, Binance-compatible endpoint)
+                    url = 'https://api.mexc.com/api/v3/ticker/bookTicker';
                     parseResponse = (data) => {
                         const tickers = Array.isArray(data) ? data : [];
                         const priceMap = {};
                         tickers.forEach(ticker => {
                             const symbol = String(ticker.symbol || '').toUpperCase();
-                            // Only USDT pairs
                             if (symbol.endsWith('USDT')) {
                                 const base = symbol.replace('USDT', '');
-                                const price = parseFloat(ticker.price || 0);
+                                // Gunakan bidPrice (harga jual = harga yg didapat saat sell)
+                                const price = parseFloat(ticker.bidPrice || 0);
                                 if (price > 0) {
                                     priceMap[base] = price;
                                 }
@@ -1380,17 +1398,17 @@
                     break;
 
                 case 'KUCOIN':
-                    // KuCoin API - Get all tickers
-                    url = 'https://api.kucoin.com/api/v1/market/allTickers';
+                    // KuCoin API - Get all tickers (via proxy untuk hindari CORS)
+                    url = 'https://proxykiri.awokawok.workers.dev/?https://api.kucoin.com/api/v1/market/allTickers';
                     parseResponse = (data) => {
                         const tickers = data?.data?.ticker || [];
                         const priceMap = {};
                         tickers.forEach(ticker => {
                             const symbol = String(ticker.symbol || '').toUpperCase();
-                            // Format: BTC-USDT
                             if (symbol.endsWith('-USDT')) {
                                 const base = symbol.replace('-USDT', '');
-                                const price = parseFloat(ticker.last || 0);
+                                // Gunakan buy/bid (harga jual = harga yg didapat saat sell)
+                                const price = parseFloat(ticker.buy || ticker.last || 0);
                                 if (price > 0) {
                                     priceMap[base] = price;
                                 }
@@ -1408,10 +1426,10 @@
                         const priceMap = {};
                         tickers.forEach(ticker => {
                             const symbol = String(ticker.symbol || '').toUpperCase();
-                            // Only USDT pairs
                             if (symbol.endsWith('USDT')) {
                                 const base = symbol.replace('USDT', '');
-                                const price = parseFloat(ticker.lastPr || 0);
+                                // Gunakan bidPr (harga jual = harga yg didapat saat sell)
+                                const price = parseFloat(ticker.bidPr || ticker.lastPr || 0);
                                 if (price > 0) {
                                     priceMap[base] = price;
                                 }
@@ -1422,21 +1440,25 @@
                     break;
 
                 case 'INDODAX':
-                    // Indodax API - Get all tickers (IDR pairs)
-                    url = 'https://indodax.com/api/ticker_all';
+                    // Indodax API - Get all tickers (IDR pairs, via proxy untuk hindari CORS)
+                    url = 'https://proxykiri.awokawok.workers.dev/?https://indodax.com/api/ticker_all';
                     parseResponse = (data) => {
                         const tickers = data?.tickers || {};
                         const priceMap = {};
+                        // Dynamic IDR Rate from localStorage
+                        const rateUSDT = parseFloat(localStorage.getItem('MULTI_USDTRate')) || parseFloat(localStorage.getItem('PRICE_RATE_USDT')) || 16500;
+                        if (rateUSDT <= 0) return priceMap;
                         Object.keys(tickers).forEach(key => {
                             const ticker = tickers[key];
                             const pair = String(key || '').toUpperCase();
-                            // Format: btcidr
+                            // Handle various IDR endings: _IDR, IDR
                             if (pair.endsWith('IDR')) {
-                                const base = pair.replace('IDR', '');
-                                const price = parseFloat(ticker?.last || 0);
-                                if (price > 0) {
-                                    // Convert IDR to USD (approximate: 1 USD = 15000 IDR)
-                                    priceMap[base] = price / 15000;
+                                const base = pair.replace(/_?IDR$/, '');
+                                // Gunakan buy/bid (harga jual = harga yg didapat saat sell di Indodax)
+                                const price = parseFloat(ticker?.buy || ticker?.last || 0);
+                                if (price > 0 && isFinite(price / rateUSDT)) {
+                                    // Convert IDR to USD/USDT
+                                    priceMap[base] = price / rateUSDT;
                                 }
                             }
                         });
@@ -1452,10 +1474,10 @@
                         const priceMap = {};
                         tickers.forEach(ticker => {
                             const symbol = String(ticker.symbol || '').toUpperCase();
-                            // Format: btc_usdt
                             if (symbol.endsWith('_USDT')) {
                                 const base = symbol.replace('_USDT', '');
-                                const price = parseFloat(ticker.ticker?.latest || 0);
+                                // Gunakan latest (harga pasar aktual), fallback ke bid
+                                const price = parseFloat(ticker.ticker?.latest || ticker.ticker?.bid || 0);
                                 if (price > 0) {
                                     priceMap[base] = price;
                                 }
@@ -1468,18 +1490,16 @@
                 case 'HTX':
                 case 'HUOBI':
                     // HTX (Huobi) API - Get all spot tickers
-                    // Ref: https://huobiapi.github.io/docs/spot/v1/en/
                     url = 'https://api.huobi.pro/market/tickers';
                     parseResponse = (data) => {
                         const tickers = data?.data || [];
                         const priceMap = {};
                         tickers.forEach(ticker => {
                             const symbol = String(ticker.symbol || '').toUpperCase();
-                            // Format: btcusdt (lowercase in response)
                             if (symbol.endsWith('USDT')) {
                                 const base = symbol.replace('USDT', '');
-                                // HTX uses 'close' for last price
-                                const price = parseFloat(ticker.close || ticker.last || 0);
+                                // Gunakan bid (harga jual = harga yg didapat saat sell)
+                                const price = parseFloat(ticker.bid || ticker.close || ticker.last || 0);
                                 if (price > 0) {
                                     priceMap[base] = price;
                                 }
@@ -1499,7 +1519,8 @@
                             const instId = String(ticker.instId || '').toUpperCase();
                             if (instId.endsWith('-USDT')) {
                                 const base = instId.replace('-USDT', '');
-                                const price = parseFloat(ticker.last || 0);
+                                // Gunakan bidPx (harga jual = harga yg didapat saat sell)
+                                const price = parseFloat(ticker.bidPx || ticker.last || 0);
                                 if (price > 0) priceMap[base] = price;
                             }
                         });

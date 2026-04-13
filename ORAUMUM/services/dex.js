@@ -204,8 +204,28 @@
   // Expose to window for external access
   root.getStrategyTimeout = getStrategyTimeout;
 
-
-
+  /**
+   * Filter out blacklisted providers from MetaDEX subResults.
+   * Uses CONFIG_APP.META_DEX_CONFIG.settings.filterScanner.offDexResultScan.
+   * Provider names are matched case-insensitively against dexTitle.
+   *
+   * @param {Array} subResults - Array of { amount_out, FeeSwap, dexTitle, ... }
+   * @returns {Array} Filtered array with blacklisted providers removed
+   */
+  function filterOffDexResults(subResults) {
+    try {
+      const blacklist = root.CONFIG_APP?.META_DEX_CONFIG?.settings?.filterScanner?.offDexResultScan;
+      if (!Array.isArray(blacklist) || blacklist.length === 0) return subResults;
+      const offSet = new Set(blacklist.map(x => String(x).toUpperCase()));
+      const filtered = subResults.filter(r => !offSet.has(String(r.dexTitle || '').toUpperCase()));
+      if (filtered.length < subResults.length) {
+        console.log(`[META-DEX] Filtered out ${subResults.length - filtered.length} blacklisted provider(s): ${blacklist.join(', ')}`);
+      }
+      return filtered;
+    } catch (_) {
+      return subResults;
+    }
+  }
 
   const dexStrategies = {
     kyber: {
@@ -1223,8 +1243,11 @@
         } catch (e) { continue; }
       }
       if (allProviders.length === 0) throw new Error("No valid DZAP quotes found");
-      allProviders.sort((a, b) => b.amount_out - a.amount_out);
-      const topN = allProviders.slice(0, 3);
+      // ✅ Filter blacklisted providers dari config offDexResultScan
+      const filteredProviders = filterOffDexResults(allProviders);
+      if (filteredProviders.length === 0) throw new Error('DZAP: Semua provider terfilter oleh offDexResultScan');
+      filteredProviders.sort((a, b) => b.amount_out - a.amount_out);
+      const topN = filteredProviders.slice(0, 3);
       return { amount_out: topN[0].amount_out, FeeSwap: topN[0].FeeSwap, feeSource: topN[0].feeSource, dexTitle: 'DZAP', subResults: topN, isMultiDex: true };
     }
   };
@@ -1269,8 +1292,11 @@
         subResults.push({ amount_out, FeeSwap, feeSource, dexTitle });
         if (subResults.length >= 3) break;
       }
-      subResults.sort((a, b) => b.amount_out - a.amount_out);
-      return { amount_out: subResults[0].amount_out, FeeSwap: subResults[0].FeeSwap, feeSource: subResults[0].feeSource, dexTitle: 'JUMPER', subResults: subResults, isMultiDex: true };
+      // ✅ Filter blacklisted providers dari config offDexResultScan
+      const filtered = filterOffDexResults(subResults);
+      if (filtered.length === 0) throw new Error('LIFI: Semua provider terfilter oleh offDexResultScan');
+      filtered.sort((a, b) => b.amount_out - a.amount_out);
+      return { amount_out: filtered[0].amount_out, FeeSwap: filtered[0].FeeSwap, feeSource: filtered[0].feeSource, dexTitle: 'JUMPER', subResults: filtered, isMultiDex: true };
     }
   };
 
@@ -1816,12 +1842,16 @@
         throw new Error("No valid Swing routes found");
       }
 
+      // ✅ Filter blacklisted providers dari config offDexResultScan
+      const filteredSwing = filterOffDexResults(subResults);
+      if (filteredSwing.length === 0) throw new Error('Swing: Semua provider terfilter oleh offDexResultScan');
+
       // Sort by amount_out (descending) and get top 3
       const maxProviders = (typeof window !== 'undefined' && window.CONFIG_DEXS?.swing?.maxProviders) || 3;
-      subResults.sort((a, b) => b.amount_out - a.amount_out);
-      const topN = subResults.slice(0, maxProviders);
+      filteredSwing.sort((a, b) => b.amount_out - a.amount_out);
+      const topN = filteredSwing.slice(0, maxProviders);
 
-      console.log(`[SWING] Returning top ${maxProviders} routes from ${subResults.length} available routes`);
+      console.log(`[SWING] Returning top ${maxProviders} routes from ${filteredSwing.length} filtered routes`);
 
       // Return multi-DEX format with top N routes
       return {
@@ -2060,6 +2090,10 @@
         throw new Error("No valid Rango routes found");
       }
 
+      // ✅ Filter blacklisted providers dari config offDexResultScan
+      const filteredRango = filterOffDexResults(subResults);
+      if (filteredRango.length === 0) throw new Error('Rango: Semua provider terfilter oleh offDexResultScan');
+
       // Sort by amount_out (descending) dan ambil top N sesuai config
       const maxProviders = (() => {
         try {
@@ -2068,10 +2102,10 @@
         } catch (_) {}
         return (typeof window !== 'undefined' && window.CONFIG_DEXS?.rango?.maxProviders) || 3;
       })();
-      subResults.sort((a, b) => b.amount_out - a.amount_out);
-      const topN = subResults.slice(0, maxProviders);
+      filteredRango.sort((a, b) => b.amount_out - a.amount_out);
+      const topN = filteredRango.slice(0, maxProviders);
 
-      console.log(`[RANGO] Returning top ${maxProviders} routes from ${subResults.length} available routes`);
+      console.log(`[RANGO] Returning top ${maxProviders} routes from ${filteredRango.length} filtered routes`);
 
       // ✅ Return format same as LIFI/Rubic
       return {
@@ -2902,6 +2936,17 @@
 
           if (subResults.length === 0) return reject(new Error('MetaX: Tidak ada quote valid'));
 
+          // ✅ Filter blacklisted providers dari config offDexResultScan
+          const filteredMetax = filterOffDexResults(subResults);
+          if (filteredMetax.length === 0) return reject(new Error('MetaX: Semua provider terfilter oleh offDexResultScan'));
+
+          // ✅ Hitung netValue untuk setiap quote: amount_out - FeeSwap
+          // Konsisten dengan MetaMask platform yang sort by "estimated total cost,
+          // which includes the exchange rate and network fee"
+          filteredMetax.forEach(r => {
+            r.netValue = r.amount_out - r.FeeSwap;
+          });
+
           // Top-N dari setting user
           const maxN = (() => {
             try {
@@ -2911,13 +2956,24 @@
             return (typeof window !== 'undefined' && window.CONFIG_DEXS?.metax?.maxProviders) || 3;
           })();
 
-          subResults.sort((a, b) => b.amount_out - a.amount_out);
-          const topN = subResults.slice(0, maxN);
-          console.log(`[METAX] Top ${topN.length} quotes dari ${quotes.length} SSE events`);
+          // ✅ FIX: Sort by NET VALUE (amount_out - FeeSwap) bukan raw amount_out
+          // MetaMask platform mengurutkan berdasarkan total cost (termasuk gas fee),
+          // bukan hanya output amount. Provider dengan output sedikit lebih rendah
+          // tapi gas jauh lebih murah bisa memberikan net value lebih baik.
+          filteredMetax.sort((a, b) => b.netValue - a.netValue);
+          const topN = filteredMetax.slice(0, maxN);
+
+          // ✅ Debug: Log semua quotes untuk perbandingan dengan platform
+          console.log(`[METAX] Top ${topN.length} quotes dari ${filteredMetax.length} filtered (sorted by NET VALUE):`);
+          filteredMetax.forEach((r, i) => {
+            const marker = i < maxN ? '→' : ' ';
+            console.log(`  ${marker} #${i + 1} ${r.dexTitle}: output=$${r.amount_out.toFixed(6)}, gas=$${r.FeeSwap.toFixed(4)} (${r.feeSource}), net=$${r.netValue.toFixed(6)}`);
+          });
 
           resolve({
             amount_out: topN[0].amount_out,
             FeeSwap: topN[0].FeeSwap,
+            feeSource: topN[0].feeSource,
             dexTitle: 'METAX',
             subResults: topN,
             isMultiDex: true,
@@ -3067,7 +3123,18 @@
 
           if (subResults.length === 0) return reject(new Error('OneKey: Tidak ada quote valid'));
 
-          subResults.sort((a, b) => b.amount_out - a.amount_out);
+          // ✅ Filter blacklisted providers dari config offDexResultScan
+          const filteredOnekey = filterOffDexResults(subResults);
+          if (filteredOnekey.length === 0) return reject(new Error('OneKey: Semua provider terfilter oleh offDexResultScan'));
+
+          // ✅ Hitung netValue untuk setiap quote: amount_out - FeeSwap
+          // Konsisten dengan sorting platform OneKey (berdasarkan total cost)
+          filteredOnekey.forEach(r => {
+            r.netValue = r.amount_out - r.FeeSwap;
+          });
+
+          // ✅ FIX: Sort by NET VALUE (amount_out - FeeSwap) bukan raw amount_out
+          filteredOnekey.sort((a, b) => b.netValue - a.netValue);
 
           const maxN = (() => {
             try {
@@ -3077,12 +3144,19 @@
             return (typeof window !== 'undefined' && window.CONFIG_DEXS?.onekey?.maxProviders) || 3;
           })();
 
-          const topN = subResults.slice(0, maxN);
-          console.log(`[ONEKEY] Top ${topN.length} quotes dari ${quotes.length} SSE events`);
+          const topN = filteredOnekey.slice(0, maxN);
+
+          // ✅ Debug: Log semua quotes untuk perbandingan dengan platform
+          console.log(`[ONEKEY] Top ${topN.length} quotes dari ${filteredOnekey.length} filtered (sorted by NET VALUE):`);
+          filteredOnekey.forEach((r, i) => {
+            const marker = i < maxN ? '→' : ' ';
+            console.log(`  ${marker} #${i + 1} ${r.dexTitle}: output=$${r.amount_out.toFixed(6)}, gas=$${r.FeeSwap.toFixed(4)} (${r.feeSource}), net=$${r.netValue.toFixed(6)}`);
+          });
 
           resolve({
             amount_out:  topN[0].amount_out,
             FeeSwap:     topN[0].FeeSwap,
+            feeSource:   topN[0].feeSource,
             dexTitle:    'ONEKEY',
             subResults:  topN,
             isMultiDex:  true,
@@ -3618,17 +3692,80 @@
   /**
    * Get slippage tolerance from localStorage or default.
    * Returns string for direct use in request parameters.
+   * ✅ AUTO SLIPPAGE: Returns '0' when user sets slippage=0 (auto mode).
+   * Provider yang mendukung auto-slippage akan menggunakan mekanisme auto,
+   * provider yang tidak mendukung akan menerima slippage=0.
    */
   function getSlippageValue() {
     try {
       const v = (typeof window !== 'undefined' && typeof window.getSlippageTolerance === 'function')
         ? window.getSlippageTolerance()
-        : 0.3;
-      return String(v || 0.3);
+        : 0.5;
+      // ✅ Allow 0 for auto-slippage mode (jangan fallback ke 0.5)
+      if (v === 0) return '0';
+      return String(v || 0.5);
     } catch (_) {
-      return '0.3';
+      return '0.5';
     }
   }
+
+  /**
+   * Check if user has enabled auto-slippage mode (slippage input = 0).
+   * Providers with auto-slippage support should use their auto mechanism.
+   * @returns {boolean}
+   */
+  function isAutoSlippage() {
+    return parseFloat(getSlippageValue()) === 0;
+  }
+
+  // ============================================================
+  // deBridge DLN — GET /v1.0/chain/transaction (single route)
+  // Endpoint: https://deswap.debridge.finance/v1.0/chain/transaction
+  // ============================================================
+  dexStrategies.debridge = {
+    buildRequest: ({ codeChain, sc_input, sc_output, amount_in_big, SavedSettingData }) => {
+      const chainId = Number(codeChain);
+      const walletAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+      const slippage = isAutoSlippage() ? '0.3' : getSlippageValue();
+      const params = new URLSearchParams({
+        chainId:               chainId.toString(),
+        tokenIn:               sc_input.toLowerCase(),
+        tokenInAmount:         amount_in_big.toString(),
+        slippage:              slippage,
+        srcChainPriorityLevel: 'normal',
+        tokenOut:              sc_output.toLowerCase(),
+        tokenOutRecipient:     walletAddr,
+        tab:                   Date.now().toString()
+      });
+      return {
+        url:    `https://deswap.debridge.finance/v1.0/chain/transaction?${params.toString()}`,
+        method: 'GET'
+      };
+    },
+    parseResponse: (response, { des_output, chainName }) => {
+      // Struktur response: { tokenOut: { amount, decimals, ... }, estimatedTransactionFee, protocolFeeApproximateUsdValue }
+      const tokenOut = response?.tokenOut;
+      if (!tokenOut) throw new Error('deBridge: tokenOut tidak ditemukan di response');
+      const rawAmount = tokenOut.amount;
+      if (!rawAmount) throw new Error('deBridge: tokenOut.amount tidak ditemukan');
+      // Pakai decimals dari response jika tersedia, fallback ke des_output dari config token
+      const decimals = Number(tokenOut.decimals ?? des_output);
+      const amount_out = parseFloat(rawAmount) / Math.pow(10, decimals);
+      if (!Number.isFinite(amount_out) || amount_out <= 0) throw new Error('deBridge: output amount tidak valid');
+      // Fee: gas fee USD + protocol fee USD
+      const gasFeeUsd = parseFloat(response?.estimatedTransactionFee?.approximateUsdValue || 0);
+      const protocolFeeUsd = parseFloat(response?.protocolFeeApproximateUsdValue || 0);
+      const totalFeeUsd = gasFeeUsd + protocolFeeUsd;
+      const { FeeSwap, feeSource } = resolveFeeSwap(totalFeeUsd, 0, chainName);
+      return {
+        amount_out,
+        FeeSwap,
+        feeSource,
+        dexTitle:   'DEBRIDGE',
+        isMultiDex: false
+      };
+    }
+  };
 
   /**
    * Quote swap output from a DEX aggregator.

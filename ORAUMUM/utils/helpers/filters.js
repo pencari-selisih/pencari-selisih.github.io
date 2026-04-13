@@ -39,23 +39,24 @@
     }
 
     // Slippage tolerance helpers — disimpan per filter aktif (FILTER_BSC, FILTER_MULTICHAIN, dll)
+    // ✅ AUTO SLIPPAGE: Nilai 0 = mode auto-slippage (provider yang mendukung pakai auto)
     function getSlippageTolerance() {
         try {
             const key = (typeof getActiveFilterKey === 'function') ? getActiveFilterKey() : null;
             if (key) {
                 const f = getFromLocalStorage(key, {}) || {};
                 const v = parseFloat(f.slip);
-                if (isFinite(v) && v > 0) return v;
+                if (isFinite(v) && v >= 0) return v;  // ✅ Allow 0 for auto-slippage
             }
             // Fallback: legacy global key (migrasi dari versi lama)
             const legacy = parseFloat(localStorage.getItem('SLIPPAGE_TOLERANCE'));
-            return isFinite(legacy) && legacy > 0 ? legacy : 0.3;
-        } catch (_) { return 0.3; }
+            return isFinite(legacy) && legacy >= 0 ? legacy : 0.5;  // ✅ Allow 0
+        } catch (_) { return 0.5; }
     }
 
     function setSlippageTolerance(value) {
         const v = parseFloat(value);
-        const clean = isFinite(v) && v > 0 ? v : 0.3;
+        const clean = isFinite(v) && v >= 0 ? v : 0.5;  // ✅ Allow 0 for auto-slippage
         try {
             const key = (typeof getActiveFilterKey === 'function') ? getActiveFilterKey() : null;
             if (key) {
@@ -75,9 +76,9 @@
             cex: f.cex || [],
             dex: (f.dex || []).map(x => String(x).toLowerCase()),
             pair: (f.pair || []).map(x => String(x).toUpperCase()),
-            slip: (isFinite(parseFloat(f.slip)) && parseFloat(f.slip) > 0) ? parseFloat(f.slip) : 0.3
+            slip: (isFinite(parseFloat(f.slip)) && parseFloat(f.slip) >= 0) ? parseFloat(f.slip) : 0.5
         };
-        return { chains: [], cex: [], dex: [], pair: [], slip: 0.3 };
+        return { chains: [], cex: [], dex: [], pair: [], slip: 0.5 };
     }
 
     function setFilterMulti(val) {
@@ -98,7 +99,7 @@
         }
         if (val && Object.prototype.hasOwnProperty.call(val, 'slip')) {
             const s = parseFloat(val.slip);
-            next.slip = isFinite(s) && s > 0 ? s : 0.3;
+            next.slip = isFinite(s) && s >= 0 ? s : 0.5;  // ✅ Allow 0
         }
         saveToLocalStorage('FILTER_MULTICHAIN', next);
     }
@@ -123,9 +124,9 @@
             cex: (f.cex || []).map(String),
             pair: (f.pair || []).map(x => String(x).toUpperCase()),
             dex: (f.dex || []).map(x => String(x).toLowerCase()),
-            slip: (isFinite(parseFloat(f.slip)) && parseFloat(f.slip) > 0) ? parseFloat(f.slip) : 0.3
+            slip: (isFinite(parseFloat(f.slip)) && parseFloat(f.slip) >= 0) ? parseFloat(f.slip) : 0.5
         };
-        return { cex: [], pair: [], dex: [], slip: 0.3 };
+        return { cex: [], pair: [], dex: [], slip: 0.5 };
     }
 
     function setFilterChain(chain, val) {
@@ -143,7 +144,7 @@
         }
         if (val && Object.prototype.hasOwnProperty.call(val, 'slip')) {
             const s = parseFloat(val.slip);
-            next.slip = isFinite(s) && s > 0 ? s : 0.3;
+            next.slip = isFinite(s) && s >= 0 ? s : 0.5;  // ✅ Allow 0
         }
         saveToLocalStorage(key, next);
     }
@@ -160,7 +161,7 @@
             pair: (f.pair || []).map(x => String(x).toUpperCase()),
             dex: (f.dex || []).map(x => String(x).toLowerCase()),
             sort: f.sort || 'A',
-            slip: (isFinite(parseFloat(f.slip)) && parseFloat(f.slip) > 0) ? parseFloat(f.slip) : 0.3
+            slip: (isFinite(parseFloat(f.slip)) && parseFloat(f.slip) >= 0) ? parseFloat(f.slip) : 0.5
         };
         // Default: tidak ada filter tersimpan → kosong (user harus pilih sendiri)
         return {
@@ -168,7 +169,7 @@
             pair: [],
             dex: [],
             sort: 'A',
-            slip: 0.3
+            slip: 0.5
         };
     }
 
@@ -190,7 +191,7 @@
         }
         if (val && Object.prototype.hasOwnProperty.call(val, 'slip')) {
             const s = parseFloat(val.slip);
-            next.slip = isFinite(s) && s > 0 ? s : 0.3;
+            next.slip = isFinite(s) && s >= 0 ? s : 0.5;  // ✅ Allow 0
         }
         saveToLocalStorage(key, next);
     }
