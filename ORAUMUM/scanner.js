@@ -68,6 +68,65 @@ function clearDexTickerById(id) {
     } catch (_) { }
 }
 
+// =================================================================================
+// BACKGROUND-SAFE TIMER (Web Worker)
+// =================================================================================
+// Browser throttles setTimeout on the MAIN THREAD to 1000ms+ when the tab is
+// inactive/hidden. A Web Worker runs in a separate thread that is NOT subject to
+// the same aggressive throttling, so timers fire at the correct interval even
+// when the user switches to another tab.
+// _workerTimer is a drop-in replacement for setTimeout/clearTimeout.
+// Falls back to native setTimeout if Worker creation fails (e.g. strict CSP).
+(function() {
+    'use strict';
+    try {
+        const workerCode = `
+            var _pending = {};
+            self.onmessage = function(e) {
+                var d = e.data;
+                if (d.cmd === 'set') {
+                    _pending[d.id] = setTimeout(function() {
+                        delete _pending[d.id];
+                        self.postMessage({ id: d.id });
+                    }, d.ms);
+                } else if (d.cmd === 'clear') {
+                    clearTimeout(_pending[d.id]);
+                    delete _pending[d.id];
+                }
+            };
+        `;
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const blobUrl = URL.createObjectURL(blob);
+        const worker = new Worker(blobUrl);
+        URL.revokeObjectURL(blobUrl);
+        let _counter = 0;
+        const _cbs = {};
+        worker.onmessage = function(e) {
+            const cb = _cbs[e.data.id];
+            if (cb) { delete _cbs[e.data.id]; try { cb(); } catch(_) {} }
+        };
+        window._workerTimer = {
+            setTimeout: function(fn, ms) {
+                const id = ++_counter;
+                _cbs[id] = fn;
+                worker.postMessage({ cmd: 'set', id: id, ms: Math.max(0, ms || 0) });
+                return id;
+            },
+            clearTimeout: function(id) {
+                if (!id) return;
+                delete _cbs[id];
+                try { worker.postMessage({ cmd: 'clear', id: id }); } catch(_) {}
+            }
+        };
+    } catch(e) {
+        // Fallback: use native setTimeout (may throttle in background tabs)
+        window._workerTimer = {
+            setTimeout: function(fn, ms) { return setTimeout(fn, ms); },
+            clearTimeout: function(id) { clearTimeout(id); }
+        };
+    }
+})();
+
 // Variabel global untuk mengelola state pemindaian.
 // ID untuk loop `requestAnimationFrame` yang meng-update UI.
 let animationFrameId;
@@ -512,7 +571,8 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
         // Increment counter SEBELUM setTimeout — agar waitForPendingDexRequests tidak resolve dini
         pendingMetaDexScheduled++;
         totalMetaDexScheduled++;
-        setTimeout(() => {
+        // Gunakan _workerTimer agar scheduling META-DEX tidak di-throttle saat tab inactive
+        (window._workerTimer || { setTimeout }).setTimeout(() => {
             // Decrement saat callback mulai jalan (sudah bukan "pending scheduled" lagi)
             pendingMetaDexScheduled = Math.max(0, pendingMetaDexScheduled - 1);
             // Jika ini yang terakhir scheduled DAN tidak ada active request → trigger waiters
@@ -526,7 +586,13 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
     };
 
     // Fungsi helper untuk membuat jeda (delay).
-    function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+    // Gunakan _workerTimer agar delay tidak di-throttle browser saat tab inactive.
+    // Browser throttles setTimeout main-thread ke 1000ms+ di background tab,
+    // sedangkan Worker timer berjalan di thread terpisah tanpa throttling agresif.
+    function delay(ms) {
+        if (ms <= 0) return Promise.resolve();
+        return new Promise(resolve => (window._workerTimer || { setTimeout }).setTimeout(resolve, ms));
+    }
     // Fungsi helper untuk memeriksa apakah checkbox posisi (KIRI/KANAN) dicentang.
     const isPosChecked = (val) => $('input[type="checkbox"][value="' + val + '"]').is(':checked');
 
@@ -1299,13 +1365,19 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     const nowStr = (new Date()).toLocaleTimeString();
                                     const viaName = (function () {
                                         try {
+                                            // 1. Prioritas: routeTool metadata (sudah standar provider-prefix)
                                             const routeTool = String(finalDexRes?.routeTool || '').trim();
-                                            if (routeTool && routeTool.length > 0) {
-                                                const viaMatch = routeTool.match(/via\s+(.+)/i);
-                                                if (viaMatch && viaMatch[1]) return viaMatch[1].trim().toUpperCase();
-                                                return routeTool.toUpperCase();
+                                            if (routeTool && routeTool.length > 0) return routeTool.toUpperCase();
+
+                                            // 2. Fallback: isFallback flag
+                                            if (isFallback === true) {
+                                                const fbSrc = String(finalDexRes?.fallbackSource || '').toUpperCase();
+                                                return fbSrc === 'SWOOP' ? 'SWOOP' : 'DZAP';
                                             }
-                                            if (isFallback === true) return 'SWOOP';
+
+                                            // 3. Last Resort: dexTitle dari response atau label kolom
+                                            const dTitle = String(finalDexRes?.dexTitle || '').toUpperCase();
+                                            if (dTitle && dTitle !== dx) return dTitle;
                                         } catch (_) { }
                                         return dx;
                                     })();
@@ -1313,7 +1385,7 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     const headerBlock = [
                                         '======================================',
                                         `Time: ${nowStr}`,
-                                        `PROSES : ${isKiri ? `${ce} => ${dx}` : `${dx} => ${ce}`} (VIA ${viaName})`,
+                                        `PROSES : ${isKiri ? `${ce} => ${dx}` : `${dx} => ${ce}`} (SOURCE: ${viaName})`,
                                         'STATUS DEX : OK'
                                     ].join('\n');
 
@@ -1446,8 +1518,8 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     }
 
                                     const prosesLine = (direction === 'TokentoPair')
-                                        ? `PROSES : ${ceName} => ${dxName} (VIA ${providerInfo})`
-                                        : `PROSES : ${dxName} => ${ceName} (VIA ${providerInfo})`;
+                                        ? `PROSES : ${ceName} => ${dxName} (SOURCE: ${providerInfo})`
+                                        : `PROSES : ${dxName} => ${ceName} (SOURCE: ${providerInfo})`;
 
                                     let s = 'FAILED';
                                     try {
@@ -1508,8 +1580,8 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
 
                                     // PROSES mengikuti arah
                                     const prosesLine = (direction === 'TokentoPair')
-                                        ? `PROSES : ${ceName} => ${dxName} (VIA ${providerInfo})`
-                                        : `PROSES : ${dxName} => ${ceName} (VIA ${providerInfo})`;
+                                        ? `PROSES : ${ceName} => ${dxName} (SOURCE: ${providerInfo})`
+                                        : `PROSES : ${dxName} => ${ceName} (SOURCE: ${providerInfo})`;
 
                                     // STATUS
                                     let s = 'FAILED';
@@ -1615,8 +1687,9 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                         // Panggil API DEX setelah jeda yang dikonfigurasi.
                         // FIX: markDexRequestStart HARUS dipanggil SEBELUM setTimeout agar
                         // waitForPendingDexRequests tidak resolve prematur saat scan 1 token.
+                        // Gunakan _workerTimer agar DEX call tidak di-throttle saat tab inactive.
                         markDexRequestStart();
-                        setTimeout(() => {
+                        (window._workerTimer || { setTimeout }).setTimeout(() => {
                             if (!isScanRunning) {
                                 markDexRequestEnd();
                                 return;

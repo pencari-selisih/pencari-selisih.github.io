@@ -146,10 +146,10 @@
                 SCANNER:
 
               </span>
-              <label class="scanner-control">
+              <!-- <label class="scanner-control">
                 <input class="uk-checkbox" type="checkbox" id="toggleScanLog">
                 <span class="uk-text-warning">LOGGER</span>
-              </label>
+              </label> -->
               <label class="scanner-control">
                 <input class="uk-checkbox posisi-check" type="checkbox" value="Actionkiri" checked>
                 <span class="uk-text-success uk-text-bold">KIRI</span>
@@ -1295,6 +1295,7 @@
   <script src="utils/lru-cache.js"></script><!-- LRU cache for memory management -->
 
   <!-- 6. SERVICES -->
+  <script src="utils/fetch-helper.js"></script><!-- ✅ NEW: Fetch helper dengan CORS proxy support -->
   <script src="services/cex.js"></script>
   <script src="services/dex.js"></script>
   <script src="api.js"></script>
