@@ -146,10 +146,10 @@
                 SCANNER:
 
               </span>
-              <label class="scanner-control">
+              <!-- <label class="scanner-control">
                 <input class="uk-checkbox" type="checkbox" id="toggleScanLog">
                 <span class="uk-text-warning">LOGGER</span>
-              </label>
+              </label> -->
               <label class="scanner-control">
                 <input class="uk-checkbox posisi-check" type="checkbox" value="Actionkiri" checked>
                 <span class="uk-text-success uk-text-bold">KIRI</span>
@@ -178,8 +178,8 @@
 
               <div class="scanner-control-inline">
                 <span class="uk-text-danger uk-text-bolder" title="Slippage Tolerance (%)">SLIP</span>
-                <input id="slippageInput" class="uk-input uk-form-small" type="number" step="0.01" min="0.01" max="10"
-                  placeholder="0.3" style="width:65px;" title="Slippage tolerance in %">%
+                <input id="slippageInput" class="uk-input uk-form-small" type="number" step="0.01" min="0" max="10"
+                  placeholder="0.5" style="width:65px;" title="Slippage tolerance in %. Set 0 for AUTO slippage.">%
               </div>
 
               <div class="uk-button-group scanner-actions">
@@ -1295,6 +1295,7 @@
   <script src="utils/lru-cache.js"></script><!-- LRU cache for memory management -->
 
   <!-- 6. SERVICES -->
+  <script src="utils/fetch-helper.js"></script><!-- ✅ NEW: Fetch helper dengan CORS proxy support -->
   <script src="services/cex.js"></script>
   <script src="services/dex.js"></script>
   <script src="api.js"></script>

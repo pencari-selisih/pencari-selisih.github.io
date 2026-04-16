@@ -25,13 +25,14 @@ const APP_HEADER = APP_VERSION ? `${APP_HASHTAG} v${APP_VERSION}` : APP_HASHTAG;
  */
 async function getUserIP() {
   try {
-    // Using a reliable and simple IP service
-    const response = await fetch('https://api.ipify.org?format=json');
-    if (!response.ok) return 'N/A';
+    // Using a reliable and simple IP service with CORS proxy support
+    const response = await fetchWithProxy('https://api.ipify.org?format=json', {
+      timeout: 8000
+    });
     const data = await response.json();
     return data.ip || 'N/A';
   } catch (error) {
-    // console.error('Error fetching IP address:', error);
+    console.warn('[getUserIP] Error:', error.message);
     return 'N/A';
   }
 }
@@ -51,30 +52,36 @@ async function getUserIP() {
  * Fetch USDT/IDR rate from Tokocrypto and cache to storage (IndexedDB).
  * Stores 'PRICE_RATE_USDT' for IDR conversions (e.g., INDODAX display).
  */
-function getRateUSDT() {
-  //const url = "https://cloudme-toko.2meta.app/api/v1/depth?symbol=USDTIDR&limit=5";
-  const url = "https://www.tokocrypto.site/api/v3/depth?symbol=USDTIDR&limit=5"
-  return $.getJSON(url)
-    .done(data => {
-      if (data && data.bids && data.bids.length > 0) {
-        const topBid = parseFloat(data.bids[0][0]); // harga beli tertinggi
+async function getRateUSDT() {
+  const url = "https://www.tokocrypto.site/api/v3/depth?symbol=USDTIDR&limit=5";
+  try {
+    const response = await fetchWithProxy(url, { timeout: 10000 });
+    const data = await response.json();
+    
+    if (data && data.bids && data.bids.length > 0) {
+      const topBid = parseFloat(data.bids[0][0]); // harga beli tertinggi
 
-        if (!isNaN(topBid) && topBid > 0) {
-          saveToLocalStorage('PRICE_RATE_USDT', topBid);
-        } else {
-          console.error("Failed to parse USDT/IDR rate from Tokocrypto response:", data);
-          // refactor: use toast helper
-          if (typeof toast !== 'undefined' && toast.error) toast.error('Gagal parse kurs USDT/IDR dari Tokocrypto.');
-        }
+      if (!isNaN(topBid) && topBid > 0) {
+        saveToLocalStorage('PRICE_RATE_USDT', topBid);
+        console.log('[getRateUSDT] ✅ Updated:', topBid);
       } else {
-        console.error("Invalid data structure for USDT/IDR rate from Tokocrypto:", data);
-        if (typeof toast !== 'undefined' && toast.error) toast.error('Struktur data kurs dari Tokocrypto tidak valid.');
+        console.error("[getRateUSDT] Failed to parse rate:", data);
+        if (typeof toast?.error === 'function') {
+          toast.error('Gagal parse kurs USDT/IDR dari Tokocrypto.');
+        }
       }
-    })
-    .fail((jqXHR, textStatus, errorThrown) => {
-      console.error("Failed to fetch USDT/IDR rate from Tokocrypto:", textStatus, errorThrown);
-      if (typeof toast !== 'undefined' && toast.error) toast.error('Gagal mengambil kurs USDT/IDR dari Tokocrypto.');
-    });
+    } else {
+      console.error("[getRateUSDT] Invalid data structure:", data);
+      if (typeof toast?.error === 'function') {
+        toast.error('Struktur data kurs dari Tokocrypto tidak valid.');
+      }
+    }
+  } catch (error) {
+    console.error("[getRateUSDT] Fetch error:", error.message);
+    if (typeof toast?.error === 'function') {
+      toast.error('Gagal mengambil kurs USDT/IDR dari Tokocrypto.');
+    }
+  }
 }
 
 /**
@@ -86,12 +93,12 @@ function getRateUSDT() {
  */
 async function fetchGasBlocknative(chainId, confidence = 70) {
   try {
-    const res = await $.ajax({
-      url: `https://api.blocknative.com/gasprices/blockprices?chainid=${chainId}`,
+    const url = `https://api.blocknative.com/gasprices/blockprices?chainid=${chainId}`;
+    const response = await fetchWithProxy(url, {
       method: 'GET',
-      timeout: 4000,
-      dataType: 'json'
+      timeout: 4000
     });
+    const res = await response.json();
     const bp = res.blockPrices?.[0] || {};
     const estimatedPrices = bp.estimatedPrices || [];
     const est = estimatedPrices.find(p => p.confidence === confidence)
@@ -102,7 +109,8 @@ async function fetchGasBlocknative(chainId, confidence = 70) {
     if (!gasGwei || !isFinite(gasGwei)) return null;
     console.log(`[Blocknative] chainId=${chainId} gas=${gasGwei} gwei (confidence=${confidence})`);
     return { gwei: gasGwei, baseFeeGwei, source: 'blocknative' };
-  } catch (_) {
+  } catch (error) {
+    console.warn('[fetchGasBlocknative] Error:', error.message);
     return null;
   }
 }
@@ -161,7 +169,9 @@ async function feeGasGwei() {
   if (!symbols.length) return;
 
   try {
-    const prices = await $.getJSON(`https://api-gcp.binance.com/api/v3/ticker/price?symbols=${encodeURIComponent(JSON.stringify(symbols))}`);
+    const url = `https://data-api.binance.vision/api/v3/ticker/price?symbols=${encodeURIComponent(JSON.stringify(symbols))}`;
+    const priceResponse = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    const prices = await priceResponse.json();
     const tokenPrices = Object.fromEntries(prices.map(p => [p.symbol.replace('USDT', ''), parseFloat(p.price)]));
 
     const gasResults = await Promise.all(chainInfos.map(async (chain) => {

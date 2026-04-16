@@ -2690,7 +2690,7 @@ async function deferredInit() {
     // Initialize and persist Slippage Tolerance input
     function syncSlippageInputFromStorage() {
         try {
-            const v = (typeof getSlippageTolerance === 'function') ? getSlippageTolerance() : 0.3;
+            const v = (typeof getSlippageTolerance === 'function') ? getSlippageTolerance() : 0.5;
             $('#slippageInput').val(v);
         } catch (_) { }
     }
@@ -2699,7 +2699,7 @@ async function deferredInit() {
     $(document).on('change blur', '#slippageInput', function () {
         const raw = $(this).val();
         const v = parseFloat(raw);
-        const clean = isFinite(v) && v > 0 ? v : 0.3;
+        const clean = isFinite(v) && v >= 0 ? v : 0.5;  // ✅ Allow 0 for auto-slippage
         try {
             setSlippageTolerance(clean);
             $(this).val(clean);
