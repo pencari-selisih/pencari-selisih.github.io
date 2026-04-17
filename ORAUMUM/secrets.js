@@ -442,7 +442,7 @@ function getRandomApiKeyRango() {
 // Bungee API Keys
 // =============================
 const apiKeysBungee = [
-    '71XdjSawshaeie5DeH5b9avPjaoVtoOc2g5ZZx1d'
+    'EvfJaDTqxB1Jt9XHq2p818zBmWTefa3H7G8AL5Y3'
 ];
 const BUNGEE_AFFILIATE = '609913096e183b62cecd0dfdc13382f618baedceb5fef75aad43e6cbff367039708902197e0b2b78b1d76cb0837ad0b318baedceb5fef75aad43e6cb';
 
