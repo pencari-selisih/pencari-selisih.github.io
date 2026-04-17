@@ -400,8 +400,8 @@ function getRandomApiKeyLIFI() {
 // =============================
 const apiKeysRocketX = [
     'znYxDQz2P46Dsbdj5slpe9i5ofpv4hkOaUuyV6xU',  // ✅ Default API key
-    'cec7e234-bf17-4f8d-bfac-83d999bd3a08'   ,
-    '4c0ac9d4-90d0-4ba2-8a54-616f1fa8da79'       ,
+    'cec7e234-bf17-4f8d-bfac-83d999bd3a08',
+    '4c0ac9d4-90d0-4ba2-8a54-616f1fa8da79',
     '694fa473-ff52-4b0d-abb9-b5d88a4c9972'
 ];
 
@@ -420,7 +420,7 @@ function getRandomApiKeyRocketX() {
 const apiKeysRango = [
     'c6381a79-2817-4602-83bf-6a641a409e32',  // ✅ Official Rango test API key
     '55978f60-150d-4e21-8289-5bbfd8f5df88',   // ✅ Production API key
-'ee7da377-0ed8-4d42-aaf9-fa978a32b18d'   // ✅ Production API Enkrypt
+    'ee7da377-0ed8-4d42-aaf9-fa978a32b18d'   // ✅ Production API Enkrypt
 ];
 
 let rangoKeyIndex = 0;

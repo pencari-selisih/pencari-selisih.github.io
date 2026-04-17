@@ -305,11 +305,16 @@ $(document).ready(function () {
                 $('#checkWalletCEX').prop('checked', prefs.walletCex);
             }
             if (prefs.autoLevel !== undefined) {
-                $('#autoVolToggle').prop('checked', prefs.autoLevel);
-                // Show/hide level input based on toggle
-                if (prefs.autoLevel) {
-                    $('#autoVolLevelInput').show();
+                const _autoVolOn = (window.CONFIG_APP?.APP?.AUTO_VOLUME !== false);
+                if (_autoVolOn) {
+                    $('#autoVolToggle').prop('checked', prefs.autoLevel);
+                    if (prefs.autoLevel) {
+                        $('#autoVolLevelInput').show();
+                    } else {
+                        $('#autoVolLevelInput').hide();
+                    }
                 } else {
+                    $('#autoVolToggle').prop('checked', false);
                     $('#autoVolLevelInput').hide();
                 }
             }

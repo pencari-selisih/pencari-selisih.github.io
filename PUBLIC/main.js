@@ -920,9 +920,9 @@ function renderSettingsForm() {
         // Options: top-N routes
         const topN = savedMetaDexNow.topRoutes ?? 2;
         metaDexHtml += `
-            <div style="margin-top:8px;padding:6px 8px;background:#f8f9fa;border-radius:4px;border:1px solid #e2e8f0;">
+            <div style="margin-top:8px;padding:6px 8px;border-radius:4px;border:1px solid #e2e8f0;">
                 <div class="uk-flex uk-flex-middle" style="gap:8px;">
-                    <span style="font-size:11px;font-weight:600;">Max Route:</span>
+                    <span style="font-size:14px;font-weight:700;">Max Route:</span>
                     <input type="number" id="meta-dex-topN" class="uk-input uk-form-small"
                            value="${topN}" min="1" max="4"
                            style="width:50px;text-align:center;padding:2px 4px;">
@@ -982,7 +982,13 @@ function renderSettingsForm() {
         $('#checkWalletCEX').prop('checked', appSettings.walletCex);
     }
     if (appSettings.autoLevel !== undefined) {
-        $('#autoVolToggle').prop('checked', appSettings.autoLevel);
+        const _autoVolOn = (window.CONFIG_APP?.APP?.AUTO_VOLUME !== false);
+        if (_autoVolOn) {
+            $('#autoVolToggle').prop('checked', appSettings.autoLevel);
+        } else {
+            $('#autoVolToggle').prop('checked', false);
+            $('#autoVolLevelInput').hide();
+        }
     }
     if (appSettings.autoLevelValue !== undefined) {
         $('#autoVolLevels').val(appSettings.autoLevelValue);
@@ -1892,7 +1898,7 @@ async function deferredInit() {
             }, {});
 
             // Section 1: CHAIN (horizontal flex) - ✅ FILTERED BY ENABLED CHAINS
-            const $chainSection = $('<div style="margin-bottom:15px;"></div>');
+            const $chainSection = $('<div class="filter-box filter-box-chain"></div>');
             $chainSection.append($('<div class="filter-section-title">CHAIN</div>'));
             const $chainGrid = $('<div style="display:flex; flex-wrap:wrap; gap:6px;"></div>');
 
@@ -1929,15 +1935,15 @@ async function deferredInit() {
 
             // Build DEX section (shared between CEX and multichain)
             // ======== SECTION DEX (bukan MetaDEX) ========
-            const $dexSection = $('<div style="margin-bottom:15px;"></div>');
+            const $dexSection = $('<div class="filter-box filter-box-dex"></div>');
             $dexSection.append($('<div class="filter-section-title">DEX</div>'));
-            const $dexGrid = $('<div style="display:flex; flex-wrap:wrap; gap:6px;"></div>');
+            const $dexGrid = $('<div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;"></div>');
             const metaDexEnabled = (CONFIG_APP && CONFIG_APP.APP && CONFIG_APP.APP.META_DEX === true);
 
             // ======== SECTION META-DEX (terpisah) ========
-            const $metaDexSection = $('<div style="margin-bottom:15px;"></div>');
+            const $metaDexSection = $('<div class="filter-box filter-box-metadex"></div>');
             $metaDexSection.append($('<div class="filter-section-title" style="color:#7c3aed;">&#x26A1; META-DEX AGGREGATORS</div>'));
-            const $metaDexGrid = $('<div style="display:flex; flex-wrap:wrap; gap:6px;"></div>');
+            const $metaDexGrid = $('<div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;"></div>');
 
             Object.keys(CONFIG_DEXS || {}).forEach(dx => {
                 const dexConfig = CONFIG_DEXS[dx];
@@ -2013,14 +2019,14 @@ async function deferredInit() {
                     byPair[key] = (byPair[key] || 0) + 1;
                 });
 
-                const $pairSection = $('<div style="margin-bottom:15px;"></div>');
+                const $pairSection = $('<div class="filter-box filter-box-pair"></div>');
                 $pairSection.append($('<div class="filter-section-title">PAIR</div>'));
                 const $pairGrid = $('<div style="display:flex; flex-wrap:wrap; gap:6px;"></div>');
                 Object.keys(allPairDefs).forEach(p => {
                     const cnt = byPair[p] || 0;
                     if (cnt === 0) return;
                     const checked = pairSel.includes(p);
-                    const pairColor = (p === 'NON') ? '#6b7280' : accentColor;
+                    const pairColor = '#b4b8c0';
                     const id = `modal-fc-pair-${p}`;
                     $pairGrid.append($(`
                         <label class="fc-pair filter-chip" data-val="${p}" data-color="${pairColor}" for="${id}" style="border-color: ${checked ? pairColor : 'transparent'};">
@@ -2043,12 +2049,10 @@ async function deferredInit() {
                 $grid.append($col1).append($col2);
                 $wrap.append($grid);
             } else {
-                // Normal Multichain Mode: stacked layout (CHAIN → EXCHANGER → DEX → META-DEX)
-                $wrap.append($chainSection);
-
-                const $cexSection = $('<div style="margin-bottom:15px;"></div>');
+                // Normal Multichain Mode: 2-column layout (CHAIN+EXCHANGER | DEX+MetaDEX)
+                const $cexSection = $('<div class="filter-box filter-box-cex"></div>');
                 $cexSection.append($('<div class="filter-section-title">EXCHANGER</div>'));
-                const $cexGrid = $('<div style="display:flex; flex-wrap:wrap; gap:6px;"></div>');
+                const $cexGrid = $('<div style="display:flex; flex-direction:column; gap:4px;"></div>');
                 getEnabledCEXs().forEach(cx => {
                     const id = `modal-fc-cex-${cx}`; const cnt = byCex[cx] || 0; if (cnt === 0) return; const checked = cexSel.includes(cx.toUpperCase());
                     const col = CONFIG_CEX[cx].WARNA || '#333';
@@ -2061,9 +2065,16 @@ async function deferredInit() {
                     `));
                 });
                 $cexSection.append($cexGrid);
-                $wrap.append($cexSection);
-                $wrap.append($dexSection);
-                if (metaDexEnabled) $wrap.append($metaDexSection);  // ✅ MetaDEX terpisah di bawah DEX
+
+                const $multiGrid = $('<div style="display:grid; grid-template-columns:1fr 2fr; gap:20px;"></div>');
+                const $leftCol = $('<div></div>');
+                $leftCol.append($chainSection);
+                $leftCol.append($cexSection);
+                const $rightCol = $('<div></div>');
+                $rightCol.append($dexSection);
+                if (metaDexEnabled) $rightCol.append($metaDexSection);
+                $multiGrid.append($leftCol).append($rightCol);
+                $wrap.append($multiGrid);
             }
 
             const savedFilterKey = isCEXModeNow ? `FILTER_CEX_${window.CEXModeManager.getSelectedCEX()}` : 'FILTER_MULTICHAIN';
@@ -2223,8 +2234,9 @@ async function deferredInit() {
                 console.log('[FILTER] CEX Mode active (single chain) - hiding Exchanger section');
             }
 
-            // Row 1: EXCHANGER dan PAIR side by side
-            const $topRow = $('<div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px; margin-bottom:20px;"></div>');
+            // Row 1: 3-column grid (EXCHANGER | PAIR | DEX), or 2-column in CEX mode (PAIR | DEX)
+            const _topCols = isCEXMode ? '1fr 2fr' : '1fr 1fr 2fr';
+            const $topRow = $(`<div style="display:grid; grid-template-columns: ${_topCols}; gap:16px; margin-bottom:10px;"></div>`);
 
             // Hitung pair per CEX untuk info
             const pairByCex = {};
@@ -2238,7 +2250,7 @@ async function deferredInit() {
 
             // Column 1: EXCHANGER (only show if NOT in CEX mode)
             if (!isCEXMode) {
-                const $cexCol = $('<div></div>');
+                const $cexCol = $('<div class="filter-box filter-box-cex"></div>');
                 $cexCol.append($('<div class="filter-section-title">EXCHANGER</div>'));
                 const $cexList = $('<div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;"></div>');
                 let relevantCexs = (CONFIG_CHAINS[chain] && CONFIG_CHAINS[chain].WALLET_CEX) ? Object.keys(CONFIG_CHAINS[chain].WALLET_CEX) : [];
@@ -2270,7 +2282,7 @@ async function deferredInit() {
             }
 
             // Column 2: PAIR
-            const $pairCol = $('<div></div>');
+            const $pairCol = $('<div class="filter-box filter-box-pair"></div>');
             $pairCol.append($('<div class="filter-section-title">PAIR</div>'));
             const $pairList = $('<div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;"></div>');
             const allPairs = Array.from(new Set([...Object.keys(pairDefs), 'NON']));
@@ -2279,7 +2291,7 @@ async function deferredInit() {
                 const cnt = byPair[p] || 0;
                 if (cnt === 0) return;
                 const checked = pairSel.includes(p);
-                const pairColor = (p === 'NON') ? '#6b7280' : chainColor;
+                const pairColor = '#b4b8c0';
                 const id = `modal-sc-pair-${p}`;
                 $pairList.append($(`
                     <label class="sc-pair filter-chip" data-val="${p}" data-color="${pairColor}" for="${id}" style="border-color: ${checked ? pairColor : 'transparent'};">
@@ -2294,10 +2306,10 @@ async function deferredInit() {
 
             $container.append($topRow);
 
-            // Row 2: DEX (horizontal, flex-wrap) — DEX biasa saja (bukan MetaDEX)
-            const $dexSection = $('<div></div>');
+            // Col 3 (or col 2 in CEX mode): DEX column
+            const $dexSection = $('<div class="filter-box filter-box-dex"></div>');
             $dexSection.append($('<div class="filter-section-title">DEX</div>'));
-            const $dexGrid = $('<div style="display:flex; flex-wrap:wrap; gap:6px; align-items:flex-start;"></div>');
+            const $dexGrid = $('<div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; align-items:flex-start;"></div>');
             const dexAllowed = ((CONFIG_CHAINS[chain] || {}).DEXS || []).map(x => String(x).toLowerCase());
             const byDex = flatPair.reduce((a, t) => {
                 (t.dexs || []).forEach(d => { const k = String(d.dex || '').toLowerCase(); if (!dexAllowed.includes(k)) return; a[k] = (a[k] || 0) + 1; });
@@ -2320,13 +2332,13 @@ async function deferredInit() {
                 `));
             });
             $dexSection.append($dexGrid);
-            $container.append($dexSection);
+            $topRow.append($dexSection);
 
-            // Row 3: META-DEX (terpisah, section sendiri)
+            // Row 2: META-DEX (terpisah, section sendiri)
             if (window.CONFIG_APP?.APP?.META_DEX === true) {
-                const $metaDexSc = $('<div style="margin-top:14px;"></div>');
-                $metaDexSc.append($('<div class="filter-section-title" style="color:#7c3aed;">META-DEX <span style="font-size:10px;font-weight:400;color:#888;"></span></div>'));
-                const $metaGrid = $('<div style="display:flex; flex-wrap:wrap; gap:6px;"></div>');
+                const $metaDexSc = $('<div class="filter-box filter-box-metadex"></div>');
+                $metaDexSc.append($('<div class="filter-section-title" style="color:#7c3aed;">META-DEX</div>'));
+                const $metaGrid = $('<div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;"></div>');
                 const metaKeys = Object.keys(CONFIG_DEXS || {}).filter(k => {
                     const dcfg = CONFIG_DEXS[k];
                     if (!dcfg?.isMetaDex || dcfg?.disabled || dcfg?.isBackendProvider) return false;
@@ -4628,7 +4640,7 @@ async function deferredInit() {
                                     const symbolIn = String(walletItem.tokenName || '').toUpperCase();
 
                                     // Cari existing token di remoteRaw
-                                    const existing = remoteRaw.find(t => 
+                                    const existing = remoteRaw.find(t =>
                                         String(t.cex || '').toUpperCase() === cexUp &&
                                         String(t.symbol_in || '').toUpperCase() === symbolIn
                                     );
@@ -4637,13 +4649,13 @@ async function deferredInit() {
                                         // Update HANYA WD|DP status (bukan SC, harga, dll)
                                         const oldWd = existing.withdraw;
                                         const oldDp = existing.deposit;
-                                        
+
                                         existing.withdraw = walletItem.withdrawEnable ? '1' : '0';
                                         existing.deposit = walletItem.depositEnable ? '1' : '0';
                                         existing.withdrawEnable = walletItem.withdrawEnable;
                                         existing.depositEnable = walletItem.depositEnable;
                                         existing.feeWD = walletItem.feeWDs || existing.feeWD || 0;
-                                        
+
                                         totalUpdated++;
                                         console.log(`[WalletFilter] Updated ${cexUp}/${symbolIn}: WD=${existing.withdraw}(was ${oldWd}), DP=${existing.deposit}(was ${oldDp})`);
                                     }
@@ -4904,14 +4916,14 @@ async function deferredInit() {
                             if ($walletFilter.length) {
                                 const walletFilterEnabled = hasTableData && syncSnapshotFetched;
                                 $walletFilter.prop('disabled', !walletFilterEnabled);
-                                
+
                                 // Visual feedback: opacity untuk label
                                 $walletFilter.closest('label').css({
                                     opacity: walletFilterEnabled ? '1' : '0.5',
                                     pointerEvents: walletFilterEnabled ? 'auto' : 'none',
                                     cursor: walletFilterEnabled ? 'pointer' : 'not-allowed'
                                 });
-                                
+
                                 console.log('[Refresh Snapshot] Wallet filter checkbox:', walletFilterEnabled ? 'ENABLED ✅' : 'DISABLED', '- Data:', hasTableData, '- FetchedFlag:', syncSnapshotFetched);
                             }
                         } catch (e) {
@@ -5085,7 +5097,7 @@ async function deferredInit() {
             }
 
             // Cari token dari array asli menggunakan identitas (CEX + SYMBOL)
-            const tok = remoteTokens.find(t => 
+            const tok = remoteTokens.find(t =>
                 String(t.cex || '').toUpperCase().trim() === cexUpper &&
                 String(t.symbol_in || '').toUpperCase().trim() === symbolIn
             );
@@ -5203,9 +5215,9 @@ async function deferredInit() {
 
         // ========== DEBUG: Validasi hasil pengambilan data ==========
         console.log('[Save] Total selected tokens:', selectedTokens.length);
-        console.log('[Save] First 3 tokens:', selectedTokens.slice(0, 3).map(t => ({ 
-            cex: t.cex, 
-            symbol_in: t.symbol_in, 
+        console.log('[Save] First 3 tokens:', selectedTokens.slice(0, 3).map(t => ({
+            cex: t.cex,
+            symbol_in: t.symbol_in,
             symbol_out: t.symbol_out,
             sc_in: t.sc_in ? `${t.sc_in.slice(0, 6)}...` : '-'
         })));
@@ -7486,7 +7498,7 @@ $(document).on('click', '#histClearAll', async function () {
         // Confirm before applying
         const buildRow = (dex, vals, isMeta = false) => {
             const config = (typeof CONFIG_DEXS !== 'undefined' ? CONFIG_DEXS[dex.toLowerCase()] : {}) || {};
-            const warna = config.warna || '#374151';
+            const warna = config.warna || '#b4b8c0';
             const label = config.label || dex.toUpperCase();
             const prefix = isMeta ? '<span style="color:#94a3b8;font-size:10px;font-weight:500;">META</span> ' : '';
             return `<tr>
