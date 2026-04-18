@@ -973,7 +973,13 @@ function renderSettingsForm() {
 
     // ✅ NEW: Restore checkbox scanner controls
     if (appSettings.autoRun !== undefined) {
-        $('#autoRunToggle').prop('checked', appSettings.autoRun);
+        const _autoRunOn = (window.CONFIG_APP?.APP?.AUTORUN !== false);
+        if (_autoRunOn) {
+            $('#autoRunToggle').prop('checked', appSettings.autoRun);
+        } else {
+            $('#autoRunToggle').prop('checked', false);
+            window.AUTORUN_ENABLED = false;
+        }
     }
     if (appSettings.autoVol !== undefined) {
         $('#checkVOL').prop('checked', appSettings.autoVol);
@@ -2747,48 +2753,16 @@ async function deferredInit() {
         if (window.App?.Scanner?.stopScanner) window.App.Scanner.stopScanner();
     });
 
-    // Autorun toggle - controlled by CONFIG_APP.APP.AUTORUN
+    // Autorun toggle — show/hide & state handled by scanner-handlers.js
+    // Hanya sinkronisasi state awal di sini, tidak re-register change handler
     try {
-        // Check if autorun feature is enabled in config
         const autorunEnabled = (window.CONFIG_APP?.APP?.AUTORUN !== false);
-
         if (!autorunEnabled) {
-            // Hide autorun UI elements when disabled in config
-            $('#autoRunToggle').closest('label').hide();
-            $('#autoRunCountdown').hide();
             window.AUTORUN_ENABLED = false;
             window.AUTORUN_FEATURE_DISABLED = true;
         } else {
-            // Show autorun UI elements when enabled
-            $('#autoRunToggle').closest('label').show();
-            $('#autoRunCountdown').show();
-            window.AUTORUN_ENABLED = false;
             window.AUTORUN_FEATURE_DISABLED = false;
-
-            // Register change handler only if feature is enabled
-            $(document).on('change', '#autoRunToggle', function () {
-                window.AUTORUN_ENABLED = $(this).is(':checked');
-                if (!window.AUTORUN_ENABLED) {
-                    // cancel any pending autorun countdown
-                    // ✅ PERF: Use TimerManager for centralized timer control
-                    if (typeof TimerManager !== 'undefined') {
-                        TimerManager.clear('autorun-countdown');
-                    } else {
-                        try { clearInterval(window.__autoRunInterval); } catch (_) { }
-                        window.__autoRunInterval = null;
-                    }
-                    // clear countdown label
-                    $('#autoRunCountdown').text('');
-                    // restore UI to idle state if not scanning
-                    try {
-                        $('#stopSCAN').hide().prop('disabled', true);
-                        $('#startSCAN').prop('disabled', false).removeClass('uk-button-disabled').text('START');
-                        $("#LoadDataBtn, #SettingModal, #MasterData,#UpdateWalletCEX,#chain-links-container,.sort-toggle, .edit-token-button").css("pointer-events", "auto").css("opacity", "1");
-                        if (typeof setScanUIGating === 'function') setScanUIGating(false);
-                        $('.header-card a, .header-card .icon').css({ pointerEvents: 'auto', opacity: 1 });
-                    } catch (_) { }
-                }
-            });
+            // AUTORUN_ENABLED akan di-set oleh change handler di scanner-handlers.js
         }
     } catch (_) { }
 
@@ -5420,7 +5394,7 @@ $(document).ready(function () {
     function applyRunUI(isRunning) {
         if (isRunning) {
             try { form_off(); } catch (_) { }
-            $('#startSCAN').prop('disabled', true).attr('aria-busy', 'true').text('Running...').addClass('uk-button-disabled');
+            $('#startSCAN').prop('disabled', true).attr('aria-busy', 'true').text('SCANNING...').addClass('uk-button-disabled');
             // Show standardized running banner: [ RUN SCANNING: <CHAINS> ]
             try { if (typeof window.updateRunningChainsBanner === 'function') window.updateRunningChainsBanner(); } catch (_) { }
             $('#stopSCAN').show().prop('disabled', false);
@@ -5453,7 +5427,7 @@ $(document).ready(function () {
                 try { $('#infoAPP').text(`⚠️ Scan sedang berjalan di mode ${lockMode}`).show(); } catch (_) { }
                 try { if (typeof setScanUIGating === 'function') setScanUIGating(true); } catch (_) { }
             } else {
-                $('#startSCAN').prop('disabled', false).removeAttr('aria-busy').text('Start').removeClass('uk-button-disabled');
+                $('#startSCAN').prop('disabled', false).removeAttr('aria-busy').text('START SCAN').removeClass('uk-button-disabled');
                 $('#stopSCAN').hide();
                 // Clear banner when not running
                 try { $('#infoAPP').text('').hide(); } catch (_) { }
