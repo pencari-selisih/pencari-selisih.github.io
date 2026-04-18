@@ -1619,6 +1619,55 @@
   dexStrategies['rabby-flytrade'] = createFilteredRabbyStrategy('magpie', 'FLYTRADE');
   dexStrategies['rabby-1inch'] = createFilteredRabbyStrategy('1inch_v6', '1INCH');
 
+  // ========== BIRDEYE-1INCH Strategy ==========
+  // Birdeye 1inch proxy — 1inch v6 Quote API via Birdeye endpoint
+  // GET https://1inch.birdeye.so/swap/v6.0/{chainId}/quote
+  dexStrategies['birdeye-1inch'] = {
+    buildRequest: ({ codeChain, sc_input_in, sc_output_in, amount_in_big }) => {
+      const NATIVE = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
+      const srcToken = sc_input_in.toLowerCase() === '0x0000000000000000000000000000000000000000'
+        ? NATIVE : sc_input_in;
+      const dstToken = sc_output_in.toLowerCase() === '0x0000000000000000000000000000000000000000'
+        ? NATIVE : sc_output_in;
+      const chainId = Number(codeChain) || 1;
+      const params = new URLSearchParams({
+        fee: '0.6',
+        src: srcToken,
+        dst: dstToken,
+        amount: String(amount_in_big),
+        includeTokensInfo: 'true',
+        includeProtocols: 'true',
+        includeGas: 'true',
+        timestamp: String(Date.now())
+      });
+      return {
+        url: `https://1inch.birdeye.so/swap/v6.0/${chainId}/quote?${params.toString()}`,
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      };
+    },
+    parseResponse: (response, { des_output, chainName }) => {
+      const targetAmount = response.dstAmount || response.toAmount;
+      if (!response || !targetAmount) throw new Error('BIRDEYE-1INCH: Invalid response, missing dstAmount/toAmount');
+      const amount_out = parseFloat(targetAmount) / Math.pow(10, des_output);
+      if (!Number.isFinite(amount_out) || amount_out <= 0) throw new Error('BIRDEYE-1INCH: output amount tidak valid');
+      let _bCalcUsd = 0;
+      try {
+        const gasUnitsRaw = parseFloat(response.gas || 0);
+        if (gasUnitsRaw > 0) {
+          const gasUnits = capGasUnits(gasUnitsRaw, chainName);
+          const allGasData = (typeof getFromLocalStorage === 'function') ? getFromLocalStorage('ALL_GAS_FEES') : null;
+          if (allGasData) {
+            const gasInfo = allGasData.find(g => String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase());
+            if (gasInfo?.gwei && gasInfo?.tokenPrice) _bCalcUsd = (gasUnits * gasInfo.gwei * gasInfo.tokenPrice) / 1e9;
+          }
+        }
+      } catch (_) { }
+      const { FeeSwap, feeSource } = resolveFeeSwap(0, _bCalcUsd, chainName);
+      return { amount_out, FeeSwap, feeSource, dexTitle: '1INCH', routeTool: 'BIRDEYE-1INCH' };
+    }
+  };
+
   function createFilteredC98Strategy(backerName, dexTitle) {
     const NATIVE_TOKEN = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
     const NATIVE_SYMBOLS = { '1': 'ETH', '56': 'BNB', '137': 'MATIC', '42161': 'ETH', '8453': 'ETH', '10': 'ETH', '43114': 'AVAX' };
@@ -3855,6 +3904,112 @@
         dexTitle: 'DEBRIDGE',
         isMultiDex: false
       };
+    }
+  };
+
+  // ============================================================
+  // OKU TRADE — 3-step REST: Create → UpdateQuoteParams → GetNewQuotes
+  // Endpoint: https://accounts.v2.icarus.tools/connect/gfxcafe.oku.account.v2.SimpleSwapServiceV2
+  // quotes response: object { routerName: { router, fetched, quote: { outAmount, fees: { gasUsdValue } } } }
+  // outAmount sudah human-readable (bukan wei)
+  // ============================================================
+  dexStrategies.okutrade = {
+    execute: ({ codeChain, sc_input_in, sc_output_in, amount_in_big, des_input, des_output, chainName }) => {
+      return new Promise(async (resolve, reject) => {
+        try {
+          const BASE = 'https://accounts.v2.icarus.tools/connect/gfxcafe.oku.account.v2.SimpleSwapServiceV2';
+          const chainId = String(codeChain);
+          const slippageBps = Math.round(getSlippageValue() * 100); // % → bps
+          // Proven working markets (adopted from ADDON-DEV) — cowswap/icecreamswap/unizen/usor dihapus karena sering error
+          const OKU_MARKETS = ['enso', 'kyberswap', 'odos', 'okx', 'oneinch', 'openocean', 'paraswap', 'zeroex'];
+
+          // amount_in_big adalah BigInt (wei), konversi ke human-readable
+          const tokenAmount = (Number(amount_in_big) / Math.pow(10, des_input)).toString();
+
+          // OKU Trade: gunakan proxy untuk CORS, retries:1 agar lebih tahan gangguan jaringan
+          const postJson = async (url, bodyObj, timeout) => {
+            const proxyFetch = (typeof fetchWithProxy === 'function') ? fetchWithProxy : (typeof root.fetchWithProxy === 'function') ? root.fetchWithProxy : null;
+            const headers = { 
+              'Content-Type': 'application/json',
+              'connect-protocol-version': '1' // ✅ Required for Connect RPC (Buf)
+            };
+            if (proxyFetch) {
+              return proxyFetch(url, { method: 'POST', headers, body: JSON.stringify(bodyObj), timeout, retries: 1 });
+            }
+            return fetch(url, { method: 'POST', headers, body: JSON.stringify(bodyObj), signal: AbortSignal.timeout(timeout) });
+          };
+
+          // Step 1: Create Order
+          const createRes = await postJson(`${BASE}/Create`, { params: {} }, 8000);
+          if (!createRes.ok) throw new Error(`Oku Create gagal: ${createRes.status}`);
+          const createData = await createRes.json();
+          const orderId = createData.orderId;
+          if (!orderId) throw new Error('Oku: Tidak ada orderId');
+
+          // Step 2: UpdateQuoteParams
+          const updateRes = await postJson(`${BASE}/UpdateQuoteParams`, {
+            orderId,
+            params: {
+              chain: chainId,
+              enabledMarkets: OKU_MARKETS,
+              inTokenAddress: sc_input_in,
+              isExactIn: true,
+              outTokenAddress: sc_output_in,
+              slippage: slippageBps,
+              tokenAmount,
+              usePermit2: true
+            }
+          }, 10000);
+          if (!updateRes.ok) throw new Error(`Oku UpdateQuoteParams gagal: ${updateRes.status}`);
+
+          // Step 3: GetNewQuotes
+          const quotesRes = await postJson(`${BASE}/GetNewQuotes`, {
+            fetchedRouters: ['cowswap', 'enso', 'icecreamswap', 'kyberswap', 'okx', 'oneinch', 'openocean', 'paraswap', 'unizen'],
+            generation: 1,
+            orderId,
+            waitTime: '5000'
+          }, 12000);
+          if (!quotesRes.ok) throw new Error(`Oku GetNewQuotes gagal: ${quotesRes.status}`);
+          const quotesData = await quotesRes.json();
+
+          // quotes adalah object { routerName: { router, quote: { outAmount, fees.gasUsdValue } } }
+          const quotesMap = quotesData.quotes || {};
+          const subResults = [];
+
+          for (const [key, item] of Object.entries(quotesMap)) {
+            if (!item || !item.quote) continue;
+            const q = item.quote;
+            const routerName = (item.router || key || 'OKU').toUpperCase();
+
+            const amountOut = parseFloat(q.outAmount ?? q.netOutAmount ?? q.amountOut ?? 0);
+            if (!Number.isFinite(amountOut) || amountOut <= 0) continue;
+
+            const gasUsd = parseFloat(q.fees?.gasUsdValue ?? q.gasUsd ?? q.gasUsdValue ?? 0);
+            const { FeeSwap, feeSource } = resolveFeeSwap(gasUsd, 0, chainName);
+
+            subResults.push({
+              amount_out: amountOut,
+              FeeSwap,
+              feeSource,
+              dexTitle: `OKU-${routerName}`,
+              isMultiDex: true
+            });
+          }
+
+          if (subResults.length === 0) throw new Error('Oku: Tidak ada quote valid');
+
+          subResults.sort((a, b) => b.amount_out - a.amount_out);
+          const maxProviders = (typeof root.CONFIG_DEXS?.okutrade?.maxProviders === 'number')
+            ? root.CONFIG_DEXS.okutrade.maxProviders : 3;
+
+          resolve({
+            ...subResults[0],
+            subResults: subResults.slice(0, maxProviders)
+          });
+        } catch (e) {
+          reject({ statusCode: 0, pesanDEX: `Oku Trade: ${e.message || 'Request failed'}` });
+        }
+      });
     }
   };
 
