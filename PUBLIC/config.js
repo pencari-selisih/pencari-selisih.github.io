@@ -2,7 +2,7 @@ const CONFIG_APP = {
     APP: {
         NAME: "PENCARI-SELISIH",
         // NAME: "PRIVATE_NOCORS",
-        VERSION: "04.18",
+        VERSION: "04.22",
         SCAN_LIMIT: true,
         AUTORUN: false,
         AUTO_VOLUME: false,  // cek level order otomatis kalkulasi PNL
@@ -33,13 +33,13 @@ const CONFIG_APP = {
         // Daftar aggregator META-DEX yang tersedia.
         // Setiap aggregator mengembalikan BANYAK quote dari berbagai DEX sekaligus.
         aggregators: {
-            lifi: { enabled: true, evmOnly: false, jedaDex: 600, label: 'JUMPER' },       // EVM + Solana multi-route
+            lifi: { enabled: true, evmOnly: false, jedaDex: 600, label: 'JUMPX' },       // EVM + Solana multi-route
             // dzap: { enabled: true, evmOnly: false, jedaDex: 500, label: 'DZAP' },       // EVM + Solana multi-route
             // rubic: { enabled: true, evmOnly: false, jedaDex: 500, label: 'Rubic' },     // EVM + Solana multi-quote
             // rango: { enabled: true, evmOnly: false, jedaDex: 500, label: 'RANGO' },       // EVM + Solana multi-quote
             //rocketx: { enabled: true, evmOnly: false, jedaDex: 600, label: 'ROCKET' },    // EVM + Solana multi-quote
             metax: { enabled: true, evmOnly: true, jedaDex: 800, label: 'METAX' },       // EVM only (no Solana support)
-            //onekey: { enabled: true, evmOnly: true, jedaDex: 800, label: 'ONEKEY' },       // EVM only — SSE streaming (OKX, 1inch, 0x)
+            // onekey: { enabled: true, evmOnly: true, jedaDex: 800, label: 'ONEX' },       // EVM only — SSE streaming (OKX, 1inch, 0x)
             //debridge: { enabled: true, evmOnly: true, jedaDex: 800, label: 'DEBRIDGE' },  // EVM only — deBridge DLN swap
             // okutrade: { enabled: true, evmOnly: true, jedaDex: 800, label: 'OKUTRADE' }, // EVM only — Oku Trade multi-aggregator (3-step REST)
         },
@@ -60,7 +60,7 @@ const CONFIG_APP = {
                 showBestOnly: false,       // false = tampilkan semua quote; true = hanya terbaik
                 // ✅ Blacklist: provider yang TIDAK boleh muncul di hasil scan MetaDEX.
                 // Nama harus UPPERCASE. Berlaku untuk semua MetaDEX (LIFI, DZAP, RANGO, METAX, ONEKEY, dll).
-                offDexResultScan: ["OPENOCEAN", "MAYAN", "UNISWAP", "SUSHISWAP"],
+                offDexResultScan: ["OPENOCEAN", "MAYAN", "UNISWAP", "SUSHISWAP", "NORDSTERN", "BITGET", "FLYTRADE", "ENSO"],
             },
             // Card Signal DEX: tampilan card/signal untuk hasil META-DEX
             cardSignal: {
@@ -103,7 +103,7 @@ const CONFIG_CEX = {
             deposit: ({ pair }) => `https://www.gate.com/myaccount/deposit/${String(pair || '').toUpperCase()}`
         },
         ORDERBOOK: {
-            urlTpl: ({ symbol }) => `https://api.gateio.ws/api/v4/spot/order_book?limit=5&currency_pair=${String(symbol || '')}_USDT`,
+            urlTpl: ({ symbol }) => `${CONFIG_PROXY.PREFIX}https://api.gateio.ws/api/v4/spot/order_book?limit=5&currency_pair=${String(symbol || '')}_USDT`,
             parser: 'standard' // use standard orderbook parser
         }
     },
@@ -481,6 +481,7 @@ const CONFIG_CHAINS = {
             "NON": { symbolPair: "NON", scAddressPair: "0x", desPair: "18" }
         }
     },
+    /*
     solana: {
         Kode_Chain: 501,
         DEFAULT_RPC: 'https://api.mainnet-beta.solana.com', // Solana Foundation public RPC
@@ -519,7 +520,7 @@ const CONFIG_CHAINS = {
             "USDT": { symbolPair: 'USDT', scAddressPair: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', desPair: '6' },
             "NON": { symbolPair: "NON", scAddressPair: "0x", desPair: "18" }
         }
-    }
+    }*/
 };
 
 const CONFIG_UI = {
@@ -538,7 +539,7 @@ const CONFIG_UI = {
     DEXES: [
         { key: 'kyber', label: 'KyberSwap', badgeClass: 'bg-kyberswap', fallbackSlug: 'kyberswap' },
         //  { key: 'sushi', label: 'SUSHI', badgeClass: 'bg-sushi', fallbackSlug: 'sushi' },
-        { key: 'brave-lifi', label: 'JUMPER', badgeClass: 'bg-lifi', fallbackSlug: 'lifi' },
+        { key: 'brave-jumper', label: 'JUMPX', badgeClass: 'bg-lifi', fallbackSlug: 'lifi' },
         { key: 'lifidex', label: 'LIFIDX', badgeClass: 'bg-lifidex', fallbackSlug: 'lifidex' },
         { key: 'okx', label: 'OKX', badgeClass: 'bg-okx', fallbackSlug: 'okx' },
         //  { key: 'relay', label: 'Relay', badgeClass: 'bg-relay', fallbackSlug: 'relay' },
@@ -607,7 +608,7 @@ const CONFIG_UI = {
 
             // ========== Filtered Strategies (Wildcard) ==========
             // Meta-aggregators filtered for specific DEX
-            'brave-lifi-*': 5000,          // LIFI filtered: 6s (cross-chain, needs time)
+            'brave-jumper-*': 5000,          // LIFI filtered: 6s (cross-chain, needs time)
             'rabby-*': 5000,         // RABBY filtered: 6s (api.rabby.io, stable)
             'rainbow-*': 5000,       // RAINBOW filtered: 5s (swap.p.rainbow.me, fast)
             'swoop-*': 7000,        // SWOOP filtered: 10s (railway.app slower, prevent cancel)
@@ -619,7 +620,7 @@ const CONFIG_UI = {
 
             // ========== Multi-DEX Aggregators ==========
             // Direct calls to meta-aggregators (not filtered)
-            'brave-lifi': 6000,            // LIFI multi-quote: 6s
+            'brave-jumper': 6000,            // LIFI multi-quote: 6s
             'temple': 5000,          // Temple API (LIFI proxy): 5s — standalone LIFI DEX
             'swoop': 10000,          // SWOOP multi-quote: 10s (railway.app needs more time)
             'swing': 6000,           // SWING multi-quote: 6s
@@ -668,7 +669,7 @@ const CONFIG_UI = {
         { key: 'ethereum', label: 'Ethereum', short: 'ETH', badgeClass: 'bg-primary text-light' },
         { key: 'bsc', label: 'BSC', short: 'BSC', badgeClass: 'bg-warning text-dark' },
         { key: 'base', label: 'Base', short: 'BASE', badgeClass: 'bg-dark text-light' },
-        { key: 'solana', label: 'Solana', short: 'SOL', badgeClass: 'bg-solana text-dark' }
+        //  { key: 'solana', label: 'Solana', short: 'SOL', badgeClass: 'bg-solana text-dark' }
     ]
 };
 
@@ -908,7 +909,7 @@ const CONFIG_DEXS = {
             },
             secondary: {
                 tokentopair: 'krystal-kyber',   // CEX→DEX: Bungee filtered KyberSwap (rotation)
-                pairtotoken: 'lifi-kyber'    // DEX→CEX: Bungee filtered KyberSwap (rotation)
+                pairtotoken: 'krystal-kyber'    // DEX→CEX: Bungee filtered KyberSwap (rotation)
             },
             alternative: {
                 tokentopair: 'bungee-kyber',  // CEX→DEX: Krystal allRates filtered KyberSwap (fallback)
@@ -952,11 +953,11 @@ const CONFIG_DEXS = {
             },
             secondary: {
                 tokentopair: 'krystal-okx',   // CEX→DEX: Krystal allRates filtered OKX
-                pairtotoken: 'c98-okx'    // DEX→CEX: Krystal allRates filtered OKX
+                pairtotoken: 'okx'    // DEX→CEX: Krystal allRates filtered OKX
             },
             alternative: {
                 tokentopair: 'okx',       // CEX→DEX: Coin98 Superlink filtered for OKX
-                pairtotoken: 'okx'            // DEX→CEX: Official OKX DEX API
+                pairtotoken: 'c98-okx'            // DEX→CEX: Official OKX DEX API
             }
         },
         allowFallback: true, // ✅ Enable rotation between primary and alternative
@@ -1029,12 +1030,12 @@ const CONFIG_DEXS = {
                 pairtotoken: 'rabby-matcha'       // DEX→CEX: Coin98 Superlink filtered - EVM only
             },
             secondary: {
-                tokentopair: 'c98-matcha',   // CEX→DEX: Bungee filtered 0x/Matcha (rotation)
+                tokentopair: 'bungee-matcha',   // CEX→DEX: Bungee filtered 0x/Matcha (rotation)
                 pairtotoken: 'rainbow-matcha'    // DEX→CEX: Bungee filtered 0x/Matcha (rotation)
             },
             alternative: {
                 tokentopair: 'rabby-matcha',  // CEX→DEX: Rainbow proxy 0x/Matcha (fallback)
-                pairtotoken: 'bungee-matcha'   // DEX→CEX: Rainbow proxy 0x/Matcha (fallback)
+                pairtotoken: 'c98-matcha'   // DEX→CEX: Rainbow proxy 0x/Matcha (fallback)
             },
             // ✅ SOLANA OVERRIDE: For Solana chain, always use direct matcha endpoint
             solana: {
@@ -1105,13 +1106,14 @@ const CONFIG_DEXS = {
         // ⚡ STRATEGY: Multiple proxy endpoints, no direct 1inch API key needed
         // ⚠️ lifi-1inch: Only works for swaps >$10000 on some chains
         fetchdex: {
+
             primary: {
-                tokentopair: 'birdeye-1inch',      // CEX→DEX: Rabby 1inch proxy (no API key)
-                pairtotoken: 'rainbow-1inch'     // DEX→CEX: Rainbow API (source=1inch)
+                tokentopair: 'enkrypt-1inch',       // CEX→DEX: LiFi filtered → 1inch route
+                pairtotoken: 'enkrypt-1inch'     // DEX→CEX: Enkrypt 1inch proxy
             },
             secondary: {
-                tokentopair: 'lifi-1inch',       // CEX→DEX: LiFi filtered → 1inch route
-                pairtotoken: 'enkrypt-1inch'     // DEX→CEX: Enkrypt 1inch proxy
+                tokentopair: 'birdeye-1inch',      // CEX→DEX: Rabby 1inch proxy (no API key)
+                pairtotoken: 'rainbow-1inch'     // DEX→CEX: Rainbow API (source=1inch)
             },
             alternative: {
                 tokentopair: 'rabby-1inch',     // CEX→DEX: OneKey filtered → 1inch provider
@@ -1134,16 +1136,11 @@ const CONFIG_DEXS = {
         builder: ({ chainCode, tokenAddress, pairAddress }) =>
             `https://jumper.exchange/?fromChain=${chainCode}&fromToken=${tokenAddress}&toChain=${chainCode}&toToken=${pairAddress}`,
         fetchdex: {
-            primary: {
-                tokentopair: 'onekey-lifidex',     // CEX→DEX: OneKey (using LiFi/SwapLifi API)
-                pairtotoken: 'c98-lifidex'         // DEX→CEX: C98 (using Superlink/LiFi API)
-            },
-
             secondary: {
                 tokentopair: 'c98-lifidex',        // CEX→DEX: C98 (using Superlink/LiFi API)
                 pairtotoken: 'onekey-lifidex'      // DEX→CEX: OneKey (using LiFi/SwapLifi API)
             },
-            alternative: {
+            primary: {
                 tokentopair: 'swoop-lifidex',        // CEX→DEX: OneKey filtered → 1inch provider
                 pairtotoken: 'swoop-lifidex'         // DEX→CEX: OneKey filtered → 1inch provider
             }
@@ -1235,7 +1232,7 @@ const CONFIG_DEXS = {
     //   - 'lifi' (standalone)  → Meta-DEX, multi-route, kolom sendiri
     //   - 'lifi-odos', 'lifi-velora' (filtered) → backend transport untuk DEX Regular
     'lifi': {
-        label: 'JUMPER',
+        label: 'JUMPX',
         badgeClass: 'bg-lifi',
         disabled: false,
         isMetaDex: true,   // ✅ Meta-DEX: standalone LIFI menampilkan multi-route
@@ -1249,12 +1246,12 @@ const CONFIG_DEXS = {
         },
         fetchdex: {
             primary: {
-                tokentopair: 'brave-lifi',
-                pairtotoken: 'zapper-lifi'
+                tokentopair: 'brave-jumper',
+                pairtotoken: 'brave-jumper'
             },
             secondary: {
-                tokentopair: 'zapper-lifi',  // Sebaliknya jika primary gagal
-                pairtotoken: 'brave-lifi'
+                tokentopair: 'talisman-jumper',  // Sebaliknya jika primary gagal
+                pairtotoken: 'zapper-jumper'
             },
         },
         allowFallback: true,
@@ -1371,7 +1368,7 @@ const CONFIG_DEXS = {
     },
 
     onekey: {
-        label: 'ONEKEY',
+        label: 'ONEX',
         badgeClass: 'bg-onekey',
         disabled: false,
         proxy: false,        // SSE langsung dari browser (EventSource), tidak lewat proxy
