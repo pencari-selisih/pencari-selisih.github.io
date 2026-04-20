@@ -1321,7 +1321,7 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     const chainCfg = (window.CONFIG_CHAINS || {})[String(token.chain).toLowerCase()] || {};
                                     const chainName = (chainCfg.Nama_Chain || token.chain || '').toString().toUpperCase();
                                     const ce = String(token.cex || '').toUpperCase();
-                                    const dx = String((finalDexRes?.dexTitle) || dex || '').toUpperCase();
+                                    const dx = String(dex).toUpperCase();
                                     const nameIn = String(isKiri ? token.symbol_in : token.symbol_out).toUpperCase();
                                     const nameOut = String(isKiri ? token.symbol_out : token.symbol_in).toUpperCase();
                                     
@@ -1365,19 +1365,20 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     const nowStr = (new Date()).toLocaleTimeString();
                                     const viaName = (function () {
                                         try {
-                                            // 1. Prioritas: routeTool metadata (sudah standar provider-prefix)
-                                            const routeTool = String(finalDexRes?.routeTool || '').trim();
-                                            if (routeTool && routeTool.length > 0) return routeTool.toUpperCase();
+                                            const provider = String(finalDexRes?.routeTool || '').toUpperCase().trim();
+                                            const innerDex = String(finalDexRes?.dexTitle || '').toUpperCase().trim();
 
-                                            // 2. Fallback: isFallback flag
                                             if (isFallback === true) {
-                                                const fbSrc = String(finalDexRes?.fallbackSource || '').toUpperCase();
-                                                return fbSrc === 'SWOOP' ? 'SWOOP' : 'DZAP';
+                                                const fb = provider || (String(finalDexRes?.fallbackSource || '').toUpperCase());
+                                                return fb || 'SWOOP';
                                             }
 
-                                            // 3. Last Resort: dexTitle dari response atau label kolom
-                                            const dTitle = String(finalDexRes?.dexTitle || '').toUpperCase();
-                                            if (dTitle && dTitle !== dx) return dTitle;
+                                            // Join format: PROVIDER - DEX
+                                            if (provider && innerDex && provider !== innerDex) {
+                                                if (innerDex === dx) return provider;
+                                                return `${provider} - ${innerDex}`;
+                                            }
+                                            return provider || innerDex || dx;
                                         } catch (_) { }
                                         return dx;
                                     })();
