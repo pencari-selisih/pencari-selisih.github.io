@@ -851,11 +851,11 @@ const CONFIG_DEXS = {
         fetchdex: {
             primary: {
                 tokentopair: 'kyber',          // CEX→DEX: Official KyberSwap API
-                pairtotoken: 'kyber'           // DEX→CEX: Official KyberSwap API
+                pairtotoken: 'krystal-kyber'           // DEX→CEX: Official KyberSwap API
             },
             secondary: {
-                tokentopair: 'krystal-kyber',   // CEX→DEX: Bungee filtered KyberSwap (rotation)
-                pairtotoken: 'krystal-kyber'    // DEX→CEX: Bungee filtered KyberSwap (rotation)
+                tokentopair: 'talisman-kyber',   // CEX→DEX: Bungee filtered KyberSwap (rotation)
+                pairtotoken: 'zapper-kyber'    // DEX→CEX: Bungee filtered KyberSwap (rotation)
             },
             alternative: {
                 tokentopair: 'bungee-kyber',  // CEX→DEX: Krystal allRates filtered KyberSwap (fallback)
