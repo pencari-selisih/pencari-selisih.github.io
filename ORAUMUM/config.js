@@ -907,8 +907,8 @@ const CONFIG_DEXS = {
                 pairtotoken: 'flytrade'         // DEX→CEX: Flytrade aggregator
             },
             secondary: {
-                tokentopair: 'talisman-flytrade', // CEX→DEX: Talisman filtered → Fly route
-                pairtotoken: 'zapper-flytrade'   // DEX→CEX: Zapper filtered → Fly route
+                tokentopair: 'backpack-flytrade', // CEX→DEX: Talisman filtered → Fly route
+                pairtotoken: 'backpack-flytrade'   // DEX→CEX: Zapper filtered → Fly route
             },
             alternative: {
                 tokentopair: 'rabby-flytrade',   // CEX→DEX: Rabby filtered → Fly route
