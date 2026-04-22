@@ -1482,6 +1482,7 @@
   dexStrategies['talisman-jumper'] = createFilteredTalismanStrategy(null, null);
   dexStrategies['talisman-flytrade'] = createFilteredTalismanStrategy('fly', 'FLYTRADE');
   dexStrategies['talisman-velora'] = createFilteredTalismanStrategy('paraswap', 'VELORA');
+  dexStrategies['talisman-kyber'] = createFilteredTalismanStrategy('kyberswap', 'KYBER');
 
   function createFilteredZapperStrategy(allowExchanges, dexTitleLabel) {
     return {
@@ -1534,6 +1535,7 @@
   dexStrategies['zapper-jumper'] = createFilteredZapperStrategy(null, null);
   dexStrategies['zapper-flytrade'] = createFilteredZapperStrategy('fly', 'FLYTRADE');
   dexStrategies['zapper-velora'] = createFilteredZapperStrategy('paraswap', 'VELORA');
+  dexStrategies['zapper-kyber'] = createFilteredZapperStrategy('kyberswap', 'KYBER');
 
 
   function createFilteredSwoopStrategy(aggregatorSlug, dexTitle) {
@@ -4474,6 +4476,30 @@
                       DEX_RESPONSE_CACHE.set(cacheKey, { response: result, timestamp: Date.now() });
                     }
                     return result;
+                  })
+                  .catch((e3) => {
+                    const e1Code = Number(e1 && e1.statusCode) || 0;
+                    const e2Code = Number(e2 && e2.statusCode) || 0;
+                    const e3Code = Number(e3 && e3.statusCode) || 0;
+                    
+                    const p1 = String(selectedStrategy || '').split('-')[0].toUpperCase();
+                    const p2 = String(computedFallback || '').split('-')[0].toUpperCase();
+                    const p3 = String(alternativeStrategy || '').split('-')[0].toUpperCase();
+                    
+                    console.error(`[DEX FALLBACK L3 FAILED] ${dexType.toUpperCase()}: P='${selectedStrategy}' (${e1Code}), F='${computedFallback}' (${e2Code}), Alt='${alternativeStrategy}' (${e3Code}) - ALL failed!`);
+                    
+                    throw {
+                      statusCode: e3Code,
+                      pesanDEX: `All failed [${p1} \u2192 ${p2} \u2192 ${p3}]: ${e3.pesanDEX || 'timeout'}`,
+                      DEX: String(dexType || '').toUpperCase(),
+                      dexURL: e3.dexURL || e2.dexURL || e1.dexURL,
+                      textStatus: e3.textStatus || e2.textStatus || e1.textStatus,
+                      primaryStrategy: selectedStrategy,
+                      fallbackStrategy: computedFallback,
+                      alternativeStrategy: alternativeStrategy,
+                      bothFailed: true,
+                      allFailed: true
+                    };
                   });
               }
 
