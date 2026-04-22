@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LP SCANNER KOIN</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔍</text></svg>">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="js/flat-dialog.js"></script>
+    <script src="../js/flat-dialog.js"></script>
     <style>
         :root {
             --primary:    #2563eb;
@@ -808,7 +809,7 @@ async function startScan() {
     stopFlag     = false;
     statsCodex = statsDex = statsErr = statsHidden = 0;
     updateStats();
-    $("#tbl").html(`<tr><td colspan="11" class="empty-msg">Memindai…</td></tr>`);
+    $("#tbl").html(`<tr><td colspan="13" class="empty-msg">Memindai…</td></tr>`);
     $("#scanBtn").prop("disabled", true).text("SCANNING…");
     $("#progWrap").show();
     $("#dlBtn").hide();
@@ -816,19 +817,27 @@ async function startScan() {
 
     const reader = new FileReader();
     reader.onload = async function (e) {
-        const lines   = e.target.result.split("\n").map(l => l.trim()).filter(l => l);
+        // Strip UTF-8 BOM jika ada (dari Excel/Google Sheets)
+        let rawContent = e.target.result;
+        if (rawContent.charCodeAt(0) === 0xFEFF) rawContent = rawContent.slice(1);
+
+        const lines   = rawContent.split("\n").map(l => l.trim()).filter(l => l);
         const tokens  = [];
+
+        // Auto-deteksi delimiter dari baris pertama (koma, titik koma, atau tab)
+        const firstLine = lines[0] || "";
+        const sep = firstLine.includes(";") ? ";" : (firstLine.includes("\t") ? "\t" : ",");
 
         // ── CSV PARSER ───────────────────────────────────────────────
         // Menangani field yang dibungkus quote. Mendukung DUA format:
-        //   Format Input  : Cex, Symbol, SC, Decimals
+        //   Format Input  : Cex, Symbol, SC, Decimals  (koma atau titik koma)
         //   Format Export : No, CEX, Symbol, Pair, Symbol A, SC Token A, Decimals A, ...
         function parseCSVLine(line) {
             const result = [];
             let cur = "", inQ = false;
             for (const c of line) {
                 if (c === '"') { inQ = !inQ; }
-                else if (c === ',' && !inQ) { result.push(cur.trim()); cur = ""; }
+                else if (c === sep && !inQ) { result.push(cur.trim()); cur = ""; }
                 else { cur += c; }
             }
             result.push(cur.trim());
@@ -856,7 +865,8 @@ async function startScan() {
         const idxSc  = iSc   !== -1 ? iSc   : 2;
         const idxDec = iDec  !== -1 ? iDec  : 3;
 
-        log(`CSV header terdeteksi → CEX[${idxCex}] Symbol[${idxSym}] SC[${idxSc}] Decimals[${idxDec}]`, "info");
+        const sepLabel = sep === ";" ? "titik koma (;)" : sep === "\t" ? "tab" : "koma (,)";
+        log(`CSV header terdeteksi → CEX[${idxCex}] Symbol[${idxSym}] SC[${idxSc}] Decimals[${idxDec}] | delimiter: ${sepLabel}`, "info");
 
         for (let i = 1; i < lines.length; i++) {
             const parts = parseCSVLine(lines[i]);
