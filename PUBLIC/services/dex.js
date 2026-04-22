@@ -1537,6 +1537,58 @@
   dexStrategies['zapper-velora'] = createFilteredZapperStrategy('paraswap', 'VELORA');
   dexStrategies['zapper-kyber'] = createFilteredZapperStrategy('kyberswap', 'KYBER');
 
+  function createFilteredBackpackStrategy(allowExchanges, dexTitleLabel) {
+    return {
+      buildRequest: ({ codeChain, sc_input, sc_output, sc_input_in, sc_output_in, amount_in_big, SavedSettingData, chainName }) => {
+        const chainConfig = (root.CONFIG_CHAINS || {})[String(chainName || '').toLowerCase()];
+        const lifiChainId = chainConfig?.LIFI_CHAIN_ID || Number(codeChain);
+        const isSolana = String(chainName || '').toLowerCase() === 'solana';
+        const fromToken = isSolana ? sc_input_in : sc_input.toLowerCase();
+        const toToken = isSolana ? sc_output_in : sc_output.toLowerCase();
+        const userAddr = isSolana ? (SavedSettingData?.walletSolana || 'So11111111111111111111111111111111111111112') : (SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000');
+        const params = new URLSearchParams({
+          fromChain: lifiChainId.toString(),
+          toChain: lifiChainId.toString(),
+          fromToken: fromToken,
+          toToken: toToken,
+          fromAmount: amount_in_big.toString(),
+          fromAddress: userAddr,
+          toAddress: userAddr,
+          slippage: String(parseFloat(getSlippageValue()) / 100)
+        });
+        // Apply exchange filter if provided
+        if (allowExchanges) {
+          params.append('allowExchanges', Array.isArray(allowExchanges) ? allowExchanges.join(',') : allowExchanges);
+        }
+        return { url: `https://lifi.workers.madlads.com/quote?${params.toString()}`, method: 'GET' };
+      },
+      parseResponse: (response, { des_output, chainName }) => {
+        if (!response?.estimate?.toAmount) throw new Error(`BACKPACK-${dexTitleLabel || 'JUMPER'}: No valid quote received`);
+        const amount_out = parseFloat(response.estimate.toAmount) / Math.pow(10, des_output);
+        let gasCostUsd = 0;
+        if (response.estimate.gasCosts) gasCostUsd = response.estimate.gasCosts.reduce((sum, gc) => sum + parseFloat(gc.amountUSD || 0), 0);
+        const { FeeSwap, feeSource } = resolveFeeSwap(gasCostUsd, 0, chainName);
+
+        let dexTitle = dexTitleLabel || 'LIFI';
+        try {
+          if (!dexTitleLabel) dexTitle = String(response.toolDetails?.name || response.tool || 'BACKPACK').toUpperCase();
+        } catch (_) { }
+
+        const result = { amount_out, FeeSwap, feeSource, dexTitle, routeTool: `BACKPACK-${dexTitleLabel || 'JUMPER'}` };
+        return {
+          ...result,
+          subResults: [result],
+          isMultiDex: !dexTitleLabel
+        };
+      }
+    };
+  }
+
+  dexStrategies['backpack-jumper'] = createFilteredBackpackStrategy(null, null);
+  dexStrategies['backpack-flytrade'] = createFilteredBackpackStrategy('fly', 'FLYTRADE');
+
+
+
 
   function createFilteredSwoopStrategy(aggregatorSlug, dexTitle) {
     return {
