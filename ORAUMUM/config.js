@@ -1,11 +1,11 @@
 const CONFIG_APP = {
     APP: {
-        NAME: "PENCARI SELISIH",
+        NAME: "PENCARI-SELISIH",
         // NAME: "PRIVATE_NOCORS",
         VERSION: "04.24",
-        SCAN_LIMIT: false,
-        AUTORUN: true,
-        AUTO_VOLUME: true,  // cek level order otomatis kalkulasi PNL
+        SCAN_LIMIT: true,
+        AUTORUN: false,
+        AUTO_VOLUME: false,  // cek level order otomatis kalkulasi PNL
         VOL_CHECK: true,
         DEBUG_LOG: false,
         // Gas units untuk ERC-20 transfer onchain (DEX → CEX wallet)
@@ -15,7 +15,7 @@ const CONFIG_APP = {
         // Berbeda dari DEX regular (single-quote). Berjalan TERPISAH dari scan DEX regular.
         // Jika true → Settings menampilkan panel: Modal DEX, Filter Scanner, Card Signal, Jeda DEX.
         META_DEX: true,
-        LIMIT_METADEX: 3,
+        LIMIT_METADEX: 2,
     },
     // ========================================================================
     // META-DEX CONFIGURATION
@@ -39,7 +39,7 @@ const CONFIG_APP = {
             // rango: { enabled: true, evmOnly: false, jedaDex: 500, label: 'RANGO' },       // EVM + Solana multi-quote
             //rocketx: { enabled: true, evmOnly: false, jedaDex: 600, label: 'ROCKET' },    // EVM + Solana multi-quote
             metax: { enabled: true, evmOnly: true, jedaDex: 800, label: 'METAX' },       // EVM only (no Solana support)
-            onekey: { enabled: true, evmOnly: true, jedaDex: 800, label: 'ONEX' },       // EVM only — SSE streaming (OKX, 1inch, 0x)
+            //onekey: { enabled: true, evmOnly: true, jedaDex: 800, label: 'ONEX' },       // EVM only — SSE streaming (OKX, 1inch, 0x)
             //debridge: { enabled: true, evmOnly: true, jedaDex: 800, label: 'DEBRIDGE' },  // EVM only — deBridge DLN swap
             // okutrade: { enabled: true, evmOnly: true, jedaDex: 800, label: 'OKUTRADE' }, // EVM only — Oku Trade multi-aggregator (3-step REST)
         },
