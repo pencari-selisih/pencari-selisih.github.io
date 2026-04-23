@@ -14,6 +14,39 @@
     // Keep internal constant local to this module
     const stablecoins = ["USDT", "DAI", "USDC", "FDUSD"];
 
+    // ====== Helper: Fetch CEX Orderbook dengan CORS Proxy Support ======
+    /**
+     * Fetch orderbook dari CEX dengan automatic proxy wrapping
+     * @param {string} url - Target URL
+     * @param {number} timeout - Request timeout (ms)
+     * @returns {Promise<object>} Parsed JSON response
+     */
+    async function fetchCexOrderbook(url, timeout = 8000) {
+        try {
+            // Check if need proxy: jika fetchWithProxy tersedia, gunakan; otherwise direct fetch
+            if (typeof fetchWithProxy === 'function') {
+                const response = await fetchWithProxy(url, { timeout });
+                return await response.json();
+            } else {
+                // Fallback: direct fetch (rare case)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeout);
+                try {
+                    const response = await fetch(url, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    return await response.json();
+                } catch (error) {
+                    clearTimeout(timeoutId);
+                    throw error;
+                }
+            }
+        } catch (error) {
+            console.error(`[fetchCexOrderbook] Error fetching ${url.substring(0, 80)}:`, error.message);
+            throw error;
+        }
+    }
+
     // ====== Fungsi Universal untuk Orderbook CEX ======
     /** Normalize standard CEX orderbook payload into top N levels. */
     function processOrderBook(data, limit = 4) {
@@ -255,36 +288,29 @@
                     });
                 }
                 if (url) {
-                    return new Promise((resolveAjax, rejectAjax) => {
-                        $.ajax({
-                            url: url,
-                            method: 'GET',
-                            success: function (data) {
-                                try {
-                                    const processedData = config.processData(data);
-                                    // Select best prices: BUY uses best ask (lowest), SELL uses best bid (highest)
-                                    const priceBuy = processedData?.priceSell?.[0]?.price || 0;
-                                    const priceSell = processedData?.priceBuy?.[0]?.price || 0;
-                                    if (priceBuy <= 0 || priceSell <= 0) {
-                                        return rejectAjax(`Harga tidak valid untuk ${tokenName} di ${cex}.`);
-                                    }
-                                    resolveAjax({
-                                        tokenName: tokenName,
-                                        price_sell: priceSell,
-                                        price_buy: priceBuy,
-                                        volumes_sell: processedData.priceSell || [],
-                                        volumes_buy: processedData.priceBuy || []
-                                    });
-                                } catch (error) {
-                                    rejectAjax(`Error processing data untuk ${tokenName} di ${cex}: ${error.message}`);
-                                }
-                            },
-                            error: function (xhr) {
-                                const errorMessage = xhr.responseJSON?.msg || "Unknown ERROR";
-                                rejectAjax(`Error koneksi API untuk ${tokenName} di ${cex}: ${errorMessage}`);
+                    return (async () => {
+                        try {
+                            // ✅ Updated: Use fetchCexOrderbook with proxy support instead of $.ajax
+                            const data = await fetchCexOrderbook(url, 8000);
+                            const processedData = config.processData(data);
+                            // Select best prices: BUY uses best ask (lowest), SELL uses best bid (highest)
+                            const priceBuy = processedData?.priceSell?.[0]?.price || 0;
+                            const priceSell = processedData?.priceBuy?.[0]?.price || 0;
+                            if (priceBuy <= 0 || priceSell <= 0) {
+                                throw new Error(`Harga tidak valid untuk ${tokenName} di ${cex}.`);
                             }
-                        });
-                    });
+                            return {
+                                tokenName: tokenName,
+                                price_sell: priceSell,
+                                price_buy: priceBuy,
+                                volumes_sell: processedData.priceSell || [],
+                                volumes_buy: processedData.priceBuy || []
+                            };
+                        } catch (error) {
+                            console.error(`[getPriceCEX] Error processing data untuk ${tokenName}:`, error.message);
+                            throw new Error(`Error processing data untuk ${tokenName} di ${cex}: ${error.message}`);
+                        }
+                    })();
                 }
                 return Promise.resolve(null);
             });
@@ -383,9 +409,10 @@
             case 'BINANCE': {
                 if (!hasKeys) throw new Error(`${cex} API Key/Secret not configured in CONFIG_CEX.`);
                 const query = `timestamp=${timestamp}`;
-                const sig = calculateSignature("BINANCE", ApiSecret, query, "HmacSHA256");
-                const url = `https://proxykanan.awokawok.workers.dev/?https://api-gcp.binance.com/sapi/v1/capital/config/getall?${query}&signature=${sig}`;
-                const response = await $.ajax({ url, headers: { "X-MBX-ApiKey": ApiKey } });
+                const sig = await hmacSha256(ApiSecret, query);
+                const url = `https://api-gcp.binance.com/sapi/v1/capital/config/getall?${query}&signature=${sig}`;
+                // ✅ Updated: Use fetchSignedRequest with proxy support instead of $.ajax
+                const response = await fetchSignedRequest(url, { 'X-MBX-ApiKey': ApiKey });
                 return response.flatMap(item =>
                     (item.networkList || []).map(net => ({
                         cex,
@@ -404,8 +431,9 @@
                 if (!hasKeys) throw new Error(`${cex} API Key/Secret not configured in CONFIG_CEX.`);
                 const query = `recvWindow=5000&timestamp=${timestamp}`;
                 const sig = calculateSignature("MEXC", ApiSecret, query);
-                const url = `https://proxykiri.awokawok.workers.dev/?https://api.mexc.com/api/v3/capital/config/getall?${query}&signature=${sig}`;
-                const response = await $.ajax({ url, headers: { "X-MEXC-APIKEY": ApiKey } });
+                const url = `https://api.mexc.com/api/v3/capital/config/getall?${query}&signature=${sig}`;
+                // ✅ Gunakan fetchSignedRequest dengan proxy support
+                const response = await fetchSignedRequest(url, { "X-MEXC-APIKEY": ApiKey });
                 return response.flatMap(item =>
                     (item.networkList || []).map(net => ({
                         cex,
@@ -422,7 +450,7 @@
 
             case 'GATE': {
                 if (!hasKeys) throw new Error(`${cex} API Key/Secret not configured in CONFIG_CEX.`);
-                const host = "https://cors.gemul-putra.workers.dev/?https://api.gateio.ws";
+                const host = "https://api.gateio.ws";
                 const prefix = "/api/v4";
                 const ts = Math.floor(Date.now() / 1000);
 
@@ -434,8 +462,10 @@
 
                 const wdPath = "/wallet/withdraw_status";
                 const wdHeaders = { KEY: ApiKey, SIGN: gateSign("GET", prefix + wdPath, "", ""), Timestamp: ts };
-                const wdData = await $.ajax({ url: `${host}${prefix}${wdPath}`, headers: wdHeaders });
-                const statusData = await $.ajax({ url: `${host}${prefix}/spot/currencies` });
+                
+                // ✅ Gunakan fetchSignedRequest & fetchJsonWithProxy dengan proxy support
+                const wdData = await fetchSignedRequest(`${host}${prefix}${wdPath}`, wdHeaders);
+                const statusData = await fetchJsonWithProxy(`${host}${prefix}/spot/currencies`);
 
                 return statusData.flatMap(item =>
                     (item.chains || []).map(chain => {
@@ -443,8 +473,6 @@
                         const chainCode = String(chain.name || chain.chain || chain.network || chain.chain_name || '').toUpperCase();
                         const feeMap = match.withdraw_fix_on_chains || {};
                         const feeOnChain = feeMap[chainCode] ?? feeMap[chain.name] ?? feeMap[chain.chain] ?? 0;
-                        // Gate chain object pakai is_deposit_disabled / is_withdraw_disabled (int 0/1)
-                        // bukan deposit_disabled / withdraw_disabled (boolean) yg ada di level currency
                         const chainOff = Boolean(chain.is_disabled) || Boolean(chain.chain_disabled);
                         const depOff   = chainOff || Boolean(chain.is_deposit_disabled)  || Boolean(chain.deposit_disabled);
                         const wdOff    = chainOff || Boolean(chain.is_withdraw_disabled) || Boolean(chain.withdraw_disabled);
@@ -456,7 +484,7 @@
                             depositEnable: !depOff,
                             withdrawEnable: !wdOff,
                             contractAddress: chain.addr || '',
-                            trading: !item.delisted // GATE: trading = true jika tidak delisted
+                            trading: !item.delisted 
                         };
                     })
                 );
@@ -546,8 +574,9 @@
 
             case 'KUCOIN': {
                 // Public endpoint: currencies and chains
-                const url = `https://proxykiri.awokawok.workers.dev/?https://api.kucoin.com/api/v3/currencies`;
-                const res = await $.ajax({ url, method: 'GET' });
+                const url = `https://api.kucoin.com/api/v3/currencies`;
+                // ✅ Gunakan fetchJsonWithProxy dengan proxy rotation (menghapus hardcoded proxy)
+                const res = await fetchJsonWithProxy(url);
                 const data = (res && res.data) || [];
                 const arr = [];
                 data.forEach(item => {
@@ -577,7 +606,8 @@
             case 'BITGET': {
                 // Public endpoint: coins and chains
                 const url = `https://api.bitget.com/api/v2/spot/public/coins`;
-                const res = await $.ajax({ url, method: 'GET' });
+                // ✅ Gunakan fetchJsonWithProxy dengan proxy support
+                const res = await fetchJsonWithProxy(url);
                 const data = (res && res.data) || [];
                 const arr = [];
                 data.forEach(item => {
@@ -717,60 +747,37 @@
                 // This endpoint includes:
                 // - canDeposit: boolean (deposit status)
                 // - canDraw: boolean (withdrawal status)
-                // - Fee information, minimum amounts, and network details
-                // Reference: LBank API v2 documentation https://www.lbank.com/docs/index.html
+                // Public endpoint: asset configs (currencies and chains)
                 const url = `https://api.lbkex.com/v2/assetConfigs.do`;
-
-                const res = await $.ajax({ url, method: 'GET' });
-                const data = (res && res.data) || [];
+                // ✅ Gunakan fetchJsonWithProxy dengan proxy support
+                const res = await fetchJsonWithProxy(url);
+                const data = res?.data || [];
                 const arr = [];
 
                 data.forEach(item => {
                     const coin = item?.assetCode || '';
-                    const chain = item?.chain || String(item?.chainName || '');
+                    const chains = item?.chains || [];
+                    (chains || []).forEach(net => {
+                        const chain = net?.chainCode || net?.chain || '';
+                        const fee = parseFloat(net?.withdrawFee || 0);
+                        const dep = (String(net?.canDeposit).toLowerCase() === '1') || (net?.canDeposit === 1) || (net?.canDeposit === true);
+                        const wd = (String(net?.canWithdraw).toLowerCase() === '1') || (net?.canWithdraw === 1) || (net?.canWithdraw === true);
+                        
+                        if (!coin || !chain) return;
 
-                    // Parse canDraw (withdraw) - can be boolean or string "true"/"false"
-                    const canWithdraw = (item?.canDraw === true) ||
-                        (item?.canDraw === 'true') ||
-                        (String(item?.canDraw).toLowerCase() === 'true');
-
-                    // Parse canDeposit - can be boolean or string "true"/"false"
-                    const canDeposit = (item?.canDeposit === true) ||
-                        (item?.canDeposit === 'true') ||
-                        (String(item?.canDeposit).toLowerCase() === 'true');
-
-                    // Parse withdrawal fee - can be number or string
-                    const fee = parseFloat(item?.drawFee || item?.fee || 0);
-
-                    if (!coin) return; // Skip if no coin code
-
-                    // ✅ FIXED: Now we have BOTH deposit and withdraw status from assetConfigs endpoint
-                    const depositEnable = canDeposit;
-
-                    // ===== CONTRACT ADDRESS ENRICHMENT =====
-                    // LBank API doesn't provide contract address, so we need enrichment
-                    // This will be enriched later in snapshot-new.js from:
-                    // 1. Existing snapshot data (fallback)
-                    // 2. Token database (DATAJSON per chain)
-                    // 3. Web3 validation
-                    // For now, mark as empty and let enrichment handle it
-                    const contractAddress = ''; // Will be enriched in snapshot-new.js
-
-                    arr.push({
-                        cex: 'LBANK',
-                        tokenName: String(coin).toUpperCase(),
-                        chain: String(chain).toUpperCase(),
-                        feeWDs: isFinite(fee) ? fee : 0,
-                        depositEnable: depositEnable,
-                        withdrawEnable: canWithdraw,
-                        contractAddress: contractAddress,
-                        trading: true, // Assume trading is enabled if coin is listed
-                        // Add flag to indicate enrichment needed
-                        needsEnrichment: true
+                        arr.push({
+                            cex: 'LBANK',
+                            tokenName: String(coin).toUpperCase(),
+                            chain: String(chain).toUpperCase(),
+                            feeWDs: isFinite(fee) ? fee : 0,
+                            depositEnable: !!dep,
+                            withdrawEnable: !!wd,
+                            contractAddress: net?.contractAddress || '',
+                            trading: true // LBANK tidak menyediakan field trading di endpoint assetConfigs
+                        });
                     });
                 });
-
-                console.log(`[LBANK] ✅ Fetched ${arr.length} coins from assetConfigs endpoint (includes deposit & withdraw status)`);
+                console.log(`[LBANK] ✅ Fetched ${arr.length} coins from assetConfigs endpoint`);
                 return arr;
             }
 
@@ -780,7 +787,8 @@
                 // Endpoint: GET /v2/reference/currencies
                 // Ref: https://huobiapi.github.io/docs/spot/v1/en/
                 const url = `https://api.huobi.pro/v2/reference/currencies`;
-                const res = await $.ajax({ url, method: 'GET' });
+                // ✅ Gunakan fetchJsonWithProxy dengan proxy support
+                const res = await fetchJsonWithProxy(url);
 
                 if (res?.code !== 200 || !res?.data) {
                     throw new Error(`HTX API error: ${res?.message || 'Unknown error'}`);
@@ -1357,7 +1365,7 @@
 
                 case 'BINANCE':
                     // Binance API - Get best bid prices (harga jual)
-                    url = 'https://api.binance.com/api/v3/ticker/bookTicker';
+                    url = 'https://data-api.binance.vision/api/v3/ticker/bookTicker';
                     parseResponse = (data) => {
                         const tickers = Array.isArray(data) ? data : [];
                         const priceMap = {};
@@ -1532,8 +1540,10 @@
                     throw new Error(`CEX ${cexUpper} not supported for bulk price fetch`);
             }
 
-            // Fetch data with jQuery Ajax (✅ using user timeout setting)
-            const data = await $.ajax({ url, method: 'GET', timeout: timeoutMs });
+            // ✅ Fetch data with proxy support (rotates through proxies if one fails)
+            // fetchJsonWithProxy automatically detects if a URL is already proxied
+            const data = await fetchJsonWithProxy(url, { timeout: timeoutMs });
+
 
             // Parse response
             const priceMap = parseResponse(data);

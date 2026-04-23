@@ -1433,7 +1433,7 @@
           toChainId: lifiChainId,
           toTokenAddress: toToken,
           options: {
-            integrator: 'brave',
+            integrator: 'talisman',
             order: 'CHEAPEST',
             slippage: parseFloat(getSlippageValue()) / 100,
             maxPriceImpact: 0.4,
@@ -1483,6 +1483,7 @@
   dexStrategies['talisman-flytrade'] = createFilteredTalismanStrategy('fly', 'FLYTRADE');
   dexStrategies['talisman-velora'] = createFilteredTalismanStrategy('paraswap', 'VELORA');
   dexStrategies['talisman-kyber'] = createFilteredTalismanStrategy('kyberswap', 'KYBER');
+  dexStrategies['talisman-sushi'] = createFilteredTalismanStrategy('sushiswap', 'SUSHI');
 
   function createFilteredZapperStrategy(allowExchanges, dexTitleLabel) {
     return {
@@ -1501,7 +1502,7 @@
           fromAmount: amount_in_big.toString(),
           fromAddress: userAddr,
           slippage: String(parseFloat(getSlippageValue()) / 100),
-          integrator: 'brave',
+          integrator: 'zapper',
           fee: '0.004'
         });
         // Apply exchange filter if provided
@@ -1536,6 +1537,7 @@
   dexStrategies['zapper-flytrade'] = createFilteredZapperStrategy('fly', 'FLYTRADE');
   dexStrategies['zapper-velora'] = createFilteredZapperStrategy('paraswap', 'VELORA');
   dexStrategies['zapper-kyber'] = createFilteredZapperStrategy('kyberswap', 'KYBER');
+  dexStrategies['zapper-sushi'] = createFilteredZapperStrategy('sushiswap', 'SUSHI');
 
   function createFilteredBackpackStrategy(allowExchanges, dexTitleLabel) {
     return {
@@ -1586,6 +1588,7 @@
 
   dexStrategies['backpack-jumper'] = createFilteredBackpackStrategy(null, null);
   dexStrategies['backpack-flytrade'] = createFilteredBackpackStrategy('fly', 'FLYTRADE');
+  dexStrategies['backpack-sushi'] = createFilteredBackpackStrategy('sushiswap', 'SUSHI');
 
 
 
@@ -3595,6 +3598,136 @@
   dexStrategies['onekey-odos'] = createFilteredOnekeyStrategy('swapodos', 'ODOS');      // OneKey → hanya provider Odos
 
   // =============================
+  // CTRLFI Strategy - XDEFI/CTRL GraphQL Multi-Route Aggregator
+  // =============================
+  // Protokol: GraphQL POST
+  // Endpoint: https://gql-router.xdefi.services/graphql
+  // Query: routingV2.routeV6 — mengembalikan tradesRoute[] dari berbagai provider
+  // amountSource: jumlah token input dalam human-readable format
+  // EVM only — same-chain swap (srcChain === destChain)
+  dexStrategies.ctrlfi = {
+    buildRequest: ({ chainName, sc_input_in, sc_output_in, amount_in_big, des_input, SavedSettingData }) => {
+      const ctrlChainMap = {
+        'ethereum': 'ETH',    'eth': 'ETH',
+        'bsc': 'BSC',         'bnb': 'BSC',         'binance': 'BSC',
+        'polygon': 'POLYGON', 'matic': 'POLYGON',
+        'arbitrum': 'ARBITRUM', 'arb': 'ARBITRUM',
+        'base': 'BASE',
+        'optimism': 'OPTIMISM', 'op': 'OPTIMISM',
+        'avalanche': 'AVAX',  'avax': 'AVAX',
+        'solana': 'SOL',      'sol': 'SOL',
+      };
+
+      const chain = String(chainName || '').toLowerCase();
+      const ctrlChain = ctrlChainMap[chain];
+      if (!ctrlChain) throw new Error(`CTRL: Chain tidak didukung: ${chainName}`);
+
+      const isSolana = ctrlChain === 'SOL';
+      const evmAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+      const solAddr = SavedSettingData?.walletSolana || 'So11111111111111111111111111111111111111112';
+      const walletAddr = isSolana ? solAddr : evmAddr;
+
+      const amountHuman = (parseFloat(amount_in_big.toString()) / Math.pow(10, des_input)).toString();
+
+      const NATIVE = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
+      const srcAddr = (!isSolana && String(sc_input_in || '').toLowerCase() === NATIVE)
+        ? `${ctrlChain}.${ctrlChain}`
+        : `${ctrlChain}.${sc_input_in}`;
+      const destAddr = (!isSolana && String(sc_output_in || '').toLowerCase() === NATIVE)
+        ? `${ctrlChain}.${ctrlChain}`
+        : `${ctrlChain}.${sc_output_in}`;
+
+      const addresses = [
+        { chain: 'ETH',      address: evmAddr },
+        { chain: 'BSC',      address: evmAddr },
+        { chain: 'POLYGON',  address: evmAddr },
+        { chain: 'ARBITRUM', address: evmAddr },
+        { chain: 'BASE',     address: evmAddr },
+        { chain: 'OPTIMISM', address: evmAddr },
+        { chain: 'SOL',      address: solAddr },
+      ];
+
+      const GQL_QUERY = `query getRoute($srcToken: String!, $destToken: String!, $slippage: String, $addresses: [AddressRouteInputTypeV2!]!, $destAddress: String!, $infiniteApproval: Boolean, $referral: ReferralInputType, $isOptedIn: Boolean, $amountSource: String, $quoteOrigin: QuoteOrigin) {\n  routingV2 {\n    routeV6(\n      srcToken: $srcToken\n      destToken: $destToken\n      slippage: $slippage\n      addresses: $addresses\n      destAddress: $destAddress\n      infiniteApproval: $infiniteApproval\n      referral: $referral\n      isOptedIn: $isOptedIn\n      amountSource: $amountSource\n      quoteOrigin: $quoteOrigin\n    ) {\n      ... on RouteTypeV5 {\n        tradesRoute {\n          amountOut\n          fee { networkFeeDollar xdefiSwapFeeDollar }\n          provider { id name }\n        }\n      }\n      ... on RouteNotAvailableV2 { label reason }\n    }\n  }\n}`;
+
+      const payload = {
+        operationName: 'getRoute',
+        variables: {
+          srcToken: srcAddr,
+          destToken: destAddr,
+          amountSource: amountHuman,
+          slippage: String(getSlippageValue()),
+          addresses,
+          destAddress: walletAddr,
+          infiniteApproval: false,
+          referral: { medium: 'webapp' },
+          quoteOrigin: 'CTRL'
+        },
+        query: GQL_QUERY
+      };
+
+      return {
+        url: 'https://gql-router.xdefi.services/graphql',
+        method: 'POST',
+        data: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/json' }
+      };
+    },
+
+    parseResponse: (response, { chainName }) => {
+      const routeData = response?.data?.routingV2?.routeV6;
+      if (!routeData) throw new Error('CTRL: Tidak ada data route');
+      if (routeData.reason) throw new Error(`CTRL: ${routeData.label || 'Route tidak tersedia'} — ${routeData.reason}`);
+
+      const trades = routeData.tradesRoute;
+      if (!Array.isArray(trades) || trades.length === 0) throw new Error('CTRL: Tidak ada tradesRoute');
+
+      // ⚠️ CATATAN: CTRL API mengembalikan networkFeeDollar yang SANGAT BESAR
+      // (mencakup multi-step routing internal, bukan biaya gas aktual).
+      // → Gunakan getFeeSwap(chainName) saja, sama seperti Kyber.
+      const feeSwapChain = getFeeSwap(chainName);
+
+      const subResults = [];
+      for (const trade of trades) {
+        try {
+          const amtOut = parseFloat(trade.amountOut);
+          if (!Number.isFinite(amtOut) || amtOut <= 0) continue;
+
+          const providerName = String(trade.provider?.name || trade.provider?.id || 'CTRL').toUpperCase();
+          subResults.push({ amount_out: amtOut, FeeSwap: feeSwapChain, feeSource: 'fallback', dexTitle: providerName, routeTool: 'CTRLFI' });
+        } catch (_) { continue; }
+      }
+
+      if (subResults.length === 0) throw new Error('CTRL: Tidak ada quote valid');
+
+      const filtered = filterOffDexResults(subResults);
+      if (filtered.length === 0) throw new Error('CTRL: Semua provider terfilter oleh offDexResultScan');
+
+      filtered.forEach(r => { r.netValue = r.amount_out - r.FeeSwap; });
+      filtered.sort((a, b) => b.netValue - a.netValue);
+
+      const maxN = (() => {
+        try {
+          const v = parseInt((getFromLocalStorage('SETTING_SCANNER') || {}).metaDex?.topRoutes);
+          if (v > 0) return v;
+        } catch (_) { }
+        return (typeof window !== 'undefined' && window.CONFIG_DEXS?.ctrlfi?.maxProviders) || 3;
+      })();
+
+      const topN = filtered.slice(0, maxN);
+
+      return {
+        amount_out: topN[0].amount_out,
+        FeeSwap: topN[0].FeeSwap,
+        feeSource: topN[0].feeSource,
+        dexTitle: topN[0].dexTitle || 'CTRL',
+        routeTool: 'CTRLFI',
+        subResults: topN,
+        isMultiDex: true
+      };
+    }
+  };
+
+  // =============================
   // RANGO Filtered Strategy Factory - Rango as REST API Provider
   // =============================
   /**
@@ -4533,13 +4666,13 @@
                     const e1Code = Number(e1 && e1.statusCode) || 0;
                     const e2Code = Number(e2 && e2.statusCode) || 0;
                     const e3Code = Number(e3 && e3.statusCode) || 0;
-                    
+
                     const p1 = String(selectedStrategy || '').split('-')[0].toUpperCase();
                     const p2 = String(computedFallback || '').split('-')[0].toUpperCase();
                     const p3 = String(alternativeStrategy || '').split('-')[0].toUpperCase();
-                    
+
                     console.error(`[DEX FALLBACK L3 FAILED] ${dexType.toUpperCase()}: P='${selectedStrategy}' (${e1Code}), F='${computedFallback}' (${e2Code}), Alt='${alternativeStrategy}' (${e3Code}) - ALL failed!`);
-                    
+
                     throw {
                       statusCode: e3Code,
                       pesanDEX: `All failed [${p1} \u2192 ${p2} \u2192 ${p3}]: ${e3.pesanDEX || 'timeout'}`,

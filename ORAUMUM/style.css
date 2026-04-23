@@ -2631,6 +2631,12 @@ body.dark-mode .db-table-title .uk-badge {
     color: white !important;
 }
 
+/* CTRL (XDEFI) badge color */
+.bg-ctrlfi {
+    background-color: #808080 !important;
+    color: white !important;
+}
+
 /* LBank CEX badge color */
 .bg-lbank {
     background-color: #3461ff !important;
