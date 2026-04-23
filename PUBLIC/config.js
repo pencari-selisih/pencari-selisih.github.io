@@ -60,7 +60,7 @@ const CONFIG_APP = {
                 showBestOnly: false,       // false = tampilkan semua quote; true = hanya terbaik
                 // ✅ Blacklist: provider yang TIDAK boleh muncul di hasil scan MetaDEX.
                 // Nama harus UPPERCASE. Berlaku untuk semua MetaDEX (LIFI, DZAP, RANGO, METAX, ONEKEY, dll).
-                offDexResultScan: ["OPENOCEAN", "MAYAN", "UNISWAP", "SUSHISWAP", "NORDSTERN", "BITGET", "FLYTRADE", "ENSO"],
+                offDexResultScan: ["OPENOCEAN"],
             },
             // Card Signal DEX: tampilan card/signal untuk hasil META-DEX
             cardSignal: {
