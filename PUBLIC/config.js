@@ -33,7 +33,7 @@ const CONFIG_APP = {
         // Daftar aggregator META-DEX yang tersedia.
         // Setiap aggregator mengembalikan BANYAK quote dari berbagai DEX sekaligus.
         aggregators: {
-            lifi: { enabled: true, evmOnly: false, jedaDex: 600, label: 'JUMPX' },       // EVM + Solana multi-route
+            //lifi: { enabled: true, evmOnly: false, jedaDex: 600, label: 'JUMPX' },       // EVM + Solana multi-route
             // dzap: { enabled: true, evmOnly: false, jedaDex: 500, label: 'DZAP' },       // EVM + Solana multi-route
             // rubic: { enabled: true, evmOnly: false, jedaDex: 500, label: 'Rubic' },     // EVM + Solana multi-quote
             // rango: { enabled: true, evmOnly: false, jedaDex: 500, label: 'RANGO' },       // EVM + Solana multi-quote
@@ -43,7 +43,7 @@ const CONFIG_APP = {
             //ctrlfi: { enabled: true, evmOnly: false, jedaDex: 900, label: 'CTRL' },      // EVM + Solana — XDEFI/CTRL GraphQL multi-route
             //zerion: { enabled: true, evmOnly: true, jedaDex: 800, label: 'ZERION' },     // EVM only — SSE streaming multi-quote (fungibleId + quotes)
             //debridge: { enabled: true, evmOnly: true, jedaDex: 800, label: 'DEBRIDGE' },  // EVM only — deBridge DLN swap
-            // okutrade: { enabled: true, evmOnly: true, jedaDex: 800, label: 'OKUTRADE' }, // EVM only — Oku Trade multi-aggregator (3-step REST)
+             okutrade: { enabled: true, evmOnly: true, jedaDex: 800, label: 'OKUTRADE' }, // EVM only — Oku Trade multi-aggregator (3-step REST)
         },
 
         // Chain yang didukung semua META-DEX aggregators (EVM + Solana)

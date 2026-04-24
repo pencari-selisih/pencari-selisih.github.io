@@ -4221,7 +4221,7 @@
               amount_out: amountOut,
               FeeSwap,
               feeSource,
-              dexTitle: `OKU-${routerName}`,
+              dexTitle: routerName,
               isMultiDex: true
             });
           }

@@ -28,10 +28,11 @@ function getMetaDexBadge(dexKey, size = '9px', style = 'solid') {
     lifi: { label: 'JM', color: '#7c3aed' },  // Jumper purple
     dzap: { label: 'DZ', color: '#d9dc36' },  // DZAP yellow
     rubic: { label: 'RB', color: '#24cc59' },  // Rubic green
-    onekey: { label: 'KY', color: '#00b812' },  // OneKey green
+    onekey: { label: 'XY', color: '#00b812' },  // OneKey green (XY badge)
     debridge: { label: 'DB', color: '#d7ca0e' },  // deBridge
-    ctrlfi: { label: 'CT', color: '#808080' },  // CTRL (XDEFI) grey
+    ctrlfi: { label: 'GT', color: '#666' },  // CTRL (XDEFI) grey (GT badge)
     zerion: { label: 'ZR', color: '#0052ff' },  // Zerion blue
+    okutrade: { label: 'OK', color: '#3498db' }, // Oku blue
   };
 
   const badge = BADGES[key] || { label: 'MT', color: '#888' };
