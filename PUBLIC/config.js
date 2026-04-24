@@ -1,6 +1,6 @@
 const CONFIG_APP = {
     APP: {
-        NAME: "PENCARI-SELISIH",
+        NAME: "PENCARI SELISIH",
         //NAME: "PRIVATE_NOCORS",
         VERSION: "05.00",
         SCAN_LIMIT: true,
@@ -18,7 +18,7 @@ const CONFIG_APP = {
         LIMIT_METADEX: 2,
         // Batas jumlah DEX regular yang bisa dipilih di Filter Scanner.
         // 0 = tidak dibatasi.
-        LIMIT_DEX: 5,
+        LIMIT_DEX: 6,
     },
     // ========================================================================
     // META-DEX CONFIGURATION
@@ -336,7 +336,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://bscscan.com/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi","velora", "flytrade", "odos", "openocean", "lifidex"],  // ✅ lifidex = standalone LIFI (via Temple API)
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi","velora", "flytrade", "odos", "openocean", "cowswap", "lifidex","eisen"],  // ✅ lifidex = standalone LIFI (via Temple API)
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BSC' },
             BINANCE: { address: '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3', address2: '0xe2fc31F816A9b94326492132018C3aEcC4a93aE1', chainCEX: 'BSC' },
@@ -359,7 +359,7 @@ const CONFIG_CHAINS = {
         DEFAULT_RPC: 'https://rpc.llama-rpc.com/polygon?source=llamaswap', // DefiLlama
         BADGE_CLASS: 'bg-success text-light',
         SYNONYMS: ['POLYGON', 'MATIC', 'POLYGON POS', 'POLYGON \\(MATIC\\)', 'POL', 'POLYGONPOS', 'POLYGON_POS', 'POLYGONEVM', 'Polygon PoS', 'polygon'],
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "lifidex"],   // ✅ lifidex = standalone LIFI (via Temple API)
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex","eisen"],   // ✅ lifidex = standalone LIFI (via Temple API)
         LINKS: {
             explorer: {
                 token: (address) => `https://polygonscan.com/token/${address}`,
@@ -397,7 +397,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://arbiscan.io/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi","velora", "flytrade", "odos", "openocean", "lifidex"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi","velora", "flytrade", "odos", "openocean", "cowswap", "lifidex"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'ARBITRUM' },
             BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88', address2: '0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245', chainCEX: 'ARBITRUM' },
@@ -426,7 +426,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://etherscan.io/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi","velora", "flytrade", "odos", "openocean", "lifidex"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi","velora", "flytrade", "odos", "openocean", "cowswap", "lifidex","eisen"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'ETH' },
             BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', address3: '0x21a31Ee1afC51d94C2eFcCAa2092aD1028285549', chainCEX: 'ETH' },
@@ -458,7 +458,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://basescan.org/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi","velora", "flytrade", "odos", "openocean", "lifidex"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi","velora", "flytrade", "odos", "openocean", "cowswap", "lifidex","eisen"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BASE' },
             BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', chainCEX: 'BASE' },
@@ -797,45 +797,7 @@ const CONFIG_DEXS = {
         },
         allowFallback: true,  // ✅ Jika yang dipilih gagal, coba yang lain
     },
-    sushi: {
-        label: 'SUSHI',
-        badgeClass: 'bg-sushi',
-        fallbackSlug: 'sushi',
-        warna: "#fa52a0",
-        builder: ({ chainName, tokenAddress, pairAddress }) =>
-            `https://www.sushi.com/swap?fromChainId=${chainName}&token0=${tokenAddress}&token1=${pairAddress}`,
-        fetchdex: {
-            primary: {
-                tokentopair: 'sushi',
-                pairtotoken: 'sushi'
-            },
-            alternative: {
-                tokentopair: 'talisman-sushi',
-                pairtotoken: 'zapper-sushi'
-            },
-            secondary: {
-                tokentopair: 'brave-sushi',
-                pairtotoken: 'backpack-sushi'
-            }
-        },
-        allowFallback: true,
-    },
-    // wowmax: {
-    //     label: 'WOWMAX',
-    //     badgeClass: 'bg-wowmax',
-    //     fallbackSlug: 'wowmax',
-    //     warna: "#ff7a00",
-    //     proxy: true,
-    //     builder: ({ chainCode, tokenAddress, pairAddress }) =>
-    //         `https://app.wowmax.exchange/swap/${chainCode}/${tokenAddress}/${pairAddress}`,
-    //     fetchdex: {
-    //         primary: {
-    //             tokentopair: 'wowmax',
-    //             pairtotoken: 'wowmax'
-    //         }
-    //     },
-    //     allowFallback: false,
-    // },
+    
     // relay: {
     //     label: 'Relay',
     //     badgeClass: 'bg-relay',
@@ -946,7 +908,7 @@ const CONFIG_DEXS = {
         allowFallback: true,
     },
     
- lifidex: {
+    lifidex: {
         label: 'LIFIDX',
         badgeClass: 'bg-lifidex',
         fallbackSlug: 'lifidex',
@@ -967,22 +929,95 @@ const CONFIG_DEXS = {
         },
         allowFallback: true,   // ✅ Fallback ke alternative jika primary/secondary gagal
     },
-    // eisen: {
-    //     label: 'EISEN',
-    //     badgeClass: 'bg-eisen',
-    //     warna: '#0066ffff',
-    //     isMetaDex: false,
-    //     evmOnly: true,
+    sushi: {
+        label: 'SUSHI',
+        badgeClass: 'bg-sushi',
+        fallbackSlug: 'sushi',
+        warna: "#fa52a0",
+        builder: ({ chainName, tokenAddress, pairAddress }) =>
+            `https://www.sushi.com/swap?fromChainId=${chainName}&token0=${tokenAddress}&token1=${pairAddress}`,
+        fetchdex: {
+            primary: {
+                tokentopair: 'sushi',
+                pairtotoken: 'sushi'
+            },
+            alternative: {
+                tokentopair: 'talisman-sushi',
+                pairtotoken: 'zapper-sushi'
+            },
+            secondary: {
+                tokentopair: 'brave-sushi',
+                pairtotoken: 'backpack-sushi'
+            }
+        },
+        allowFallback: true,
+    },
+    eisen: {
+        label: 'EISEN',
+        badgeClass: 'bg-eisen',
+        fallbackSlug: 'eisen',
+        warna: '#f3bd49ff',
+        isMetaDex: false,
+        evmOnly: true,
+        builder: ({ chainCode, tokenAddress, pairAddress }) =>
+            `https://jumper.exchange/?fromChain=${chainCode}&fromToken=${tokenAddress}&toChain=${chainCode}&toToken=${pairAddress}`,
+        fetchdex: {
+            primary: {
+                tokentopair: 'eisen',
+                pairtotoken: 'eisen'
+            },
+            alternative: {
+                tokentopair: 'talisman-eisen',
+                pairtotoken: 'zapper-eisen'
+            },
+            secondary: {
+                tokentopair: 'brave-eisen',
+                pairtotoken: 'backpack-eisen'
+            },
+        },
+        allowFallback: true
+    },
+cowswap: {
+        label: 'CoWSwap',
+        badgeClass: 'bg-cowswap',
+        fallbackSlug: 'cowswap',
+        warna: '#904b0fff',
+        evmOnly: true,
+        builder: ({ chainCode, tokenAddress, pairAddress }) =>
+            `https://swap.cow.fi/#/${chainCode}/swap/${tokenAddress}/${pairAddress}`,
+        fetchdex: {
+            primary: {
+                tokentopair: 'cowswap',
+                pairtotoken: 'cowswap'
+            },
+            alternative: {
+                tokentopair: 'talisman-cowswap',
+                pairtotoken: 'zapper-cowswap'
+            },
+            secondary: {
+                tokentopair: 'brave-cowswap',
+                pairtotoken: 'backpack-cowswap'
+            },
+        },
+        allowFallback: true,
+    },
+    // wowmax: {
+    //     label: 'WOWMAX',
+    //     badgeClass: 'bg-wowmax',
+    //     fallbackSlug: 'wowmax',
+    //     warna: "#ff7a00",
+    //     proxy: true,
     //     builder: ({ chainCode, tokenAddress, pairAddress }) =>
-    //         `https://app.eisenfinance.com/swap?fromChain=${chainCode}&toChain=${chainCode}&fromToken=${tokenAddress}&toToken=${pairAddress}`,
+    //         `https://app.wowmax.exchange/swap/${chainCode}/${tokenAddress}/${pairAddress}`,
     //     fetchdex: {
     //         primary: {
-    //             tokentopair: 'eisen',
-    //             pairtotoken: 'eisen'
+    //             tokentopair: 'wowmax',
+    //             pairtotoken: 'wowmax'
     //         }
     //     },
-    //     allowFallback: false
+    //     allowFallback: false,
     // },
+    
 
     // ============ SOLANA DEXes ============
     jupiter: {
