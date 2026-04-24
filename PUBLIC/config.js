@@ -15,10 +15,10 @@ const CONFIG_APP = {
         // Berbeda dari DEX regular (single-quote). Berjalan TERPISAH dari scan DEX regular.
         // Jika true → Settings menampilkan panel: Modal DEX, Filter Scanner, Card Signal, Jeda DEX.
         META_DEX: true,
-        LIMIT_METADEX: 5,
+        LIMIT_METADEX: 2,
         // Batas jumlah DEX regular yang bisa dipilih di Filter Scanner.
         // 0 = tidak dibatasi.
-        LIMIT_DEX: 2,
+        LIMIT_DEX: 5,
     },
     // ========================================================================
     // META-DEX CONFIGURATION
