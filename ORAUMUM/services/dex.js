@@ -1599,16 +1599,16 @@
   }
 
   // ✅ 4 canonical unfiltered aliases
-  dexStrategies['brave']    = dexStrategies['lifi'];                     // Brave    — POST /advanced/routes (lifi.wallet.brave.com)
+  dexStrategies['brave'] = dexStrategies['lifi'];                     // Brave    — POST /advanced/routes (lifi.wallet.brave.com)
   dexStrategies['talisman'] = createFilteredTalismanStrategy(null, null); // Talisman — POST /advanced/routes (lifi.talisman.xyz)
-  dexStrategies['zapper']   = createFilteredZapperStrategy(null, null);   // Zapper   — GET /quote (zapper.xyz)
-  dexStrategies['jumper']   = createFilteredBackpackStrategy(null, null);  // Jumper   — GET /quote (lifi.workers.madlads.com)
+  dexStrategies['zapper'] = createFilteredZapperStrategy(null, null);   // Zapper   — GET /quote (zapper.xyz)
+  dexStrategies['jumper'] = createFilteredBackpackStrategy(null, null);  // Jumper   — GET /quote (lifi.workers.madlads.com)
   dexStrategies['backpack'] = dexStrategies['jumper'];                     // Backpack — alias for jumper (same endpoint)
 
   // backward-compat aliases
-  dexStrategies['talisman-jumper']  = dexStrategies['talisman'];
-  dexStrategies['zapper-jumper']    = dexStrategies['zapper'];
-  dexStrategies['backpack-jumper']  = dexStrategies['jumper'];
+  dexStrategies['talisman-jumper'] = dexStrategies['talisman'];
+  dexStrategies['zapper-jumper'] = dexStrategies['zapper'];
+  dexStrategies['backpack-jumper'] = dexStrategies['jumper'];
   dexStrategies['backpack-lifidex'] = dexStrategies['jumper'];
 
   // ✅ Unified LiFi filter factory
@@ -1616,36 +1616,38 @@
   //        createLiFiFilterStrategy('talisman', 'openocean', 'OPENOCEAN')
   function createLiFiFilterStrategy(provider, allowExchanges, dexTitleLabel) {
     const p = String(provider).toLowerCase();
-    if (p === 'brave')                    return createFilteredBraveStrategy(allowExchanges, dexTitleLabel);
-    if (p === 'talisman')                 return createFilteredTalismanStrategy(allowExchanges, dexTitleLabel);
-    if (p === 'zapper')                   return createFilteredZapperStrategy(allowExchanges, dexTitleLabel);
+    if (p === 'brave') return createFilteredBraveStrategy(allowExchanges, dexTitleLabel);
+    if (p === 'talisman') return createFilteredTalismanStrategy(allowExchanges, dexTitleLabel);
+    if (p === 'zapper') return createFilteredZapperStrategy(allowExchanges, dexTitleLabel);
     if (p === 'jumper' || p === 'backpack') return createFilteredBackpackStrategy(allowExchanges, dexTitleLabel);
     throw new Error(`[LiFi] Unknown provider: "${provider}". Valid: brave, talisman, zapper, jumper`);
   }
 
   // DEX filter map: strategy-suffix → [lifi-exchange-slug, LABEL]
   const LIFI_DEX_MAP = {
-    'kyber':      ['kyberswap',  'KYBER'],
-    'velora':     ['paraswap',   'VELORA'],
-    'odos':       ['odos',       'ODOS'],
-    'matcha':     ['0x',         'MATCHA'],
-    'okx':        ['okx',        'OKX'],
-    'sushi':      ['sushiswap',  'SUSHI'],
-    'openocean':  ['openocean',  'OPENOCEAN'],
-    'flytrade':   ['fly',        'FLYTRADE'],
-    '1inch':      ['1inch',      '1INCH'],
+    'kyber': ['kyberswap', 'KYBER'],
+    'velora': ['paraswap', 'VELORA'],
+    'odos': ['odos', 'ODOS'],
+    'matcha': ['0x', 'MATCHA'],
+    'okx': ['okx', 'OKX'],
+    'sushi': ['sushiswap', 'SUSHI'],
+    'openocean': ['openocean', 'OPENOCEAN'],
+    'flytrade': ['fly', 'FLYTRADE'],
+    '1inch': ['1inch', '1INCH'],
+    'eisen': ['eisen', 'EISEN'],
+    'cowswap': ['cow', 'COWSWAP'],
   };
 
   // Auto-register: brave-kyber, talisman-velora, zapper-openocean, jumper-sushi, dll.
-  ['brave', 'talisman', 'zapper', 'jumper'].forEach(function(provider) {
-    Object.entries(LIFI_DEX_MAP).forEach(function(_ref) {
+  ['brave', 'talisman', 'zapper', 'jumper'].forEach(function (provider) {
+    Object.entries(LIFI_DEX_MAP).forEach(function (_ref) {
       var dexKey = _ref[0], lifiSlug = _ref[1][0], label = _ref[1][1];
       dexStrategies[provider + '-' + dexKey] = createLiFiFilterStrategy(provider, lifiSlug, label);
     });
   });
 
   // backpack-* aliases (backward compat)
-  Object.keys(LIFI_DEX_MAP).forEach(function(dexKey) {
+  Object.keys(LIFI_DEX_MAP).forEach(function (dexKey) {
     dexStrategies['backpack-' + dexKey] = dexStrategies['jumper-' + dexKey];
   });
 
@@ -1913,7 +1915,7 @@
             }
           }
         }
-      } catch (_) {}
+      } catch (_) { }
       const { FeeSwap, feeSource } = resolveFeeSwap(0, calcUsd, chainName);
       return { amount_out, FeeSwap, feeSource, dexTitle: 'OPENOCEAN', routeTool: 'OPENOCEAN' };
     }
@@ -2575,13 +2577,10 @@
   // EISEN Strategy - Multi-DEX Aggregator
   // =============================
   dexStrategies.eisen = {
-    buildRequest: ({ codeChain, sc_input, sc_output, amount_in_big }) => {
-      // Eisen Aggregator API - Official Documentation Reference
-      // Method: POST
-      // Payload includes standard DEX filters and routing parameters
+    buildRequest: ({ codeChain, sc_input_in, sc_output_in, amount_in_big }) => {
       const body = {
-        tokenInAddr: sc_input,
-        tokenOutAddr: sc_output,
+        tokenInAddr: sc_input_in,
+        tokenOutAddr: sc_output_in,
         from: "",
         amount: amount_in_big.toString(),
         maxEdge: "3",
@@ -2631,6 +2630,55 @@
         dexTitle: 'EISEN',
         routeTool: 'EISEN'
       };
+    }
+  };
+
+  // POST https://api.cow.fi/{chain}/api/v1/quote
+  dexStrategies['cowswap'] = {
+    proxy: false,
+    buildRequest: ({ sc_input_in, sc_output_in, amount_in_big, chainName, SavedSettingData }) => {
+      const wallet = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+      const chainSlugMap = { ethereum: 'mainnet', gnosis: 'xdai', arbitrum: 'arbitrum_one', bsc: 'bnb', base: 'base' };
+      const chainSlug = chainSlugMap[String(chainName || '').toLowerCase()] || 'mainnet';
+      const body = {
+        from: wallet,
+        sellToken: sc_input_in,
+        buyToken: sc_output_in,
+        receiver: wallet,
+        validFor: 1800,
+        appData: '{"appCode":"CoW Swap","environment":"production","metadata":{"orderClass":{"orderClass":"market"},"quote":{"slippageBips":42,"smartSlippage":true}},"version":"1.14.0"}',
+        appDataHash: '0x6e76141f124279e8cdaa1cb6436894e41612b8e8230323a1c73e6aee59a7b324',
+        priceQuality: 'optimal',
+        signingScheme: 'eip712',
+        kind: 'sell',
+        sellAmountBeforeFee: String(amount_in_big)
+      };
+      return {
+        url: `https://api.cow.fi/${chainSlug}/api/v1/quote`,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        data: JSON.stringify(body)
+      };
+    },
+    parseResponse: (response, { des_output, chainName }) => {
+      const quote = response?.quote;
+      if (!quote?.buyAmount) throw new Error('CoW Swap: missing buyAmount in response');
+      const amount_out = parseFloat(quote.buyAmount) / Math.pow(10, des_output);
+      if (!Number.isFinite(amount_out) || amount_out <= 0) throw new Error('CoW Swap: invalid output amount');
+      let _calcUsd = 0;
+      try {
+        const gasUnitsRaw = parseFloat(quote.gasAmount || 0);
+        if (gasUnitsRaw > 0) {
+          const gasUnits = capGasUnits(gasUnitsRaw, chainName);
+          const allGasData = (typeof getFromLocalStorage === 'function') ? getFromLocalStorage('ALL_GAS_FEES') : null;
+          if (allGasData) {
+            const gasInfo = allGasData.find(g => String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase());
+            if (gasInfo?.gwei && gasInfo?.tokenPrice) _calcUsd = (parseFloat(gasInfo.gwei) * gasUnits / 1e9) * parseFloat(gasInfo.tokenPrice);
+          }
+        }
+      } catch (_) { }
+      const { FeeSwap, feeSource } = resolveFeeSwap(0, _calcUsd, chainName);
+      return { amount_out, FeeSwap, feeSource, dexTitle: 'COWSWAP', routeTool: 'COWSWAP' };
     }
   };
 
