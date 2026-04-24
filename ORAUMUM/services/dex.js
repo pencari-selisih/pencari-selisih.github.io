@@ -4247,6 +4247,348 @@
     }
   };
 
+  // =============================
+  // ZERION Strategy - Zerion Swap SSE Streaming Multi-Quote
+  // =============================
+  // Protokol: SSE via fetch + ReadableStream (bukan EventSource — perlu custom headers)
+  // Step 1: Lookup fungibleId canonical via GET /zpi/search/query/v1
+  // Step 2: Stream swap quotes via GET /transaction/stream-swap-quotes/v2 (SSE)
+  // amountHuman: konversi dari amount_in_big (wei BigInt) → human-readable
+  // outputAmount dari Zerion sudah human-readable, tidak perlu /10^decimals
+
+  const _zerionChainMap = {
+    'bsc': 'binance-smart-chain', 'bnb': 'binance-smart-chain', 'binance': 'binance-smart-chain',
+    'ethereum': 'ethereum', 'eth': 'ethereum',
+    'polygon': 'polygon', 'matic': 'polygon',
+    'arbitrum': 'arbitrum', 'arb': 'arbitrum',
+    'base': 'base'
+  };
+
+  const _zerionHeaders = {
+    'zerion-client-type': 'web-extension',
+    'zerion-client-version': '1.38.2'
+  };
+
+  // Cache fungibleId persistent (IndexedDB/localStorage)
+  const _zerionFungibleCache = (typeof getFromLocalStorage === 'function') ? (getFromLocalStorage('ZERION_FUNGIBLE_CACHE', {}) || {}) : {};
+  const _zerionFungibleInFlight = {}; // key → Promise (in-flight dedup)
+  // Expose ke window agar builder di config.js bisa baca fungibleId secara sync
+  root._zerionFungibleCache = _zerionFungibleCache;
+
+  // Semaphore lookup: maks 2 request fungibleId berjalan bersamaan
+  // (mencegah Cloudflare rate-limit karena terlalu banyak concurrent request)
+  let _zerionLookupActive = 0;
+  const _zerionLookupQueue = [];
+  function _zerionLookupAcquire() {
+    return new Promise(resolve => {
+      if (_zerionLookupActive < 2) { _zerionLookupActive++; resolve(); }
+      else _zerionLookupQueue.push(resolve);
+    });
+  }
+  function _zerionLookupRelease() {
+    const next = _zerionLookupQueue.shift();
+    if (next) next();
+    else _zerionLookupActive--;
+  }
+
+  // Helper: proxy base URL untuk SSE stream
+  function _zerionProxyBase() {
+    try {
+      if (typeof getCorsProxyUrl === 'function') return getCorsProxyUrl();
+      if (root.CONFIG_PROXY?.PREFIX) return root.CONFIG_PROXY.PREFIX;
+    } catch (_) {}
+    return 'https://proxykanan.awokawok.workers.dev/?';
+  }
+
+  function _zerionGetFungibleId(contractAddress, chainSlug) {
+    const key = `${chainSlug}:${contractAddress.toLowerCase()}`;
+
+    // 1. Cache hit — sudah punya hasil final (in-memory atau persistent storage)
+    if (_zerionFungibleCache[key]) return Promise.resolve(_zerionFungibleCache[key]);
+
+    // 1.5 Double check persistent storage jika memory cache belum sinkron
+    if (typeof getFromLocalStorage === 'function') {
+      const persistent = getFromLocalStorage('ZERION_FUNGIBLE_CACHE', {});
+      if (persistent && persistent[key]) {
+        _zerionFungibleCache[key] = persistent[key];
+        return Promise.resolve(persistent[key]);
+      }
+    }
+
+    // 2. In-flight dedup — ada request yang sedang berjalan untuk key yang sama
+    if (_zerionFungibleInFlight[key]) return _zerionFungibleInFlight[key];
+
+    // 3. Native token — tidak perlu request
+    if (contractAddress.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') {
+      const nativeId = `${chainSlug}:native`;
+      _zerionFungibleCache[key] = nativeId;
+      return Promise.resolve(nativeId);
+    }
+
+    // 4. Buat request baru
+    //    Gunakan proxy biasa dari app (fetchWithProxy) agar CORS tidak memblokir lookup
+    const promise = (async () => {
+      await _zerionLookupAcquire();
+      try {
+        const lookupUrl = `https://app.zerion.io/zpi/search/query-fungibles/v1?currency=usd&limit=20&query=${contractAddress.toLowerCase()}&sort=-market_data.market_cap`;
+        
+        const proxyFetch = (typeof fetchWithProxy === 'function') ? fetchWithProxy : (typeof root.fetchWithProxy === 'function') ? root.fetchWithProxy : null;
+        
+        let res;
+        if (proxyFetch) {
+          // fetchWithProxy handles CORS proxying, timeouts, and retries automatically
+          res = await proxyFetch(lookupUrl, { headers: _zerionHeaders, timeout: 8000, retries: 1 });
+        } else {
+          // Fallback jika fetchWithProxy tidak tersedia
+          res = await fetch(lookupUrl, { headers: _zerionHeaders, signal: AbortSignal.timeout(8000) });
+          if (!res.ok) throw new Error(`Zerion search HTTP ${res.status}`);
+        }
+
+        const json = await res.json();
+        const items = json?.data || [];
+
+        const matched = items.find(item => item.implementations?.[chainSlug]);
+        const best = matched || items[0];
+        if (!best?.id) throw new Error(`Zerion: fungibleId tidak ditemukan untuk ${contractAddress} di ${chainSlug}`);
+
+        _zerionFungibleCache[key] = best.id;
+        
+        // Simpan ke persistent storage agar tidak perlu request lagi di sesi berikutnya
+        if (typeof saveToLocalStorage === 'function') {
+          saveToLocalStorage('ZERION_FUNGIBLE_CACHE', _zerionFungibleCache);
+        }
+        
+        return best.id;
+      } catch (e) {
+        if (e.name === 'AbortError' || e.message?.includes('fungibleId tidak ditemukan')) throw e;
+        throw e;
+      } finally {
+        _zerionLookupRelease();
+        delete _zerionFungibleInFlight[key];
+      }
+    })();
+
+    _zerionFungibleInFlight[key] = promise;
+    return promise;
+  }
+
+  // Semaphore: maks 2 SSE connections aktif ke Zerion secara bersamaan
+  let _zerionActiveCount = 0;
+  const _zerionWaitQueue = [];
+
+  function _zerionAcquire() {
+    return new Promise(resolve => {
+      if (_zerionActiveCount < 2) { _zerionActiveCount++; resolve(); }
+      else _zerionWaitQueue.push(resolve);
+    });
+  }
+
+  function _zerionRelease() {
+    const next = _zerionWaitQueue.shift();
+    if (next) next();
+    else _zerionActiveCount--;
+  }
+
+  dexStrategies.zerion = {
+    execute: async ({ chainName, sc_input_in, sc_output_in, amount_in_big, des_input, SavedSettingData }) => {
+      const chain = String(chainName || '').toLowerCase();
+      const chainSlug = _zerionChainMap[chain];
+      if (!chainSlug) throw new Error(`Zerion: Chain tidak didukung: ${chainName}`);
+
+      const [fungibleIn, fungibleOut] = await Promise.all([
+        _zerionGetFungibleId(sc_input_in, chainSlug),
+        _zerionGetFungibleId(sc_output_in, chainSlug)
+      ]);
+
+      const walletAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+      const amountHuman = (parseFloat(amount_in_big.toString()) / Math.pow(10, des_input)).toString();
+      const slippage = typeof getSlippageValue === 'function' ? String(getSlippageValue()) : '1';
+
+      const sseUrl = `https://zpi.zerion.io/transaction/stream-swap-quotes/v2?${new URLSearchParams({
+        currency: 'usd', inputChain: chainSlug, from: walletAddr,
+        inputFungibleId: fungibleIn, outputFungibleId: fungibleOut,
+        inputAmount: amountHuman, slippage
+      }).toString()}`;
+
+      await _zerionAcquire();
+
+      return new Promise(async (resolve, reject) => {
+        const quotes = [];
+        let done = false;
+        const controller = new AbortController();
+
+        const closeAndRelease = () => {
+          try { controller.abort(); } catch (_) {}
+          _zerionRelease();
+        };
+
+        const buildTopN = () => {
+          const filtered = filterOffDexResults(quotes);
+          if (filtered.length === 0) return null;
+          filtered.forEach(r => { r.netValue = r.amount_out - r.FeeSwap; });
+          filtered.sort((a, b) => b.netValue - a.netValue);
+          const maxN = (() => {
+            try {
+              const v = parseInt((getFromLocalStorage('SETTING_SCANNER') || {}).metaDex?.topRoutes);
+              if (v > 0) return v;
+            } catch (_) {}
+            return (root.CONFIG_DEXS?.zerion?.maxProviders) || 3;
+          })();
+          return filtered.slice(0, maxN);
+        };
+
+        const finish = (reason) => {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          closeAndRelease();
+
+          if (quotes.length === 0) return reject(new Error(`Zerion: Tidak ada quote (${reason})`));
+
+          const topN = buildTopN();
+          if (!topN || topN.length === 0) return reject(new Error('Zerion: Semua provider terfilter oleh offDexResultScan'));
+
+          console.log(`[ZERION] Top ${topN.length} quotes (${reason}):`);
+          topN.forEach((r, i) => {
+            console.log(`  → #${i + 1} ${r.dexTitle}: out=${r.amount_out.toFixed(6)}, fee=$${r.FeeSwap.toFixed(4)} (${r.feeSource})`);
+          });
+
+          resolve({
+            amount_out: topN[0].amount_out,
+            FeeSwap: topN[0].FeeSwap,
+            feeSource: topN[0].feeSource,
+            dexTitle: topN[0].dexTitle || 'ZERION',
+            routeTool: 'ZERION',
+            subResults: topN,
+            isMultiDex: true
+          });
+        };
+
+        const timer = setTimeout(() => finish('timeout'), 8000);
+
+        // Normalisasi nama provider Zerion: API kadang pakai ID pendek (mis. "1in", "kyb")
+        // Map key: lowercase ID/name dari API, value: nama display uppercase
+        const _ZR_NAMES = {
+          '1in': '1INCH', '1inch': '1INCH', 'oneinch': '1INCH',
+          'kyb': 'KYBERSWAP', 'kyber': 'KYBERSWAP', 'kyberswap': 'KYBERSWAP',
+          '0x': '0X', '0x exchange': '0X', 'zeroex': '0X', 'zerox': '0X',
+          'paraswap': 'PARASWAP', 'velora': 'PARASWAP',
+          'uni': 'UNISWAP', 'uniswap': 'UNISWAP',
+          'ods': 'ODOS', 'odos': 'ODOS',
+          'relay': 'RELAY',
+          'socket': 'SOCKET',
+          'okx': 'OKX', 'okxdex': 'OKX',
+          'sushi': 'SUSHI', 'sushiswap': 'SUSHI',
+          'lifi': 'LIFI', 'lifidex': 'LIFI',
+          'dodo': 'DODO',
+          'enso': 'ENSO',
+          'openocean': 'OPENOCEAN',
+          'rango': 'RANGO',
+          'bungee': 'BUNGEE',
+          'debridge': 'DEBRIDGE',
+        };
+
+        const processItem = (q) => {
+          const qtyAfterFees = parseFloat(q.outputAmountAfterFees?.quantity || '0');
+          const qty = parseFloat(q.outputAmount?.quantity || '0');
+          const amount_out = qtyAfterFees > 0 ? qtyAfterFees : qty;
+          if (!amount_out || amount_out <= 0) return;
+
+          let feeUsdApi = 0;
+          if (q.protocolFee?.amount?.usdValue != null) feeUsdApi += parseFloat(q.protocolFee.amount.usdValue) || 0;
+          if (q.bridgeFee?.amount?.usdValue != null) feeUsdApi += parseFloat(q.bridgeFee.amount.usdValue) || 0;
+
+          const { FeeSwap, feeSource } = resolveFeeSwap(feeUsdApi, 0, chainName);
+
+          // Prioritas: name > id; normalisasi via map, fallback ke uppercase mentah
+          const nameRaw = String(q.contractMetadata?.name || '').trim();
+          const idRaw = String(q.contractMetadata?.id || '').trim();
+          const lookupKey = (nameRaw || idRaw).toLowerCase().replace(/\s+/g, '');
+          const dexTitle = _ZR_NAMES[lookupKey] || (nameRaw || idRaw || 'ZERION').toUpperCase();
+
+          console.log(`[ZERION] provider raw: name="${nameRaw}" id="${idRaw}" → ${dexTitle}`);
+
+          const existing = quotes.find(x => x.dexTitle === dexTitle);
+          if (!existing) {
+            quotes.push({ amount_out, FeeSwap, feeSource, dexTitle, routeTool: 'ZERION' });
+          } else if (amount_out > existing.amount_out) {
+            existing.amount_out = amount_out;
+            existing.FeeSwap = FeeSwap;
+            existing.feeSource = feeSource;
+          }
+        };
+
+        try {
+          // Route SSE melalui proxy agar CORS tidak blokir custom headers
+          const _zProxied = _zerionProxyBase() + encodeURIComponent(sseUrl);
+          const response = await fetch(_zProxied, {
+            headers: { ..._zerionHeaders, 'Accept': 'text/event-stream' },
+            signal: controller.signal
+          });
+          if (!response.ok) {
+            done = true; clearTimeout(timer); closeAndRelease();
+            return reject(new Error(`Zerion HTTP ${response.status}`));
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          let currentEvent = '';
+
+          while (!done) {
+            let chunk;
+            try { chunk = await reader.read(); } catch (_) { break; }
+            const { value, done: streamDone } = chunk;
+            if (streamDone) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            let streamEnded = false;
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith('event:')) { currentEvent = trimmed.slice(6).trim(); continue; }
+              if (!trimmed.startsWith('data:')) continue;
+              if (currentEvent === 'end') { streamEnded = true; break; }
+              const dataStr = trimmed.replace(/^data:\s*/, '');
+              if (!dataStr || dataStr === 'null') continue;
+              try {
+                const msg = JSON.parse(dataStr);
+                if (!msg) continue;
+                const items = Array.isArray(msg) ? msg : (msg.data && Array.isArray(msg.data) ? msg.data : [msg]);
+                for (const item of items) { if (item) processItem(item.attributes || item); }
+              } catch (_) {}
+            }
+            if (streamEnded) break;
+          }
+
+          reader.cancel().catch(() => {});
+          finish('end');
+        } catch (err) {
+          if (!done) {
+            done = true; clearTimeout(timer); closeAndRelease();
+            if (quotes.length > 0) {
+              const topN = buildTopN();
+              if (topN && topN.length > 0) {
+                return resolve({
+                  amount_out: topN[0].amount_out,
+                  FeeSwap: topN[0].FeeSwap,
+                  feeSource: topN[0].feeSource,
+                  dexTitle: topN[0].dexTitle || 'ZERION',
+                  routeTool: 'ZERION',
+                  subResults: topN,
+                  isMultiDex: true
+                });
+              }
+            }
+            reject(new Error(`Zerion: ${err.name === 'AbortError' ? 'Koneksi di-abort' : err.message}`));
+          }
+        }
+      });
+    }
+  };
+
   /**
    * Quote swap output from a DEX aggregator.
    * Builds request by strategy, applies timeout, and returns parsed amounts.

@@ -31,6 +31,7 @@ function getMetaDexBadge(dexKey, size = '9px', style = 'solid') {
     onekey: { label: 'KY', color: '#00b812' },  // OneKey green
     debridge: { label: 'DB', color: '#d7ca0e' },  // deBridge
     ctrlfi: { label: 'CT', color: '#808080' },  // CTRL (XDEFI) grey
+    zerion: { label: 'ZR', color: '#0052ff' },  // Zerion blue
   };
 
   const badge = BADGES[key] || { label: 'MT', color: '#888' };
