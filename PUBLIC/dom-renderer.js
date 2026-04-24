@@ -30,6 +30,8 @@ function getMetaDexBadge(dexKey, size = '9px', style = 'solid') {
     rubic: { label: 'RB', color: '#24cc59' },  // Rubic green
     onekey: { label: 'KY', color: '#00b812' },  // OneKey green
     debridge: { label: 'DB', color: '#d7ca0e' },  // deBridge
+    ctrlfi: { label: 'CT', color: '#808080' },  // CTRL (XDEFI) grey
+    zerion: { label: 'ZR', color: '#0052ff' },  // Zerion blue
   };
 
   const badge = BADGES[key] || { label: 'MT', color: '#888' };
@@ -1618,7 +1620,7 @@ function DisplayPNL(data) {
         // Colors & names
         const pnlColor = subPnl >= 0 ? '#28a745' : '#dc3545';
         const providerName = String(subRes.dexTitle || subRes.dexName || subRes.provider || subRes.dexId || '').toUpperCase();
-        const displayName = providerName.length > 10 ? providerName.substring(0, 10) : providerName;
+        const displayName = providerName.length > 6 ? providerName.substring(0, 6) : providerName;
         // ⚠️ Dynamic border: hanya tampilkan border jika bukan kolom terakhir
         const borderRight = idx < (maxProviders - 1) ? 'border-right: 1px solid #dee2e6;' : '';
 
@@ -2640,7 +2642,7 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
   // DEX→CEX (PairToToken) = merah (#FF0000)
   const dexBadgeColor = (trx === "TokentoPair") ? "#00AA00" : "#FF0000";
   const dexInfoDisplay = isMetaDex && providerInfo
-    ? ` <span style="color:${dexBadgeColor}; font-size:11px; font-weight:bold;">[${providerInfo}]</span>`
+    ? ` <span style="color:${dexBadgeColor}; font-size:11px; font-weight:bold;">[${String(providerInfo).toUpperCase().substring(0, 6)}]</span>`
     : '';
 
   const sLink = `

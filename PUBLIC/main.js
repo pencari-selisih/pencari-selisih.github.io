@@ -6024,13 +6024,13 @@ $(document).ready(function () {
             const dexColor = dexConfig.warna || '#333';
 
             $dex.append(`
-                <div class="uk-flex uk-flex-middle sync-dex-row" data-dex="${dx}" style="gap:6px; padding: 4px; border-left: 3px solid ${dexColor}; background: ${dexColor}08;">
+                <div class="uk-flex uk-flex-middle sync-dex-row" data-dex="${dx}" style="gap:8px; padding: 4px 6px; border-left: 3px solid ${dexColor}; background: ${dexColor}08;">
                     <label class="uk-margin-remove" style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="checkbox" class="uk-checkbox sync-dex-checkbox" data-dex="${dx}" checked style="margin-right: 6px;">
+                        <input type="checkbox" class="uk-checkbox sync-dex-checkbox" data-dex="${dx}" checked style="margin-right: 8px; width:16px; height:16px;">
                     </label>
-                    <span class="uk-text-small uk-text-bold sync-dex-label" style="width:70px; color: ${dexColor};">${dx.toUpperCase()}</span>
-                    <input type="number" class="uk-input uk-form-small sync-dex-left" data-dex="${dx}" placeholder="Modal Kiri" value="100" style="flex: 1;">
-                    <input type="number" class="uk-input uk-form-small sync-dex-right" data-dex="${dx}" placeholder="Modal Kanan" value="100" style="flex: 1;">
+                    <span class="uk-text-bold sync-dex-label" style="width:80px; font-size:12px; color: ${dexColor}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${dx.toUpperCase()}</span>
+                    <input type="number" class="uk-input uk-form-small sync-dex-left" data-dex="${dx}" placeholder="L" value="100" style="flex: 1; height: 26px; font-size: 11px; padding: 0 6px;">
+                    <input type="number" class="uk-input uk-form-small sync-dex-right" data-dex="${dx}" placeholder="R" value="100" style="flex: 1; height: 26px; font-size: 11px; padding: 0 6px;">
                 </div>`);
         });
 
@@ -6047,20 +6047,20 @@ $(document).ready(function () {
             });
 
             if (metaAggs.length > 0) {
-                $dex.append(`<div style="border-top:1px dashed #c084fc; margin:6px 0 4px; padding-top:4px;"><span style="font-size:10px; color:#7c3aed; font-weight:700;">META-DEX AGGREGATOR</span></div>`);
+                $dex.append(`<div style="border-top:1px dashed #c084fc; margin:4px 0 2px; padding-top:2px;"><span style="font-size:9px; color:#7c3aed; font-weight:700;">META-DEX AGGREGATOR</span></div>`);
                 metaAggs.forEach(aggKey => {
                     const aggCfg = window.CONFIG_DEXS[aggKey] || {};
                     const aggLabel = (aggCfg.label || aggKey).toUpperCase();
                     const aggColor = aggCfg.warna || '#7c3aed';
                     const _mb3 = (typeof window.getMetaDexBadge === 'function') ? window.getMetaDexBadge(aggKey, '8px', 'solid') : '';
                     $dex.append(`
-                        <div class="uk-flex uk-flex-middle sync-dex-row" data-dex="${aggKey}" style="gap:6px; padding: 4px; border-left: 3px solid ${aggColor}; background: ${aggColor}08;">
+                        <div class="uk-flex uk-flex-middle sync-dex-row" data-dex="${aggKey}" style="gap:8px; padding: 4px 6px; border-left: 3px solid ${aggColor}; background: ${aggColor}08;">
                             <label class="uk-margin-remove" style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="checkbox" class="uk-checkbox sync-metadex-checkbox" data-dex="${aggKey}" style="margin-right: 6px;">
+                                <input type="checkbox" class="uk-checkbox sync-metadex-checkbox" data-dex="${aggKey}" style="margin-right: 8px; width:16px; height:16px;">
                             </label>
-                            <span class="uk-text-small uk-text-bold sync-dex-label" style="width:70px; color: ${aggColor};">${aggLabel} ${_mb3}</span>
-                            <input type="number" class="uk-input uk-form-small sync-metadex-left" data-dex="${aggKey}" placeholder="Modal Kiri" value="100" style="flex: 1; border-color:${aggColor}55;">
-                            <input type="number" class="uk-input uk-form-small sync-metadex-right" data-dex="${aggKey}" placeholder="Modal Kanan" value="100" style="flex: 1; border-color:${aggColor}55;">
+                            <span class="uk-text-bold sync-dex-label" style="width:80px; font-size:12px; color: ${aggColor}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${aggLabel} ${_mb3}</span>
+                            <input type="number" class="uk-input uk-form-small sync-metadex-left" data-dex="${aggKey}" placeholder="L" value="100" style="flex: 1; height: 26px; font-size: 11px; padding: 0 6px; border-color:${aggColor}55;">
+                            <input type="number" class="uk-input uk-form-small sync-metadex-right" data-dex="${aggKey}" placeholder="R" value="100" style="flex: 1; height: 26px; font-size: 11px; padding: 0 6px; border-color:${aggColor}55;">
                         </div>`);
                 });
             }

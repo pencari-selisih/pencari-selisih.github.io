@@ -1040,8 +1040,8 @@ input[type="radio"],
 
 /* Compact DEX config list - 1 DEX per row */
 #sync-modal #sync-dex-config {
-    max-height: 280px;
-    gap: 4px;
+    max-height: 60vh;
+    gap: 2px;
     display: flex;
     flex-direction: column;
 }
@@ -2628,6 +2628,18 @@ body.dark-mode .db-table-title .uk-badge {
 
 .bg-rango {
     background-color: #00d4aa !important;
+    color: white !important;
+}
+
+/* CTRL (XDEFI) badge color */
+.bg-ctrlfi {
+    background-color: #808080 !important;
+    color: white !important;
+}
+
+/* Zerion badge color */
+.bg-zerion {
+    background-color: #0052ff !important;
     color: white !important;
 }
 

@@ -1,8 +1,8 @@
 const CONFIG_APP = {
     APP: {
         NAME: "PENCARI-SELISIH",
-        // NAME: "PRIVATE_NOCORS",
-        VERSION: "04.24",
+        //NAME: "PRIVATE_NOCORS",
+        VERSION: "04.25",
         SCAN_LIMIT: true,
         AUTORUN: false,
         AUTO_VOLUME: false,  // cek level order otomatis kalkulasi PNL
@@ -39,7 +39,9 @@ const CONFIG_APP = {
             // rango: { enabled: true, evmOnly: false, jedaDex: 500, label: 'RANGO' },       // EVM + Solana multi-quote
             //rocketx: { enabled: true, evmOnly: false, jedaDex: 600, label: 'ROCKET' },    // EVM + Solana multi-quote
             metax: { enabled: true, evmOnly: true, jedaDex: 800, label: 'METAX' },       // EVM only (no Solana support)
-            //onekey: { enabled: true, evmOnly: true, jedaDex: 800, label: 'ONEX' },       // EVM only — SSE streaming (OKX, 1inch, 0x)
+            // onekey: { enabled: true, evmOnly: true, jedaDex: 800, label: 'ONEX' },       // EVM only — SSE streaming (OKX, 1inch, 0x)
+            //ctrlfi: { enabled: true, evmOnly: false, jedaDex: 900, label: 'CTRL' },      // EVM + Solana — XDEFI/CTRL GraphQL multi-route
+            //zerion: { enabled: true, evmOnly: true, jedaDex: 800, label: 'ZERION' },     // EVM only — SSE streaming multi-quote (fungibleId + quotes)
             //debridge: { enabled: true, evmOnly: true, jedaDex: 800, label: 'DEBRIDGE' },  // EVM only — deBridge DLN swap
             // okutrade: { enabled: true, evmOnly: true, jedaDex: 800, label: 'OKUTRADE' }, // EVM only — Oku Trade multi-aggregator (3-step REST)
         },
@@ -93,6 +95,7 @@ try { if (typeof window !== 'undefined') { window.CONFIG_DB = window.CONFIG_DB |
 
 const CONFIG_CEX = {
     GATE: {
+        LABEL: 'Gateio', SHORT: 'GATE', BADGE_CLASS: 'bg-gateio',
         ICON: "assets/icons/cex/gate.png",
         WARNA: "#D5006D",  // Pink tua
         TRADE_FEE: 0.001,  // 0.1% taker fee
@@ -108,6 +111,7 @@ const CONFIG_CEX = {
         }
     },
     BINANCE: {
+        LABEL: 'Binance', SHORT: 'BINC', BADGE_CLASS: 'bg-binance',
         ICON: "assets/icons/cex/binance.png",
         WARNA: "#e0a50c",  // Orange tua
         TRADE_FEE: 0.001,  // 0.1% taker fee
@@ -123,6 +127,7 @@ const CONFIG_CEX = {
         }
     },
     MEXC: {
+        LABEL: 'MEXC', SHORT: 'MEXC', BADGE_CLASS: 'bg-mexc',
         ICON: "assets/icons/cex/mexc.png",
         WARNA: "#1448ce",  // Biru muda
         TRADE_FEE: 0.0005,  // 0.05% taker fee
@@ -137,55 +142,8 @@ const CONFIG_CEX = {
             parser: 'standard'
         }
     },
-    KUCOIN: {
-        ICON: "assets/icons/cex/kucoin.png",
-        WARNA: "#29b3af",
-        TRADE_FEE: 0.001,  // 0.1% taker fee
-        LINKS: {
-            tradeToken: ({ token }) => `https://www.kucoin.com/trade/${String(token || '').toUpperCase()}-USDT`,
-            tradePair: ({ pair }) => `https://www.kucoin.com/trade/${String(pair || '').toUpperCase()}-USDT`,
-            withdraw: ({ token }) => `https://www.kucoin.com/assets/withdraw/${String(token || '').toUpperCase()}?isDefault=true`,
-            deposit: ({ token }) => `https://www.kucoin.com/assets/coin/${String(token || '').toUpperCase()}`
-        },
-        ORDERBOOK: {
-            // KuCoin returns { data: { bids:[[price, size]], asks:[[price, size]] } }
-            urlTpl: ({ symbol }) => `https://api.kucoin.com/api/v1/market/orderbook/level2_20?symbol=${String(symbol || '').toUpperCase()}-USDT`,
-            parser: 'kucoin'
-        }
-    },
-    BITGET: {
-        ICON: "assets/icons/cex/bitget.png",
-        WARNA: "#1aaaba",
-        TRADE_FEE: 0.001,  // 0.1% taker fee
-        LINKS: {
-            tradeToken: ({ token }) => `https://www.bitget.com/spot/${String(token || '').toUpperCase()}USDT`,
-            tradePair: ({ pair }) => `https://www.bitget.com/spot/${String(pair || '').toUpperCase()}USDT`,
-            withdraw: ({ token }) => `https://www.bitget.com/asset/withdraw?coin=${String(token || '').toUpperCase()}`,
-            deposit: ({ token }) => `https://www.bitget.com/asset/deposit?coin=${String(token || '').toUpperCase()}`
-        },
-        ORDERBOOK: {
-            // Bitget returns { data: { bids:[[price, size]], asks:[[price, size]] } }
-            urlTpl: ({ symbol }) => `https://api.bitget.com/api/v2/spot/market/orderbook?symbol=${String(symbol || '').toUpperCase()}USDT&limit=5`,
-            parser: 'bitget'
-        }
-    },
-    BYBIT: {
-        ICON: "assets/icons/cex/bybit.png",
-        WARNA: "#f29900",
-        TRADE_FEE: 0.001,  // 0.1% taker fee
-        LINKS: {
-            tradeToken: ({ token }) => `https://www.bybit.com/trade/spot/${String(token || '').toUpperCase()}/USDT`,
-            tradePair: ({ pair }) => `https://www.bybit.com/trade/spot/${String(pair || '').toUpperCase()}/USDT`,
-            withdraw: ({ token }) => `https://www.bybit.com/user/assets/withdraw?coin=${String(token || '').toUpperCase()}`,
-            deposit: ({ token }) => `https://www.bybit.com/user/assets/deposit?coin=${String(token || '').toUpperCase()}`
-        },
-        ORDERBOOK: {
-            // Bybit returns { result: { a:[[price, size]], b:[[price, size]] } }
-            urlTpl: ({ symbol }) => `https://api.bybit.com/v5/market/orderbook?category=spot&symbol=${String(symbol || '').toUpperCase()}USDT&limit=5`,
-            parser: 'bybit'
-        }
-    },
     INDODAX: {
+        LABEL: 'INDODAX', SHORT: 'INDX', BADGE_CLASS: 'bg-indodax',
         ICON: "assets/icons/cex/indodax.png",
         WARNA: "#2eb5f2",
         TRADE_FEE: 0.003,  // 0.3% taker fee
@@ -205,6 +163,7 @@ const CONFIG_CEX = {
         }
     },
     HTX: {
+        LABEL: 'HTX', SHORT: 'HTX', BADGE_CLASS: 'bg-htx',
         ICON: "assets/icons/cex/htx.png",
         WARNA: "#008cd6",  // HTX Blue color
         TRADE_FEE: 0.002,  // 0.2% taker fee
@@ -221,7 +180,60 @@ const CONFIG_CEX = {
             parser: 'htx'  // HTX response format: { tick: { asks: [[p,q], ...], bids: [[p,q], ...] } }
         }
     },
+    BYBIT: {
+        LABEL: 'Bybit', SHORT: 'BYBT', BADGE_CLASS: 'bg-bybit',
+        ICON: "assets/icons/cex/bybit.png",
+        WARNA: "#f29900",
+        TRADE_FEE: 0.001,  // 0.1% taker fee
+        LINKS: {
+            tradeToken: ({ token }) => `https://www.bybit.com/trade/spot/${String(token || '').toUpperCase()}/USDT`,
+            tradePair: ({ pair }) => `https://www.bybit.com/trade/spot/${String(pair || '').toUpperCase()}/USDT`,
+            withdraw: ({ token }) => `https://www.bybit.com/user/assets/withdraw?coin=${String(token || '').toUpperCase()}`,
+            deposit: ({ token }) => `https://www.bybit.com/user/assets/deposit?coin=${String(token || '').toUpperCase()}`
+        },
+        ORDERBOOK: {
+            // Bybit returns { result: { a:[[price, size]], b:[[price, size]] } }
+            urlTpl: ({ symbol }) => `https://api.bybit.com/v5/market/orderbook?category=spot&symbol=${String(symbol || '').toUpperCase()}USDT&limit=5`,
+            parser: 'bybit'
+        }
+    },
+
+    KUCOIN: {
+        LABEL: 'KuCoin', SHORT: 'KUCN', BADGE_CLASS: 'bg-kucoin',
+        ICON: "assets/icons/cex/kucoin.png",
+        WARNA: "#29b3af",
+        TRADE_FEE: 0.001,  // 0.1% taker fee
+        LINKS: {
+            tradeToken: ({ token }) => `https://www.kucoin.com/trade/${String(token || '').toUpperCase()}-USDT`,
+            tradePair: ({ pair }) => `https://www.kucoin.com/trade/${String(pair || '').toUpperCase()}-USDT`,
+            withdraw: ({ token }) => `https://www.kucoin.com/assets/withdraw/${String(token || '').toUpperCase()}?isDefault=true`,
+            deposit: ({ token }) => `https://www.kucoin.com/assets/coin/${String(token || '').toUpperCase()}`
+        },
+        ORDERBOOK: {
+            // KuCoin returns { data: { bids:[[price, size]], asks:[[price, size]] } }
+            urlTpl: ({ symbol }) => `https://api.kucoin.com/api/v1/market/orderbook/level2_20?symbol=${String(symbol || '').toUpperCase()}-USDT`,
+            parser: 'kucoin'
+        }
+    },
+    BITGET: {
+        LABEL: 'Bitget', SHORT: 'BITG', BADGE_CLASS: 'bg-bitget',
+        ICON: "assets/icons/cex/bitget.png",
+        WARNA: "#1aaaba",
+        TRADE_FEE: 0.001,  // 0.1% taker fee
+        LINKS: {
+            tradeToken: ({ token }) => `https://www.bitget.com/spot/${String(token || '').toUpperCase()}USDT`,
+            tradePair: ({ pair }) => `https://www.bitget.com/spot/${String(pair || '').toUpperCase()}USDT`,
+            withdraw: ({ token }) => `https://www.bitget.com/asset/withdraw?coin=${String(token || '').toUpperCase()}`,
+            deposit: ({ token }) => `https://www.bitget.com/asset/deposit?coin=${String(token || '').toUpperCase()}`
+        },
+        ORDERBOOK: {
+            // Bitget returns { data: { bids:[[price, size]], asks:[[price, size]] } }
+            urlTpl: ({ symbol }) => `https://api.bitget.com/api/v2/spot/market/orderbook?symbol=${String(symbol || '').toUpperCase()}USDT&limit=5`,
+            parser: 'bitget'
+        }
+    },
     OKX: {
+        LABEL: 'OKX', SHORT: 'OKX', BADGE_CLASS: 'bg-okx',
         ICON: "assets/icons/cex/okx.png",
         WARNA: "#000000",
         TRADE_FEE: 0.001,  // 0.1% taker fee
@@ -311,8 +323,10 @@ const DEFAULT_RPC_SUGGESTIONS = {};
 
 const CONFIG_CHAINS = {
     bsc: {
-        Kode_Chain: 56, Nama_Chain: "bsc", Nama_Pendek: "bsc", URL_Chain: "https://bscscan.com", WARNA: "#f0af18", ICON: "assets/icons/chains/bsc.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_BSC.json', BaseFEEDEX: "BNBUSDT", GASLIMIT: 300000, // real swap BEP-20 ~150k gas units
+        Kode_Chain: 56, Nama_Chain: "BSC", Nama_Pendek: "BSC", URL_Chain: "https://bscscan.com", WARNA: "#f0af18", ICON: "assets/icons/chains/bsc.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_BSC.json', BaseFEEDEX: "BNBUSDT", GASLIMIT: 300000, // real swap BEP-20 ~150k gas units
         DEFAULT_RPC: 'https://rpc.llama-rpc.com/bsc?source=llamaswap', // DefiLlama — fallback jika user belum set RPC
+        BADGE_CLASS: 'bg-warning text-dark',
+        SYNONYMS: ['BSC', 'BEP20', 'BINANCE SMART CHAIN', 'BNB SMART CHAIN', 'BEP-20', 'BSCMAINNET', 'BNB', 'BSCBEP20', 'BNB CHAIN', 'BNBCHAIN'],
         LINKS: {
             explorer: {
                 token: (address) => `https://bscscan.com/token/${address}`,
@@ -320,7 +334,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://bscscan.com/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "odos", "velora", "flytrade"],  // ✅ lifidex = standalone LIFI (via Temple API)
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos", "relay"],  // ✅ lifidex = standalone LIFI (via Temple API)
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BSC' },
             BINANCE: { address: '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3', address2: '0xe2fc31F816A9b94326492132018C3aEcC4a93aE1', chainCEX: 'BSC' },
@@ -339,17 +353,11 @@ const CONFIG_CHAINS = {
         }
     },
     polygon: {
-        Kode_Chain: 137,
-        Nama_Chain: "polygon",
-        Nama_Pendek: "poly",
-        URL_Chain: "https://polygonscan.com",
-        ICON: "assets/icons/chains/polygon.png",
-        WARNA: "#cd72f4ff",
-        DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_POLYGON.json',
-        BaseFEEDEX: "MATICUSDT", // Corrected from POLUSDT
-        GASLIMIT: 250000, // real swap MATIC/Polygon ~150k gas units
+        Kode_Chain: 137, Nama_Chain: "Polygon", Nama_Pendek: "POLY", URL_Chain: "https://polygonscan.com", ICON: "assets/icons/chains/polygon.png", WARNA: "#cd72f4ff", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_POLYGON.json', BaseFEEDEX: "MATICUSDT", GASLIMIT: 250000, // real swap MATIC/Polygon ~150k gas units
         DEFAULT_RPC: 'https://rpc.llama-rpc.com/polygon?source=llamaswap', // DefiLlama
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "odos", "velora", "flytrade"],   // ✅ lifidex = standalone LIFI (via Temple API)
+        BADGE_CLASS: 'bg-success text-light',
+        SYNONYMS: ['POLYGON', 'MATIC', 'POLYGON POS', 'POLYGON \\(MATIC\\)', 'POL', 'POLYGONPOS', 'POLYGON_POS', 'POLYGONEVM', 'Polygon PoS', 'polygon'],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos", "relay"],   // ✅ lifidex = standalone LIFI (via Temple API)
         LINKS: {
             explorer: {
                 token: (address) => `https://polygonscan.com/token/${address}`,
@@ -376,8 +384,10 @@ const CONFIG_CHAINS = {
         }
     },
     arbitrum: {
-        Kode_Chain: 42161, Nama_Chain: "arbitrum", Nama_Pendek: "arb", URL_Chain: "https://arbiscan.io", WARNA: "#a6b0c3", ICON: "assets/icons/chains/arbitrum.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_ARBITRUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 250000, // L2 gas units jauh lebih besar (~500k-1M) tapi gwei sangat kecil (0.01-0.05)
+        Kode_Chain: 42161, Nama_Chain: "Arbitrum", Nama_Pendek: "ARB", URL_Chain: "https://arbiscan.io", WARNA: "#a6b0c3", ICON: "assets/icons/chains/arbitrum.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_ARBITRUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 250000, // L2 gas units jauh lebih besar (~500k-1M) tapi gwei sangat kecil (0.01-0.05)
         DEFAULT_RPC: 'https://rpc.llama-rpc.com/arbitrum?source=llamaswap', // DefiLlama
+        BADGE_CLASS: 'bg-info text-dark',
+        SYNONYMS: ['ARBITRUM', 'ARB', 'ARBITRUM ONE', 'ARBEVM', 'ARBITRUMONE', 'ARB-ETH', 'ARBMAINNET', 'ARBONE', 'ARBITRUMEVM', 'ARBI'],
         LINKS: {
             explorer: {
                 token: (address) => `https://arbiscan.io/token/${address}`,
@@ -385,7 +395,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://arbiscan.io/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "odos", "velora", "flytrade"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos", "relay"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'ARBITRUM' },
             BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88', address2: '0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245', chainCEX: 'ARBITRUM' },
@@ -403,8 +413,10 @@ const CONFIG_CHAINS = {
         },
     },
     ethereum: {
-        Kode_Chain: 1, Nama_Chain: "ethereum", Nama_Pendek: "erc", URL_Chain: "https://etherscan.io", WARNA: "#8098ee", ICON: "assets/icons/chains/ethereum.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_ETHEREUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 356190, // real swap ERC-20 via aggregator ~100k-150k gas units
+        Kode_Chain: 1, Nama_Chain: "Ethereum", Nama_Pendek: "ETH", URL_Chain: "https://etherscan.io", WARNA: "#8098ee", ICON: "assets/icons/chains/ethereum.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_ETHEREUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 356190, // real swap ERC-20 via aggregator ~100k-150k gas units
         DEFAULT_RPC: 'https://rpc.llama-rpc.com/ethereum?source=llamaswap', // DefiLlama
+        BADGE_CLASS: 'bg-primary text-light',
+        SYNONYMS: ['ETH', 'ERC20', 'ETHEREUM', 'USDTERC20', 'ETH-ERC20', 'ERC-20', 'ETH MAINNET', 'ETHMAINNET', 'ETHEREUM MAINNET', 'Ethereum'],
         LINKS: {
             explorer: {
                 token: (address) => `https://etherscan.io/token/${address}`,
@@ -412,7 +424,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://etherscan.io/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "odos", "velora", "flytrade"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos", "relay"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'ETH' },
             BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', address3: '0x21a31Ee1afC51d94C2eFcCAa2092aD1028285549', chainCEX: 'ETH' },
@@ -433,8 +445,10 @@ const CONFIG_CHAINS = {
     },
 
     base: {
-        Kode_Chain: 8453, Nama_Chain: "base", Nama_Pendek: "base", URL_Chain: "https://basescan.org/", WARNA: "#1e46f9", ICON: "assets/icons/chains/base.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_BASE.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 250000, // real swap Base ERC-20 ~150k gas units
+        Kode_Chain: 8453, Nama_Chain: "Base", Nama_Pendek: "BASE", URL_Chain: "https://basescan.org/", WARNA: "#1e46f9", ICON: "assets/icons/chains/base.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_BASE.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 250000, // real swap Base ERC-20 ~150k gas units
         DEFAULT_RPC: 'https://rpc.llama-rpc.com/base?source=llamaswap', // DefiLlama
+        BADGE_CLASS: 'bg-dark text-light',
+        SYNONYMS: ['BASE', 'Base', 'BASE MAINNET', 'BASEEVM', 'BASEMAINNET', 'BASE CHAIN', 'BASECHAIN'],
         LINKS: {
             explorer: {
                 token: (address) => `https://basescan.org/token/${address}`,
@@ -442,7 +456,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://basescan.org/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "odos", "velora", "flytrade"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos", "relay"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BASE' },
             BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', chainCEX: 'BASE' },
@@ -460,21 +474,15 @@ const CONFIG_CHAINS = {
             "NON": { symbolPair: "NON", scAddressPair: "0x", desPair: "18" }
         }
     },
-    /*
+
     solana: {
-        Kode_Chain: 501,
+        Kode_Chain: 501, Nama_Chain: "Solana", Nama_Pendek: "SOL", URL_Chain: "https://solscan.io/", ICON: "assets/icons/chains/solana.png", WARNA: "#7508a0ff", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_SOLANA.json', BaseFEEDEX: "SOLUSDT", GASLIMIT: 5000, // Solana uses compute units
         DEFAULT_RPC: 'https://api.mainnet-beta.solana.com', // Solana Foundation public RPC
-        LIFI_CHAIN_ID: 1151111081099710, // LIFI uses different chain ID for Solana
-        DZAP_CHAIN_ID: 7565164, // DZAP uses different chain ID for Solana
-        MATCHA_CHAIN_ID: 1399811149, // Matcha/0x uses different chain ID for Solana
-        Nama_Chain: "solana",
-        Nama_Pendek: "sol",
-        URL_Chain: "https://solscan.io/",
-        WARNA: "#7508a0ff",
-        ICON: "assets/icons/chains/solana.png",
-        DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_SOLANA.json',
-        BaseFEEDEX: "SOLUSDT",
-        GASLIMIT: 5000, // Solana uses compute units
+        BADGE_CLASS: 'bg-solana text-dark',
+        SYNONYMS: ['SOL', 'SOLANA', 'SPL', 'SOLANA MAINNET', 'SOLMAINNET', 'SOLANA CHAIN', 'SOLCHAIN', 'SOLANASOL'],
+        LIFI_CHAIN_ID: 1151111081099710,
+        DZAP_CHAIN_ID: 7565164,
+        MATCHA_CHAIN_ID: 1399811149,
         LINKS: {
             explorer: {
                 token: (address) => `https://solscan.io/token/${address}`,
@@ -499,38 +507,41 @@ const CONFIG_CHAINS = {
             "USDT": { symbolPair: 'USDT', scAddressPair: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', desPair: '6' },
             "NON": { symbolPair: "NON", scAddressPair: "0x", desPair: "18" }
         }
-    }*/
+    },
+
+    // avalanche: {
+    //     SYNONYMS: ['AVAX', 'AVAXC', 'AVALANCHE', 'AVAX-C', 'C-CHAIN', 'AVAX C-CHAIN', 'AVAXCCHAIN', 'AVALANCHE C-CHAIN']
+    // },
+
 };
 
 const CONFIG_UI = {
     CEXES: [
-        { key: 'BINANCE', label: 'Binance', short: 'BINC', badgeClass: 'bg-binance' },
-        { key: 'MEXC', label: 'MEXC', short: 'MEXC', badgeClass: 'bg-mexc' },
-        { key: 'GATE', label: 'Gateio', short: 'GATE', badgeClass: 'bg-gateio' },
-        { key: 'BYBIT', label: 'Bybit', short: 'BYBT', badgeClass: 'bg-bybit' },
-        { key: 'BITGET', label: 'Bitget', short: 'BITG', badgeClass: 'bg-bitget' },
-        { key: 'KUCOIN', label: 'KuCoin', short: 'KUCN', badgeClass: 'bg-kucoin' },
-        { key: 'INDODAX', label: 'INDODAX', short: 'INDX', badgeClass: 'bg-indodax' },
-        { key: 'HTX', label: 'HTX', short: 'HTX', badgeClass: 'bg-htx' },
-        { key: 'OKX', label: 'OKX', short: 'OKX', badgeClass: 'bg-okx' }
-        //  { key: 'LBANK', label: 'LBank', short: 'LBNK', badgeClass: 'bg-lbank' }
+        { key: 'BINANCE' },
+        { key: 'MEXC' },
+        { key: 'GATE' },
+        { key: 'KUCOIN' },
+        { key: 'INDODAX' },
+
+        { key: 'BYBIT' },
+        { key: 'BITGET' },
+        { key: 'HTX' },
+        { key: 'OKX' }
     ],
     DEXES: [
-        { key: 'kyber', label: 'KyberSwap', badgeClass: 'bg-kyberswap', fallbackSlug: 'kyberswap' },
-        //  { key: 'sushi', label: 'SUSHI', badgeClass: 'bg-sushi', fallbackSlug: 'sushi' },
-        { key: 'brave-jumper', label: 'JUMPX', badgeClass: 'bg-lifi', fallbackSlug: 'lifi' },
-        { key: 'lifidex', label: 'LIFIDX', badgeClass: 'bg-lifidex', fallbackSlug: 'lifidex' },
-        { key: 'okx', label: 'OKX', badgeClass: 'bg-okx', fallbackSlug: 'okx' },
-        //  { key: 'relay', label: 'Relay', badgeClass: 'bg-relay', fallbackSlug: 'relay' },
-        { key: 'odos', label: 'ODOS', badgeClass: 'bg-odos', fallbackSlug: 'odos', skipDelay: true },
-        { key: 'velora', label: 'Velora', badgeClass: 'bg-velora', fallbackSlug: 'velora' },
-        { key: 'matcha', label: 'Matcha', badgeClass: 'bg-matcha', fallbackSlug: 'matcha' },
-        { key: 'flytrade', label: 'Flytrade', badgeClass: 'bg-flytrade', fallbackSlug: 'flytrade' },
-        { key: 'jupiter', label: 'Jupiter', badgeClass: 'bg-jupiter', fallbackSlug: 'jupiter' },
-        // { key: 'dflow', label: 'DFlow', badgeClass: 'bg-dflow', fallbackSlug: 'dflow' },
-        { key: 'rubic', label: 'Rubic', badgeClass: 'bg-rubic', fallbackSlug: 'rubic' },
-        //   { key: 'rango', label: 'Rango', badgeClass: 'bg-rango', fallbackSlug: 'rango' },
-        { key: 'oneinch', label: '1INCH', badgeClass: 'bg-1inch', fallbackSlug: 'oneinch' }
+        { key: 'kyber' },
+        { key: 'sushi' },
+        { key: 'brave-jumper' },
+        { key: 'lifidex' },
+        { key: 'okx' },
+        { key: 'relay' },
+        { key: 'odos' },
+        { key: 'velora' },
+        { key: 'matcha' },
+        { key: 'flytrade' },
+        { key: 'jupiter' },
+        { key: 'rubic' },
+        { key: 'oneinch' }
     ],
 
     // ========== Scanner Behavioral Settings ==========
@@ -576,12 +587,12 @@ const CONFIG_UI = {
             'oneinch': 5000,         // 1inch: 5s (via Rabby/Rainbow proxy)
 
             // ODOS Family - slower API, needs more time (1-2 RPS limit)
-            'odos': 8000,            // ODOS: 6s (1 RPS public limit, can timeout)
-            'odos2': 8000,           // ODOS v2: 6s
-            'odos3': 8000,           // ODOS v3: 6s
-            'hinkal-odos': 8000,     // Hinkal ODOS Proxy: 4s (typically faster)
-            'hinkal-one1inch': 8000, // Hinkal 1inch Proxy
-            'hinkal-lifidex': 8000,  // Hinkal LiFi Proxy
+            'odos': 12000,            // ODOS: 6s (1 RPS public limit, can timeout)
+            'odos2': 12000,           // ODOS v2: 6s
+            'odos3': 12000,           // ODOS v3: 6s
+            'hinkal-odos': 12000,     // Hinkal ODOS Proxy: 4s (typically faster)
+            'hinkal-one1inch': 12000, // Hinkal 1inch Proxy
+            'hinkal-lifidex': 12000,  // Hinkal LiFi Proxy
 
             // ========== Solana DEXes ==========
             // Fast Solana APIs
@@ -611,12 +622,13 @@ const CONFIG_UI = {
             'rubic': 6000,           // Rubic multi-quote: 6s
             'rocketx': 8000,         // RocketX standalone (unused as column, reserved)
             'rocketx-velora': 8000,  // RocketX filtered → Velora/ParaSwap route (backend transport)
-            'metax': 7500,          // MetaMask Bridge: SSE stream, collect all quotes
+            'metax': 8500,          // MetaMask Bridge: SSE stream, collect all quotes
             'onekey': 7000,         // OneKey Swap: SSE stream (OKX, 1inch, 0x) — 10s
             'debridge': 8000,       // deBridge DLN: REST GET single route
             'okutrade': 12000,      // Oku Trade: 3-step REST (Create → UpdateQuoteParams → GetNewQuotes)
             'onekey-1inch': 7000,   // OneKey filtered → 1inch provider only
             'onekey-lifidex': 8000, // OneKey filtered → LiFi/SwapLifi provider only
+            'zerion': 9000,         // Zerion: fungibleId lookup + SSE stream, semaphore maks 2 koneksi
             'birdeye-1inch': 5000,  // Birdeye 1inch proxy → 1inch v6 Quote API
 
             // ========== Default Fallback ==========
@@ -628,7 +640,7 @@ const CONFIG_UI = {
         dexOverrides: {
             // Example: ODOS is fast, can reduce delay
             odos: {
-                delayPerDexDirection: 50    // ODOS is fast, less delay needed
+                delayPerDexDirection: 500    // ODOS is fast, less delay needed
             }
             // Example: Add more DEX-specific overrides as needed
             // okx: { delayPerDexDirection: 300, timeoutCount: 15000 }
@@ -646,66 +658,18 @@ const CONFIG_UI = {
     },
 
     CHAINS: [
-        { key: 'polygon', label: 'Polygon', short: 'POLY', badgeClass: 'bg-success text-light' },
-        { key: 'arbitrum', label: 'Arbitrum', short: 'ARB', badgeClass: 'bg-info text-dark' },
-        { key: 'ethereum', label: 'Ethereum', short: 'ETH', badgeClass: 'bg-primary text-light' },
-        { key: 'bsc', label: 'BSC', short: 'BSC', badgeClass: 'bg-warning text-dark' },
-        { key: 'base', label: 'Base', short: 'BASE', badgeClass: 'bg-dark text-light' },
-        //  { key: 'solana', label: 'Solana', short: 'SOL', badgeClass: 'bg-solana text-dark' }
+        { key: 'polygon' },
+        { key: 'arbitrum' },
+        { key: 'ethereum' },
+        { key: 'bsc' },
+        { key: 'base' },
+        { key: 'solana' }
     ]
 };
 
-function buildChainConfig(chainSource = {}, uiChains = []) {
-    const uiByKey = {};
-    (Array.isArray(uiChains) ? uiChains : []).forEach(item => {
-        if (!item || !item.key) return;
-        uiByKey[String(item.key).toLowerCase()] = {
-            label: item.label,
-            short: item.short,
-            badgeClass: item.badgeClass
-        };
-    });
+// buildChainConfig, buildCexConfig, buildDexConfig moved to bottom of file to ensure all source configs are loaded first
 
-    const map = {};
-    Object.entries(chainSource || {}).forEach(([key, data]) => {
-        const lowerKey = String(key).toLowerCase();
-        const ui = uiByKey[lowerKey] || {};
-        const basePair = String(data?.BaseFEEDEX || '');
-        const symbol = basePair.toUpperCase().endsWith('USDT')
-            ? basePair.toUpperCase().slice(0, -4)
-            : (ui.short || data?.Nama_Pendek || data?.Nama_Chain || key || '').toString().toUpperCase();
-
-        map[lowerKey] = {
-            key: lowerKey,
-            name: ui.label || data?.Nama_Chain || key,
-            short: ui.short || (data?.Nama_Pendek || data?.Nama_Chain || key || '').toString().toUpperCase(),
-            symbol,
-            badgeClass: ui.badgeClass || 'bg-dark text-light',
-            // RPC removed - use RPCManager.getRPC(chainKey) instead
-            explorer: data?.URL_Chain || '',
-            code: data?.Kode_Chain,
-            gasLimit: data?.GASLIMIT,
-            color: data?.WARNA,
-            baseFeePair: basePair,
-            walletCex: data?.WALLET_CEX || {},
-            pairs: data?.PAIRD || data?.PAIRDEXS || {},
-            raw: data
-        };
-    });
-    return map;
-}
-
-const CHAIN_CONFIG = buildChainConfig(CONFIG_CHAINS, CONFIG_UI.CHAINS);
-
-// CONFIG_DEXS moved to dex-config.js to avoid duplication and keep this file data-centric
-
-// Expose globals for runtime consumers (registry/services)
-window.DEFAULT_RPC_SUGGESTIONS = window.DEFAULT_RPC_SUGGESTIONS || DEFAULT_RPC_SUGGESTIONS;
-window.CONFIG_CEX = window.CONFIG_CEX || CONFIG_CEX;
-window.CONFIG_CHAINS = window.CONFIG_CHAINS || CONFIG_CHAINS;
-window.CONFIG_UI = window.CONFIG_UI || CONFIG_UI;
-window.CHAIN_CONFIG = window.CHAIN_CONFIG || CHAIN_CONFIG;
-window.CEXWallets = window.CEXWallets || CONFIG_CHAINS;
+// buildChainConfig, buildCexConfig, buildDexConfig moved to bottom of file to ensure all source configs are loaded first
 
 // Optional proxy settings for DEX/network calls
 // Define a list of CORS proxy servers; one will be chosen at random per access
@@ -845,13 +809,14 @@ const CONFIG_DEXS = {
     kyber: {
         label: 'KyberSwap',
         badgeClass: 'bg-kyberswap',
+        fallbackSlug: 'kyberswap',
         warna: "#0b7e18ff", // hijau tosca KyberSwap
         builder: ({ chainName, tokenAddress, pairAddress }) =>
             `https://kyberswap.com/swap/${chainName}/${tokenAddress}-to-${pairAddress}`,
         fetchdex: {
             primary: {
                 tokentopair: 'kyber',          // CEX→DEX: Official KyberSwap API
-                pairtotoken: 'krystal-kyber'           // DEX→CEX: Official KyberSwap API
+                pairtotoken: 'kyber'           // DEX→CEX: Official KyberSwap API
             },
             secondary: {
                 tokentopair: 'talisman-kyber',   // CEX→DEX: Bungee filtered KyberSwap (rotation)
@@ -859,14 +824,15 @@ const CONFIG_DEXS = {
             },
             alternative: {
                 tokentopair: 'bungee-kyber',  // CEX→DEX: Krystal allRates filtered KyberSwap (fallback)
-                pairtotoken: 'rabby-kyber'   // DEX→CEX: Krystal allRates filtered KyberSwap (fallback)
+                pairtotoken: 'krystal-kyber'   // DEX→CEX: Krystal allRates filtered KyberSwap (fallback)
             }
         },
         allowFallback: true,  // ✅ Enable rotation between primary and alternative
     },
     okx: {
-        label: 'OKXDEX',
-        badgeClass: 'bg-okxdex',
+        label: 'OKX',
+        badgeClass: 'bg-okx',
+        fallbackSlug: 'okx',
         disabled: false, // ✅ ENABLED - OKX DEX Aggregator active
         supportsSolana: true,  // OKX DEX supports Solana
         warna: "#000000",
@@ -892,6 +858,7 @@ const CONFIG_DEXS = {
     flytrade: {
         label: 'Flytrade',
         badgeClass: 'bg-flytrade',
+        fallbackSlug: 'flytrade',
         warna: "#7d2ff4ff", // Indigo for Flytrade
         builder: ({ chainName, NameToken, NamePair }) => {
             const network = String(chainName || '').toLowerCase();
@@ -901,7 +868,7 @@ const CONFIG_DEXS = {
             return `https://app.fly.trade/swap/${network}/${NameToken}/${network}/${NamePair}`;
         },
         // ⚡ ROTATION STRATEGY: Alternate between Flytrade and LIFI
-         fetchdex: {
+        fetchdex: {
             primary: {
                 tokentopair: 'flytrade',        // CEX→DEX: Flytrade aggregator
                 pairtotoken: 'flytrade'         // DEX→CEX: Flytrade aggregator
@@ -920,6 +887,7 @@ const CONFIG_DEXS = {
     matcha: {
         label: 'Matcha',
         badgeClass: 'bg-matcha',
+        fallbackSlug: 'matcha',
         supportsSolana: true,  // Matcha supports Solana via 0x API
         warna: "#61ee73ff", // hitam abu-abu (Matcha/0x)
         builder: ({ chainName, tokenAddress, pairAddress, chainCode }) => {
@@ -956,6 +924,8 @@ const CONFIG_DEXS = {
     odos: {
         label: 'ODOS',
         badgeClass: 'bg-odos',
+        fallbackSlug: 'odos',
+        skipDelay: true,
         warna: "#6e2006ff", // ungu-biru Odos
         builder: () => `https://app.odos.xyz`,
         // ⚡ MODE: SECONDARY (Rotation) - bergantian antara primary dan secondary
@@ -971,11 +941,55 @@ const CONFIG_DEXS = {
         },
         allowFallback: true,  // ✅ Jika yang dipilih gagal, coba yang lain
     },
+    sushi: {
+        label: 'SUSHI',
+        badgeClass: 'bg-sushi',
+        fallbackSlug: 'sushi',
+        warna: "#fa52a0",
+        builder: ({ chainName, tokenAddress, pairAddress }) =>
+            `https://www.sushi.com/swap?fromChainId=${chainName}&token0=${tokenAddress}&token1=${pairAddress}`,
+        fetchdex: {
+            primary: {
+                tokentopair: 'sushi',
+                pairtotoken: 'sushi'
+            },
+            alternative: {
+                tokentopair: 'talisman-sushi',
+                pairtotoken: 'zapper-sushi'
+            },
+            secondary: {
+                tokentopair: 'backpack-sushi',
+                pairtotoken: 'backpack-sushi'
+            }
+        },
+        allowFallback: true,
+    },
+    relay: {
+        label: 'Relay',
+        badgeClass: 'bg-relay',
+        fallbackSlug: 'relay',
+        disabled: false, // ✅ ENABLED - Cross-chain bridge & swap aggregator
+        warna: "#160783ff",  // Purple - Relay brand color
+        builder: ({ chainName, chainCode, tokenAddress, pairAddress }) =>
+            `https://relay.link/bridge/${String(chainName || '').toLowerCase()}?fromChainId=${chainCode}&fromCurrency=${tokenAddress}&toCurrency=${pairAddress}`,
+        fetchdex: {
+            primary: {
+                tokentopair: 'relay',          // CEX→DEX: Direct Relay API
+                pairtotoken: 'relay'           // DEX→CEX: Direct Relay API
+            },
+            alternative: {
+                tokentopair: 'relay',     // CEX→DEX: LIFI filtered (rotation)
+                pairtotoken: 'relay'      // DEX→CEX: LIFI filtered (rotation)
+            }
+        },
+        allowFallback: false,  // ✅ Enable rotation between primary and alternative
+    },
     // ============ DISABLED DEXes ============
 
     velora: {
         label: 'Velora',
         badgeClass: 'bg-velora',
+        fallbackSlug: 'velora',
         warna: "#1c64f2ff",
         builder: ({ chainName, tokenAddress, pairAddress }) => {
             const network = String(chainName || '').toLowerCase();
@@ -1004,6 +1018,7 @@ const CONFIG_DEXS = {
     oneinch: {
         label: '1INCH',
         badgeClass: 'bg-1inch',
+        fallbackSlug: 'oneinch',
         warna: "#fd0404ff",  // 1inch blue brand color
         builder: ({ codeChain, tokenAddress, pairAddress }) =>
             `https://1inch.io/swap?src=${codeChain}:${tokenAddress}&dst=${codeChain}:${pairAddress}`,
@@ -1034,6 +1049,7 @@ const CONFIG_DEXS = {
     lifidex: {
         label: 'LIFIDX',
         badgeClass: 'bg-lifidex',
+        fallbackSlug: 'lifidex',
         disabled: false,
         warna: "#e44be8ff",       // Magenta — beda dari JUMPER (#f764bc)
         proxy: true,              // ✅ Enable proxy — Temple API mungkin butuh CORS proxy
@@ -1059,6 +1075,7 @@ const CONFIG_DEXS = {
     jupiter: {
         label: 'Jupiter',
         badgeClass: 'bg-jupiter',
+        fallbackSlug: 'jupiter',
         supportsSolana: true,  // Solana-only DEX
         warna: "#a0df3bff", // Jupiter green
         builder: ({ tokenAddress, pairAddress }) =>
@@ -1150,9 +1167,10 @@ const CONFIG_DEXS = {
     // Dual-role LIFI:
     //   - 'lifi' (standalone)  → Meta-DEX, multi-route, kolom sendiri
     //   - 'lifi-odos', 'lifi-velora' (filtered) → backend transport untuk DEX Regular
-    'lifi': {
+    'brave-jumper': {
         label: 'JUMPX',
         badgeClass: 'bg-lifi',
+        fallbackSlug: 'lifi',
         disabled: false,
         isMetaDex: true,   // ✅ Meta-DEX: standalone LIFI menampilkan multi-route
         evmOnly: false,    // ✅ EVM + Solana
@@ -1175,6 +1193,8 @@ const CONFIG_DEXS = {
         },
         allowFallback: true,
     },
+    // Alias for backward compatibility
+    get lifi() { return this['brave-jumper']; },
 
     dzap: {
         label: 'DZAP',
@@ -1201,6 +1221,7 @@ const CONFIG_DEXS = {
     rubic: {
         label: 'RUBIC',
         badgeClass: 'bg-rubic',
+        fallbackSlug: 'rubic',
         disabled: false,
         proxy: true,
         warna: "#24cc59ff",
@@ -1272,7 +1293,7 @@ const CONFIG_DEXS = {
         warna: "#ec7506ff",    // MetaMask orange
         isMetaDex: true,    // ✅ Meta-DEX: SSE streaming multi-quote
         evmOnly: true,      // EVM only (no Solana support)
-        delay: 1000,
+        delay: 700,
         isMultiDex: true,
         maxProviders: 3,   // Maks sub-kolom yang ditampilkan
         builder: ({ chainCode, tokenAddress, pairAddress }) =>
@@ -1350,6 +1371,58 @@ const CONFIG_DEXS = {
         allowFallback: false
     },
 
+    ctrlfi: {
+        label: 'CTRL',
+        badgeClass: 'bg-ctrlfi',
+        disabled: false,
+        proxy: true,         // GraphQL POST via proxy (hindari CORS)
+        warna: "#808080ff",  // abu-abu (CTRL neutral)
+        isMetaDex: true,     // ✅ Meta-DEX: XDEFI/CTRL multi-route aggregator
+        evmOnly: false,      // EVM + Solana (all chains)
+        delay: 900,
+        isMultiDex: true,
+        maxProviders: 3,
+        builder: ({ tokenAddress, pairAddress, codeChain }) =>
+            `https://app.ctrl.xyz/swap?fromToken=${tokenAddress}&toToken=${pairAddress}&chainId=${codeChain}`,
+        fetchdex: {
+            primary: {
+                tokentopair: 'ctrlfi',
+                pairtotoken: 'ctrlfi'
+            }
+        },
+        allowFallback: false
+    },
+
+    zerion: {
+        label: 'ZERION',
+        badgeClass: 'bg-zerion',
+        disabled: false,
+        proxy: false,         // SSE via fetch langsung (custom headers, tidak bisa pakai EventSource)
+        warna: "#0052ffff",   // Zerion blue
+        isMetaDex: true,      // ✅ Meta-DEX: SSE streaming multi-quote
+        evmOnly: true,        // EVM only (bsc, ethereum, polygon, arbitrum, base)
+        delay: 800,
+        isMultiDex: true,
+        maxProviders: 3,
+        builder: ({ chainName, tokenAddress, pairAddress, amountIn }) => {
+            const chainMap = { 'bsc': 'binance-smart-chain', 'ethereum': 'ethereum', 'polygon': 'polygon', 'arbitrum': 'arbitrum', 'base': 'base' };
+            const slug = chainMap[chainName] || chainName;
+            const cache = window._zerionFungibleCache || {};
+            // Ambil fungibleId dari cache hasil lookup; fallback ke contract address jika belum pernah di-scan
+            const fIn = cache[`${slug}:${String(tokenAddress).toLowerCase()}`] || tokenAddress;
+            const fOut = cache[`${slug}:${String(pairAddress).toLowerCase()}`] || pairAddress;
+            const amt = encodeURIComponent(`"${amountIn || 1}"`);
+            return `https://app.zerion.io/swap?inputChain=${slug}&inputFungibleId=${fIn}&outputFungibleId=${fOut}&inputAmount=${amt}`;
+        },
+        fetchdex: {
+            primary: {
+                tokentopair: 'zerion',
+                pairtotoken: 'zerion'
+            }
+        },
+        allowFallback: false
+    },
+
 
 
 
@@ -1357,36 +1430,138 @@ const CONFIG_DEXS = {
 
 };
 
-try {
-    if (typeof window !== 'undefined') {
-        window.CONFIG_DEXS = CONFIG_DEXS;
-        // Debug: verify isMultiDex is set correctly
-        console.log('[CONFIG] CONFIG_DEXS loaded successfully');
-    }
-} catch (_) { }
+// window.CONFIG_DEXS exposure moved to final initialization block at end of file
 
 // Centralized chain synonyms mapping used to normalize CEX network labels
-const CHAIN_SYNONYMS = {
-    ethereum: ['ETH', 'ERC20', 'ETHEREUM', 'USDTERC20', 'ETH-ERC20',
-        'ERC-20', 'ETH MAINNET', 'ETHMAINNET', 'ETHEREUM MAINNET', 'Ethereum'],
-    bsc: ['BSC', 'BEP20', 'BINANCE SMART CHAIN', 'BNB SMART CHAIN', 'BEP-20', 'BSCMAINNET',
-        'BNB', 'BSCBEP20', 'BNB CHAIN', 'BNBCHAIN'],
-    polygon: ['POLYGON', 'MATIC', 'POLYGON POS', 'POLYGON \\(MATIC\\)', 'POL', 'POLYGONPOS',
-        'POLYGON_POS', 'POLYGONEVM', 'Polygon PoS', 'polygon'],
-    arbitrum: ['ARBITRUM', 'ARB', 'ARBITRUM ONE', 'ARBEVM', 'ARBITRUMONE', 'ARB-ETH', 'ARBMAINNET',
-        'ARBONE', 'ARBITRUMEVM', 'ARBI'],
-    base: ['BASE', 'Base', 'BASE MAINNET', 'BASEEVM', 'BASEMAINNET',
-        'BASE CHAIN', 'BASECHAIN'],
-    solana: ['SOL', 'SOLANA', 'SPL', 'SOLANA MAINNET', 'SOLMAINNET',
-        'SOLANA CHAIN', 'SOLCHAIN', 'SOLANASOL'],
-    optimism: ['OPTIMISM', 'OP', 'OPTIMISM MAINNET', 'OPMAINNET',
-        'OP MAINNET', 'OPEVM'],
-    avalanche: ['AVAX', 'AVAXC', 'AVALANCHE', 'AVAX-C', 'C-CHAIN', 'AVAX C-CHAIN',
-        'AVAXCCHAIN', 'AVALANCHE C-CHAIN'],
-    tron: ['TRX', 'TRC20', 'TRON', 'USDTTRC20', 'TRX-TRC20',
-        'TRC-20', 'TRON MAINNET'],
-    fantom: ['FTM', 'FANTOM', 'FANTOM OPERA', 'FANTOMEVM'],
-    heco: ['HECO', 'HT', 'HUOBI ECO CHAIN', 'HECOMAINNET']
-};
+// Centralized chain synonyms mapping used to normalize CEX network labels
+// Derived from CONFIG_CHAINS to keep data in a single group
+const CHAIN_SYNONYMS = (function () {
+    const map = {};
+    Object.entries(CONFIG_CHAINS || {}).forEach(([key, data]) => {
+        if (data && data.SYNONYMS) {
+            map[key] = data.SYNONYMS;
+        }
+    });
+    return map;
+})();
 
 try { if (typeof window !== 'undefined') { window.CHAIN_SYNONYMS = window.CHAIN_SYNONYMS || CHAIN_SYNONYMS; } } catch (_) { }
+
+// =================================================================================
+// DYNAMIC CONFIG BUILDERS (POST-INITIALIZATION)
+// =================================================================================
+
+function buildChainConfig(chainSource = {}, uiChains = []) {
+    const uiByKey = {};
+    (Array.isArray(uiChains) ? uiChains : []).forEach(item => {
+        if (!item || !item.key) return;
+        uiByKey[String(item.key).toLowerCase()] = item;
+    });
+
+    const map = {};
+    Object.entries(chainSource || {}).forEach(([key, data]) => {
+        const lowerKey = String(key).toLowerCase();
+        const ui = uiByKey[lowerKey] || {};
+        const basePair = String(data?.BaseFEEDEX || '');
+        const symbol = basePair.toUpperCase().endsWith('USDT')
+            ? basePair.toUpperCase().slice(0, -4)
+            : (ui.short || data?.Nama_Pendek || data?.Nama_Chain || key || '').toString().toUpperCase();
+
+        map[lowerKey] = {
+            key: lowerKey,
+            name: ui.label || data?.Nama_Chain || key,
+            short: ui.short || (data?.Nama_Pendek || data?.Nama_Chain || key || '').toString().toUpperCase(),
+            symbol,
+            badgeClass: ui.badgeClass || data?.BADGE_CLASS || 'bg-dark text-light',
+            explorer: data?.URL_Chain || '',
+            code: data?.Kode_Chain,
+            gasLimit: data?.GASLIMIT,
+            color: data?.WARNA,
+            baseFeePair: basePair,
+            walletCex: data?.WALLET_CEX || {},
+            pairs: data?.PAIRD || data?.PAIRDEXS || {},
+            raw: data
+        };
+    });
+    return map;
+}
+
+function buildCexConfig(cexSource = {}, uiCexes = []) {
+    const uiByKey = {};
+    (Array.isArray(uiCexes) ? uiCexes : []).forEach(item => {
+        if (!item || !item.key) return;
+        uiByKey[String(item.key).toUpperCase()] = item;
+    });
+
+    const map = {};
+    Object.entries(cexSource || {}).forEach(([key, data]) => {
+        const upperKey = String(key).toUpperCase();
+        const ui = uiByKey[upperKey] || {};
+        map[upperKey] = {
+            key: upperKey,
+            label: ui.label || data?.LABEL || key,
+            short: ui.short || data?.SHORT || key.slice(0, 4).toUpperCase(),
+            badgeClass: ui.badgeClass || data?.BADGE_CLASS || `bg-${key.toLowerCase()}`,
+            icon: data?.ICON || '',
+            color: data?.WARNA || '#000000',
+            tradeFee: data?.TRADE_FEE || 0.001,
+            links: data?.LINKS || {},
+            orderbook: data?.ORDERBOOK || {},
+            raw: data
+        };
+    });
+    return map;
+}
+
+function buildDexConfig(dexSource = {}, uiDexes = []) {
+    const uiByKey = {};
+    (Array.isArray(uiDexes) ? uiDexes : []).forEach(item => {
+        if (!item || !item.key) return;
+        uiByKey[String(item.key).toLowerCase()] = item;
+    });
+
+    const map = {};
+    Object.entries(dexSource || {}).forEach(([key, data]) => {
+        const lowerKey = String(key).toLowerCase();
+        const ui = uiByKey[lowerKey] || {};
+        map[lowerKey] = {
+            key: lowerKey,
+            label: ui.label || data?.label || key,
+            badgeClass: ui.badgeClass || data?.badgeClass || `bg-${lowerKey}`,
+            fallbackSlug: ui.fallbackSlug || data?.fallbackSlug || lowerKey,
+            skipDelay: ui.skipDelay || data?.skipDelay || false,
+            color: data?.warna || '#000000',
+            builder: data?.builder,
+            fetchdex: data?.fetchdex || {},
+            allowFallback: data?.allowFallback || false,
+            supportsSolana: data?.supportsSolana || false,
+            isMetaDex: data?.isMetaDex || false,
+            isBackendProvider: data?.isBackendProvider || false,
+            raw: data
+        };
+    });
+    return map;
+}
+
+// Final execution of builders after all source objects are defined
+const CHAIN_CONFIG = buildChainConfig(CONFIG_CHAINS, CONFIG_UI.CHAINS);
+const CEX_CONFIG = buildCexConfig(CONFIG_CEX, CONFIG_UI.CEXES);
+const DEX_CONFIG = buildDexConfig(CONFIG_DEXS, CONFIG_UI.DEXES);
+
+// Final global exposure
+try {
+    if (typeof window !== 'undefined') {
+        window.DEFAULT_RPC_SUGGESTIONS = window.DEFAULT_RPC_SUGGESTIONS || DEFAULT_RPC_SUGGESTIONS;
+        window.CONFIG_CEX = CONFIG_CEX;
+        window.CONFIG_CHAINS = CONFIG_CHAINS;
+        window.CONFIG_DEXS = CONFIG_DEXS;
+        window.CONFIG_UI = CONFIG_UI;
+        window.CHAIN_CONFIG = CHAIN_CONFIG;
+        window.CEX_CONFIG = CEX_CONFIG;
+        window.DEX_CONFIG = DEX_CONFIG;
+        window.CEXWallets = CONFIG_CHAINS;
+        console.log('[CONFIG] All configurations built and exposed successfully');
+    }
+} catch (e) {
+    console.error('[CONFIG] Critical error during configuration initialization:', e);
+}
