@@ -1,6 +1,6 @@
 const CONFIG_APP = {
     APP: {
-        NAME: "PENCARI SELISIH",
+        NAME: "PENCARI-SELISIH",
         //NAME: "PRIVATE_NOCORS",
         VERSION: "05.00",
         SCAN_LIMIT: true,
