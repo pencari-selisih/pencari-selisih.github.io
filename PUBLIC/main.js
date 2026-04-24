@@ -1355,6 +1355,44 @@ async function deferredInit() {
         </label>`;
     }
 
+    function getDexSelectionLimit(isMetaDex) {
+        const key = isMetaDex ? 'LIMIT_METADEX' : 'LIMIT_DEX';
+        return Number(window.CONFIG_APP?.APP?.[key] || 0);
+    }
+
+    function getDexLimitBadge(isMetaDex, label = 'MAX') {
+        const limit = getDexSelectionLimit(isMetaDex);
+        if (limit <= 0) return '';
+        const cls = isMetaDex ? 'metadex-limit-info' : 'dex-limit-info';
+        return `<span class="${cls}">${label} ${limit}</span>`;
+    }
+
+    function enforceDexSelectionLimit($scope, labelSelector, changedVal, isMetaDex) {
+        const limit = getDexSelectionLimit(isMetaDex);
+        if (limit <= 0) return;
+
+        const $checkedDex = $scope.find(labelSelector).filter(function () {
+            const val = String($(this).attr('data-val') || '').toLowerCase();
+            const cfg = window.CONFIG_DEXS?.[val];
+            return !!cfg && !!cfg.isMetaDex === !!isMetaDex && $(this).find('input').prop('checked');
+        });
+
+        const excess = $checkedDex.length - limit;
+        if (excess <= 0) return;
+
+        let done = 0;
+        $checkedDex.each(function () {
+            if (done >= excess) return false;
+            if (String($(this).attr('data-val') || '').toLowerCase() === String(changedVal || '').toLowerCase()) return;
+            $(this).find('input').prop('checked', false);
+            $(this).css({
+                'border-color': isMetaDex ? '#c4b5fd' : 'transparent',
+                'background': 'white'
+            });
+            done++;
+        });
+    }
+
     /**
      * Update HANYA angka "TOTAL KOIN" di badge tanpa re-render seluruh filter card.
      * Digunakan saat delete koin selama scanning untuk menghindari refresh filter.
@@ -1504,7 +1542,12 @@ async function deferredInit() {
                 const id = `fc-cex-${cx}`; const cnt = byCex[cx] || 0; if (cnt === 0) return; const checked = cexSel.includes(cx.toUpperCase());
                 $secCex.append(chipHtml('fc-cex', id, cx, CONFIG_CEX[cx].WARNA, cnt, checked, cx, false));
             });
-            const $secDex = $('<div class="uk-flex uk-flex-middle" style="gap:8px;flex-wrap:wrap;"><span class="uk-text-bolder uk-text-danger">DEX:</span></div>');
+            const limitMetaDexInfo = Number(window.CONFIG_APP?.APP?.LIMIT_METADEX || 0);
+            const metaDexLimitBadge = (window.CONFIG_APP?.APP?.META_DEX === true && limitMetaDexInfo > 0)
+                ? `<span class="metadex-limit-info">MAX META-DEX: ${limitMetaDexInfo}</span>`
+                : '';
+            const dexLimitBadge = getDexLimitBadge(false, 'MAX DEX:');
+            const $secDex = $(`<div class="uk-flex uk-flex-middle" style="gap:8px;flex-wrap:wrap;"><span class="uk-text-bolder uk-text-danger">DEX:</span>${dexLimitBadge}${metaDexLimitBadge}</div>`);
             // ✅ Filter: Hanya tampilkan DEX asli (not disabled, not Meta-DEX, not Backend Provider)
             // Meta-DEX hanya muncul jika CONFIG_APP.APP.META_DEX === true
             // Backend Provider (lifi) tidak pernah muncul sebagai DEX column
@@ -1548,30 +1591,12 @@ async function deferredInit() {
             // Search input now in HTML (next to WALLET CEX checkbox)
             $wrap.append($right);
             $('#modal-filter-sections').off('change.multif').on('change.multif', 'label.fc-chain input, label.fc-cex input, label.fc-dex input', function () {
-                // LIMIT_METADEX: batasi jumlah META-DEX yang bisa dipilih
+                // LIMIT_DEX / LIMIT_METADEX: batasi jumlah DEX sesuai config.
                 const $lbl = $(this).closest('label');
                 if ($lbl.hasClass('fc-dex') && $(this).prop('checked')) {
                     const changedVal = $lbl.attr('data-val');
-                    if (window.CONFIG_DEXS?.[changedVal]?.isMetaDex) {
-                        const limitMeta = window.CONFIG_APP?.APP?.LIMIT_METADEX || 0;
-                        if (limitMeta > 0) {
-                            const $checkedMeta = $('#modal-filter-sections').find('label.fc-dex').filter(function () {
-                                return !!window.CONFIG_DEXS?.[$(this).attr('data-val')]?.isMetaDex && $(this).find('input').prop('checked');
-                            });
-                            const toUncheck = $checkedMeta.length - limitMeta;
-                            if (toUncheck > 0) {
-                                let done = 0;
-                                $checkedMeta.each(function () {
-                                    if (done >= toUncheck) return false;
-                                    if ($(this).attr('data-val') !== changedVal) {
-                                        $(this).find('input').prop('checked', false);
-                                        $(this).css({ 'border-color': '#c4b5fd', 'background': 'white' });
-                                        done++;
-                                    }
-                                });
-                            }
-                        }
-                    }
+                    const isMetaDex = !!window.CONFIG_DEXS?.[changedVal]?.isMetaDex;
+                    enforceDexSelectionLimit($('#modal-filter-sections'), 'label.fc-dex', changedVal, isMetaDex);
                 }
 
                 const prev = getFilterMulti();
@@ -1653,7 +1678,8 @@ async function deferredInit() {
                 $secPair.append(chipHtml('sc-pair', id, p, pairColor, cnt, checked, undefined, false));
             });
             // DEX chips based on chain-allowed DEXes and filtered dataset
-            const $secDex = $('<div class="uk-flex uk-flex-middle" style="gap:8px;flex-wrap:wrap;"><span class="uk-text-bolder uk-text-danger">DEX:</span></div>');
+            const dexLimitBadge = getDexLimitBadge(false, 'MAX DEX:');
+            const $secDex = $(`<div class="uk-flex uk-flex-middle" style="gap:8px;flex-wrap:wrap;"><span class="uk-text-bolder uk-text-danger">DEX:</span>${dexLimitBadge}</div>`);
             const dexAllowed = ((CONFIG_CHAINS[chain] || {}).DEXS || []).map(x => String(x).toLowerCase());
             const byDex = flatPair.reduce((a, t) => {
                 (t.dexs || []).forEach(d => { const k = String(d.dex || '').toLowerCase(); if (!dexAllowed.includes(k)) return; a[k] = (a[k] || 0) + 1; });
@@ -1683,6 +1709,13 @@ async function deferredInit() {
             // Search input now in HTML (next to WALLET CEX checkbox)
             $wrap.append($right);
             $('#modal-filter-sections').off('change.scf').on('change.scf', 'label.sc-cex input, label.sc-pair input, label.sc-dex input', function () {
+                const $lbl = $(this).closest('label');
+                if ($lbl.hasClass('sc-dex') && $(this).prop('checked')) {
+                    const changedVal = $lbl.attr('data-val');
+                    const isMetaDex = !!window.CONFIG_DEXS?.[changedVal]?.isMetaDex;
+                    enforceDexSelectionLimit($('#modal-filter-sections'), 'label.sc-dex', changedVal, isMetaDex);
+                }
+
                 const prev = getFilterChain(chain);
                 const prevC = (prev.cex || []).map(String);
                 const prevP = (prev.pair || []).map(x => String(x).toUpperCase());
@@ -1942,13 +1975,13 @@ async function deferredInit() {
             // Build DEX section (shared between CEX and multichain)
             // ======== SECTION DEX (bukan MetaDEX) ========
             const $dexSection = $('<div class="filter-box filter-box-dex"></div>');
-            $dexSection.append($('<div class="filter-section-title">DEX</div>'));
+            $dexSection.append($(`<div class="filter-section-title">DEX${getDexLimitBadge(false)}</div>`));
             const $dexGrid = $('<div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;"></div>');
             const metaDexEnabled = (CONFIG_APP && CONFIG_APP.APP && CONFIG_APP.APP.META_DEX === true);
 
             // ======== SECTION META-DEX (terpisah) ========
             const $metaDexSection = $('<div class="filter-box filter-box-metadex"></div>');
-            $metaDexSection.append($('<div class="filter-section-title" style="color:#7c3aed;">&#x26A1; META-DEX AGGREGATORS</div>'));
+            $metaDexSection.append($(`<div class="filter-section-title" style="color:#7c3aed;">&#x26A1; META-DEX AGGREGATORS${getDexLimitBadge(true)}</div>`));
             const $metaDexGrid = $('<div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;"></div>');
 
             Object.keys(CONFIG_DEXS || {}).forEach(dx => {
@@ -2126,30 +2159,12 @@ async function deferredInit() {
             $('#modal-summary-bar').empty().append($sum);
 
             $('#modal-filter-sections').off('change.multif').on('change.multif', 'label.fc-chain input, label.fc-cex input, label.fc-pair input, label.fc-dex input', function () {
-                // LIMIT_METADEX: batasi jumlah META-DEX yang bisa dipilih
+                // LIMIT_DEX / LIMIT_METADEX: batasi jumlah DEX sesuai config.
                 const $lbl2 = $(this).closest('label');
                 if ($lbl2.hasClass('fc-dex') && $(this).prop('checked')) {
                     const changedVal2 = $lbl2.attr('data-val');
-                    if (window.CONFIG_DEXS?.[changedVal2]?.isMetaDex) {
-                        const limitMeta2 = window.CONFIG_APP?.APP?.LIMIT_METADEX || 0;
-                        if (limitMeta2 > 0) {
-                            const $checkedMeta2 = $('#modal-filter-sections').find('label.fc-dex').filter(function () {
-                                return !!window.CONFIG_DEXS?.[$(this).attr('data-val')]?.isMetaDex && $(this).find('input').prop('checked');
-                            });
-                            const toUncheck2 = $checkedMeta2.length - limitMeta2;
-                            if (toUncheck2 > 0) {
-                                let done2 = 0;
-                                $checkedMeta2.each(function () {
-                                    if (done2 >= toUncheck2) return false;
-                                    if ($(this).attr('data-val') !== changedVal2) {
-                                        $(this).find('input').prop('checked', false);
-                                        $(this).css({ 'border-color': '#c4b5fd', 'background': 'white' });
-                                        done2++;
-                                    }
-                                });
-                            }
-                        }
-                    }
+                    const isMetaDex2 = !!window.CONFIG_DEXS?.[changedVal2]?.isMetaDex;
+                    enforceDexSelectionLimit($('#modal-filter-sections'), 'label.fc-dex', changedVal2, isMetaDex2);
                 }
 
                 const prev = isCEXModeNow ? (typeof getFilterCEX === 'function' ? getFilterCEX(window.CEXModeManager.getSelectedCEX()) : {}) : getFilterMulti();
@@ -2314,7 +2329,7 @@ async function deferredInit() {
 
             // Col 3 (or col 2 in CEX mode): DEX column
             const $dexSection = $('<div class="filter-box filter-box-dex"></div>');
-            $dexSection.append($('<div class="filter-section-title">DEX</div>'));
+            $dexSection.append($(`<div class="filter-section-title">DEX${getDexLimitBadge(false)}</div>`));
             const $dexGrid = $('<div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; align-items:flex-start;"></div>');
             const dexAllowed = ((CONFIG_CHAINS[chain] || {}).DEXS || []).map(x => String(x).toLowerCase());
             const byDex = flatPair.reduce((a, t) => {
@@ -2343,7 +2358,7 @@ async function deferredInit() {
             // Row 2: META-DEX (terpisah, section sendiri)
             if (window.CONFIG_APP?.APP?.META_DEX === true) {
                 const $metaDexSc = $('<div class="filter-box filter-box-metadex"></div>');
-                $metaDexSc.append($('<div class="filter-section-title" style="color:#7c3aed;">META-DEX</div>'));
+                $metaDexSc.append($(`<div class="filter-section-title" style="color:#7c3aed;">META-DEX${getDexLimitBadge(true)}</div>`));
                 const $metaGrid = $('<div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;"></div>');
                 const metaKeys = Object.keys(CONFIG_DEXS || {}).filter(k => {
                     const dcfg = CONFIG_DEXS[k];
@@ -2400,30 +2415,12 @@ async function deferredInit() {
 
             // Event handler untuk filter changes
             $('#modal-filter-sections').off('change.scf').on('change.scf', 'label.sc-cex input, label.sc-pair input, label.sc-dex input', function () {
-                // LIMIT_METADEX: batasi jumlah META-DEX yang bisa dipilih
+                // LIMIT_DEX / LIMIT_METADEX: batasi jumlah DEX sesuai config.
                 const $lbl3 = $(this).closest('label');
                 if ($lbl3.hasClass('sc-dex') && $(this).prop('checked')) {
                     const changedVal3 = $lbl3.attr('data-val');
-                    if (window.CONFIG_DEXS?.[changedVal3]?.isMetaDex) {
-                        const limitMeta3 = window.CONFIG_APP?.APP?.LIMIT_METADEX || 0;
-                        if (limitMeta3 > 0) {
-                            const $checkedMeta3 = $('#modal-filter-sections').find('label.sc-dex').filter(function () {
-                                return !!window.CONFIG_DEXS?.[$(this).attr('data-val')]?.isMetaDex && $(this).find('input').prop('checked');
-                            });
-                            const toUncheck3 = $checkedMeta3.length - limitMeta3;
-                            if (toUncheck3 > 0) {
-                                let done3 = 0;
-                                $checkedMeta3.each(function () {
-                                    if (done3 >= toUncheck3) return false;
-                                    if ($(this).attr('data-val') !== changedVal3) {
-                                        $(this).find('input').prop('checked', false);
-                                        $(this).css({ 'border-color': '#c4b5fd', 'background': 'white' });
-                                        done3++;
-                                    }
-                                });
-                            }
-                        }
-                    }
+                    const isMetaDex3 = !!window.CONFIG_DEXS?.[changedVal3]?.isMetaDex;
+                    enforceDexSelectionLimit($('#modal-filter-sections'), 'label.sc-dex', changedVal3, isMetaDex3);
                 }
 
                 const prev = getFilterChain(chain);

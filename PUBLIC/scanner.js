@@ -341,6 +341,10 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
     }
     $('#autoRunCountdown').text('');
 
+    if (typeof window.validateDexSelectionBeforeScan === 'function' && !window.validateDexSelectionBeforeScan()) {
+        return;
+    }
+
     // ✅ Set window.SavedSettingData EARLY for other modules to access
     window.SavedSettingData = settings;
 
