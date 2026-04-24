@@ -498,8 +498,8 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
       const jumperChainId = String(data.chain || '').toLowerCase() === 'solana' ? 1151111081099710 : chainConfig.Kode_Chain;
       const linkJumper = createHoverLink(`https://jumper.exchange/?fromChain=${jumperChainId}&fromToken=${data.sc_in}&toChain=${jumperChainId}&toToken=${data.sc_out}`, '#JMX', 'uk-text-warning');
 
-      // Oku: https://oku.trade/swap?inputChain=ethereum&inToken=0x...&outToken=0x...
-      const linkOKU = createHoverLink(`https://oku.trade/swap?inputChain=${chainConfig.Nama_Chain}&inToken=${data.sc_in}&outToken=${data.sc_out}`, '#OKU', 'uk-text-primary');
+      // Oku: https://oku.trade/swap?inputChain=ethereum&inToken=0x...&outToken=0x...&inAmount=%22111%22&isExactOut=false
+      const linkOKU = createHoverLink(`https://oku.trade/swap?inputChain=${chainConfig.Nama_Chain.toLowerCase()}&inToken=${data.sc_in}&outToken=${data.sc_out}&inAmount=%22111%22&isExactOut=false`, '#OKU', 'uk-text-primary');
       // Rango: Multi-chain aggregator (requires blockchain name mapping)
       const rangoChainMap = { 'bsc': 'BSC', 'ethereum': 'ETH', 'polygon': 'POLYGON', 'arbitrum': 'ARBITRUM', 'base': 'BASE', 'optimism': 'OPTIMISM', 'avalanche': 'AVAX_CCHAIN', 'solana': 'SOLANA' };
       const rangoChain = rangoChainMap[String(data.chain || '').toLowerCase()] || String(data.chain || '').toUpperCase();

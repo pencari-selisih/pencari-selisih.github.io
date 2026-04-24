@@ -334,7 +334,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://bscscan.com/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos", "relay"],  // ✅ lifidex = standalone LIFI (via Temple API)
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos"],  // ✅ lifidex = standalone LIFI (via Temple API)
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BSC' },
             BINANCE: { address: '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3', address2: '0xe2fc31F816A9b94326492132018C3aEcC4a93aE1', chainCEX: 'BSC' },
@@ -357,7 +357,7 @@ const CONFIG_CHAINS = {
         DEFAULT_RPC: 'https://rpc.llama-rpc.com/polygon?source=llamaswap', // DefiLlama
         BADGE_CLASS: 'bg-success text-light',
         SYNONYMS: ['POLYGON', 'MATIC', 'POLYGON POS', 'POLYGON \\(MATIC\\)', 'POL', 'POLYGONPOS', 'POLYGON_POS', 'POLYGONEVM', 'Polygon PoS', 'polygon'],
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos", "relay"],   // ✅ lifidex = standalone LIFI (via Temple API)
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos"],   // ✅ lifidex = standalone LIFI (via Temple API)
         LINKS: {
             explorer: {
                 token: (address) => `https://polygonscan.com/token/${address}`,
@@ -395,7 +395,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://arbiscan.io/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos", "relay"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'ARBITRUM' },
             BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88', address2: '0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245', chainCEX: 'ARBITRUM' },
@@ -424,7 +424,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://etherscan.io/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos", "relay"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'ETH' },
             BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', address3: '0x21a31Ee1afC51d94C2eFcCAa2092aD1028285549', chainCEX: 'ETH' },
@@ -456,7 +456,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://basescan.org/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos", "relay"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BASE' },
             BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', chainCEX: 'BASE' },
@@ -532,9 +532,9 @@ const CONFIG_UI = {
         { key: 'kyber' },
         { key: 'sushi' },
         { key: 'brave-jumper' },
-        { key: 'lifidex' },
+        // { key: 'lifidex' },
         { key: 'okx' },
-        { key: 'relay' },
+        // { key: 'relay' },
         { key: 'odos' },
         { key: 'velora' },
         { key: 'matcha' },
@@ -964,26 +964,26 @@ const CONFIG_DEXS = {
         },
         allowFallback: true,
     },
-    relay: {
-        label: 'Relay',
-        badgeClass: 'bg-relay',
-        fallbackSlug: 'relay',
-        disabled: false, // ✅ ENABLED - Cross-chain bridge & swap aggregator
-        warna: "#160783ff",  // Purple - Relay brand color
-        builder: ({ chainName, chainCode, tokenAddress, pairAddress }) =>
-            `https://relay.link/bridge/${String(chainName || '').toLowerCase()}?fromChainId=${chainCode}&fromCurrency=${tokenAddress}&toCurrency=${pairAddress}`,
-        fetchdex: {
-            primary: {
-                tokentopair: 'relay',          // CEX→DEX: Direct Relay API
-                pairtotoken: 'relay'           // DEX→CEX: Direct Relay API
-            },
-            alternative: {
-                tokentopair: 'relay',     // CEX→DEX: LIFI filtered (rotation)
-                pairtotoken: 'relay'      // DEX→CEX: LIFI filtered (rotation)
-            }
-        },
-        allowFallback: false,  // ✅ Enable rotation between primary and alternative
-    },
+    // relay: {
+    //     label: 'Relay',
+    //     badgeClass: 'bg-relay',
+    //     fallbackSlug: 'relay',
+    //     disabled: false, // ✅ ENABLED - Cross-chain bridge & swap aggregator
+    //     warna: "#160783ff",  // Purple - Relay brand color
+    //     builder: ({ chainName, chainCode, tokenAddress, pairAddress }) =>
+    //         `https://relay.link/bridge/${String(chainName || '').toLowerCase()}?fromChainId=${chainCode}&fromCurrency=${tokenAddress}&toCurrency=${pairAddress}`,
+    //     fetchdex: {
+    //         primary: {
+    //             tokentopair: 'relay',          // CEX→DEX: Direct Relay API
+    //             pairtotoken: 'relay'           // DEX→CEX: Direct Relay API
+    //         },
+    //         alternative: {
+    //             tokentopair: 'relay',     // CEX→DEX: LIFI filtered (rotation)
+    //             pairtotoken: 'relay'      // DEX→CEX: LIFI filtered (rotation)
+    //         }
+    //     },
+    //     allowFallback: false,  // ✅ Enable rotation between primary and alternative
+    // },
     // ============ DISABLED DEXes ============
 
     velora: {
@@ -1046,31 +1046,31 @@ const CONFIG_DEXS = {
     // DEX regular berdiri sendiri (seperti kyber, odos, dll.)
     // BERBEDA dari JUMPER (MetaDex, key 'lifi') yang multi-route.
     // Temple API adalah proxy untuk LIFI yang mengembalikan single-quote.
-    lifidex: {
-        label: 'LIFIDX',
-        badgeClass: 'bg-lifidex',
-        fallbackSlug: 'lifidex',
-        disabled: false,
-        warna: "#e44be8ff",       // Magenta — beda dari JUMPER (#f764bc)
-        proxy: true,              // ✅ Enable proxy — Temple API mungkin butuh CORS proxy
-        builder: ({ chainCode, tokenAddress, pairAddress }) =>
-            `https://jumper.exchange/?fromChain=${chainCode}&fromToken=${tokenAddress}&toChain=${chainCode}&toToken=${pairAddress}`,
-        fetchdex: {
-            primary: {
-                tokentopair: 'hinkal-lifidex',       // CEX→DEX: Hinkal LiFi Proxy
-                pairtotoken: 'c98-lifidex'        // DEX→CEX: Hinkal LiFi Proxy
-            },
-            secondary: {
-                tokentopair: 'swoop-lifidex',        // CEX→DEX: OneKey filtered → 1inch provider
-                pairtotoken: 'onekey-lifidex'         // DEX→CEX: OneKey filtered → 1inch provider
-            },
-            alternative: {
-                tokentopair: 'swoop-lifidex',         // CEX→DEX: C98 (using Superlink/LiFi API)
-                pairtotoken: 'hinkal-lifidex'       // DEX→CEX: OneKey (using LiFi/SwapLifi API)
-            }
-        },
-        allowFallback: true,   // ✅ Fallback ke alternative jika primary/secondary gagal
-    },
+    // lifidex: {
+    //     label: 'LIFIDX',
+    //     badgeClass: 'bg-lifidex',
+    //     fallbackSlug: 'lifidex',
+    //     disabled: false,
+    //     warna: "#e44be8ff",       // Magenta — beda dari JUMPER (#f764bc)
+    //     proxy: true,              // ✅ Enable proxy — Temple API mungkin butuh CORS proxy
+    //     builder: ({ chainCode, tokenAddress, pairAddress }) =>
+    //         `https://jumper.exchange/?fromChain=${chainCode}&fromToken=${tokenAddress}&toChain=${chainCode}&toToken=${pairAddress}`,
+    //     fetchdex: {
+    //         primary: {
+    //             tokentopair: 'hinkal-lifidex',       // CEX→DEX: Hinkal LiFi Proxy
+    //             pairtotoken: 'c98-lifidex'        // DEX→CEX: Hinkal LiFi Proxy
+    //         },
+    //         secondary: {
+    //             tokentopair: 'swoop-lifidex',        // CEX→DEX: OneKey filtered → 1inch provider
+    //             pairtotoken: 'onekey-lifidex'         // DEX→CEX: OneKey filtered → 1inch provider
+    //         },
+    //         alternative: {
+    //             tokentopair: 'swoop-lifidex',         // CEX→DEX: C98 (using Superlink/LiFi API)
+    //             pairtotoken: 'hinkal-lifidex'       // DEX→CEX: OneKey (using LiFi/SwapLifi API)
+    //         }
+    //     },
+    //     allowFallback: true,   // ✅ Fallback ke alternative jika primary/secondary gagal
+    // },
     // ============ SOLANA DEXes ============
     jupiter: {
         label: 'Jupiter',
@@ -1360,8 +1360,13 @@ const CONFIG_DEXS = {
         delay: 1000,
         isMultiDex: true,
         maxProviders: 3,
-        builder: ({ tokenAddress, pairAddress, codeChain }) =>
-            `https://oku.trade/app/swap?inputCurrency=${tokenAddress}&outputCurrency=${pairAddress}&chainId=${codeChain}`,
+        builder: ({ chainName, tokenAddress, pairAddress, amountIn }) => {
+            const network = String(chainName || '').toLowerCase();
+            const from = String(tokenAddress || '').toLowerCase();
+            const to = String(pairAddress || '').toLowerCase();
+            const amt = encodeURIComponent(`"${amountIn || 111}"`);
+            return `https://oku.trade/swap?inputChain=${network}&inToken=${from}&outToken=${to}&inAmount=${amt}&isExactOut=false`;
+        },
         fetchdex: {
             primary: {
                 tokentopair: 'okutrade',
