@@ -334,7 +334,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://bscscan.com/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos"],  // ✅ lifidex = standalone LIFI (via Temple API)
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos"],  // ✅ lifidex = standalone LIFI (via Temple API)
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BSC' },
             BINANCE: { address: '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3', address2: '0xe2fc31F816A9b94326492132018C3aEcC4a93aE1', chainCEX: 'BSC' },
@@ -357,7 +357,7 @@ const CONFIG_CHAINS = {
         DEFAULT_RPC: 'https://rpc.llama-rpc.com/polygon?source=llamaswap', // DefiLlama
         BADGE_CLASS: 'bg-success text-light',
         SYNONYMS: ['POLYGON', 'MATIC', 'POLYGON POS', 'POLYGON \\(MATIC\\)', 'POL', 'POLYGONPOS', 'POLYGON_POS', 'POLYGONEVM', 'Polygon PoS', 'polygon'],
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos"],   // ✅ lifidex = standalone LIFI (via Temple API)
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos"],   // ✅ lifidex = standalone LIFI (via Temple API)
         LINKS: {
             explorer: {
                 token: (address) => `https://polygonscan.com/token/${address}`,
@@ -395,7 +395,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://arbiscan.io/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'ARBITRUM' },
             BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88', address2: '0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245', chainCEX: 'ARBITRUM' },
@@ -424,7 +424,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://etherscan.io/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'ETH' },
             BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', address3: '0x21a31Ee1afC51d94C2eFcCAa2092aD1028285549', chainCEX: 'ETH' },
@@ -456,7 +456,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://basescan.org/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "lifidex", "sushi", "velora", "flytrade", "odos"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BASE' },
             BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', chainCEX: 'BASE' },
