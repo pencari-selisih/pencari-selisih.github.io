@@ -4,7 +4,7 @@ const CONFIG_APP = {
         //NAME: "PRIVATE_NOCORS",
         VERSION: "05.00",
         SCAN_LIMIT: false,
-        AUTORUN: false,
+        AUTORUN: true,
         AUTO_VOLUME: true,  // cek level order otomatis kalkulasi PNL
         VOL_CHECK: true,
         DEBUG_LOG: false,
