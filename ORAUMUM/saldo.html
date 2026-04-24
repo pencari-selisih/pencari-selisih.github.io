@@ -1743,7 +1743,7 @@
             // ══════════════════════════════════════════════════
             function getTotalSaldoCEXS() {
                 const allCEX = (typeof getEnabledCEXs === 'function') ? getEnabledCEXs()
-                    : ['BINANCE', 'GATE', 'BITGET', 'KUCOIN', 'BYBIT', 'INDODAX', 'MEXC', 'HTX', 'OKX'];
+                    : CONFIG_UI.CEXES.map(c => c.key);
                 let total = 0;
                 allCEX.forEach(cex => { total += parseFloat(localStorage.getItem(`MULTI_${cex}Saldo`)) || 0; });
                 localStorage.setItem('MULTI_TotalSaldoCEX', total);
@@ -2288,17 +2288,17 @@
                 // Restore CEX rows
                 const allCEX = sortAscByLabel(
                     (typeof getEnabledCEXs === 'function') ? getEnabledCEXs()
-                        : ['BINANCE', 'GATE', 'BITGET', 'KUCOIN', 'BYBIT', 'INDODAX', 'MEXC', 'HTX', 'OKX'],
+                        : CONFIG_UI.CEXES.map(c => c.key),
                     cex => cex
                 );
 
                 // Show/hide by enabledCEXs setting
                 const enabledCEXs = sortAscByLabel(
                     (typeof getEnabledCEXs === 'function') ? getEnabledCEXs()
-                        : ['BINANCE', 'GATE', 'BITGET', 'KUCOIN', 'BYBIT', 'INDODAX', 'MEXC', 'HTX', 'OKX'],
+                        : CONFIG_UI.CEXES.map(c => c.key),
                     cex => cex
                 );
-                ['BINANCE', 'GATE', 'BITGET', 'KUCOIN', 'BYBIT', 'INDODAX', 'MEXC', 'HTX', 'OKX'].forEach(cex => {
+                CONFIG_UI.CEXES.map(c => c.key).forEach(cex => {
                     const $row = $(`tr[data-cex="${cex}"]`);
                     if (enabledCEXs.includes(cex)) $row.show(); else $row.hide();
                 });

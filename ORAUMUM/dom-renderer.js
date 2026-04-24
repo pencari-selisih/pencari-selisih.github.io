@@ -22,26 +22,32 @@ function getMetaDexBadge(dexKey, size = '9px', style = 'solid') {
   const cfg = (typeof window !== 'undefined' && window.CONFIG_DEXS) ? window.CONFIG_DEXS[key] : null;
   if (!cfg || !cfg.isMetaDex) return '';
 
-  // Per-provider badge definition
-  const BADGES = {
-    metax: { label: 'MT', color: '#ec7506' },  // MetaMask orange
-    lifi: { label: 'JM', color: '#7c3aed' },  // Jumper purple
-    dzap: { label: 'DZ', color: '#d9dc36' },  // DZAP yellow
-    rubic: { label: 'RB', color: '#24cc59' },  // Rubic green
-    onekey: { label: 'KY', color: '#00b812' },  // OneKey green
-    debridge: { label: 'DB', color: '#d7ca0e' },  // deBridge
-    ctrlfi: { label: 'CT', color: '#808080' },  // CTRL (XDEFI) grey
-    zerion: { label: 'ZR', color: '#0052ff' },  // Zerion blue
+  // 1. DYNAMIC CONFIG: Use badge and warna from CONFIG_DEXS if available
+  const badgeLabel = cfg?.badge || cfg?.raw?.badge;
+  const badgeColor = cfg?.color || cfg?.warna || cfg?.raw?.warna;
+
+  // 2. FALLBACK: Hardcoded list for backward compatibility
+  const FALLBACK_BADGES = {
+    metax: { label: 'MT', color: '#ec7506' },
+    lifi: { label: 'JM', color: '#7c3aed' },
+    dzap: { label: 'DZ', color: '#d9dc36' },
+    rubic: { label: 'RB', color: '#24cc59' },
+    onekey: { label: '1K', color: '#00b812' },
+    debridge: { label: 'DB', color: '#d7ca0e' },
+    ctrlfi: { label: 'CT', color: '#666' },
+    zerion: { label: 'ZR', color: '#0052ff' },
+    okutrade: { label: 'OT', color: '#3498db' },
   };
 
-  const badge = BADGES[key] || { label: 'MT', color: '#888' };
-  const bg = style === 'glass'
-    ? 'rgba(255,255,255,0.22)'
-    : badge.color;
-  const textColor = '#fff';
-  const border = style === 'glass' ? `1px solid ${badge.color}` : 'none';
+  const fb = FALLBACK_BADGES[key] || { label: 'MT', color: '#888' };
+  const label = badgeLabel || fb.label;
+  const color = badgeColor || fb.color;
 
-  return `<span style="background:${bg};color:${textColor};border:${border};border-radius:3px;padding:0 3px;font-size:${size};font-weight:bold;vertical-align:middle;letter-spacing:0.3px;">${badge.label}</span>`;
+  const bg = style === 'glass' ? 'rgba(255,255,255,0.22)' : color;
+  const textColor = '#fff';
+  const border = style === 'glass' ? `1px solid ${color}` : 'none';
+
+  return `<span style="background:${bg};color:${textColor};border:${border};border-radius:3px;padding:0 3px;font-size:${size};font-weight:bold;vertical-align:middle;letter-spacing:0.3px;">${label}</span>`;
 }
 
 // Expose globally so ui.js / main.js can call it too
@@ -72,9 +78,27 @@ function getMonitoringColumnSpec(dexList) {
   const spec = [];
   const activeDexList = Array.isArray(dexList) ? dexList : [];
   spec.push({ type: 'orderbook-left', label: 'ORDERBOOK', classes: 'uk-text-center uk-text-bolder th-orderbook' });
-  activeDexList.forEach(d => { const cfgLbl = window.CONFIG_DEXS?.[String(d).toLowerCase()]?.label; const lbl = cfgLbl ? String(cfgLbl).toUpperCase() : String(d).toUpperCase(); spec.push({ type: 'dex', side: 'left', key: String(d).toLowerCase(), label: lbl, classes: 'uk-text-center uk-text-small th-dex' }); });
+  activeDexList.forEach(d => {
+    const dk = String(d).toLowerCase();
+    const cfg = window.CONFIG_DEXS?.[dk];
+    let lbl = (cfg && cfg.label) ? String(cfg.label).toUpperCase() : String(d).toUpperCase();
+    if (cfg && cfg.isMetaDex) {
+      const badge = typeof getMetaDexBadge === 'function' ? getMetaDexBadge(dk, '8px', 'solid') : '';
+      if (badge) lbl = `${badge} ${lbl}`;
+    }
+    spec.push({ type: 'dex', side: 'left', key: dk, label: lbl, classes: 'uk-text-center uk-text-small th-dex' });
+  });
   spec.push({ type: 'detail', label: 'DETAIL TOKEN', classes: 'uk-text-center uk-text-bolder th-detail' });
-  activeDexList.forEach(d => { const cfgLbl = window.CONFIG_DEXS?.[String(d).toLowerCase()]?.label; const lbl = cfgLbl ? String(cfgLbl).toUpperCase() : String(d).toUpperCase(); spec.push({ type: 'dex', side: 'right', key: String(d).toLowerCase(), label: lbl, classes: 'uk-text-center uk-text-small th-dex' }); });
+  activeDexList.forEach(d => {
+    const dk = String(d).toLowerCase();
+    const cfg = window.CONFIG_DEXS?.[dk];
+    let lbl = (cfg && cfg.label) ? String(cfg.label).toUpperCase() : String(d).toUpperCase();
+    if (cfg && cfg.isMetaDex) {
+      const badge = typeof getMetaDexBadge === 'function' ? getMetaDexBadge(dk, '8px', 'solid') : '';
+      if (badge) lbl = `${badge} ${lbl}`;
+    }
+    spec.push({ type: 'dex', side: 'right', key: dk, label: lbl, classes: 'uk-text-center uk-text-small th-dex' });
+  });
   spec.push({ type: 'orderbook-right', label: 'ORDERBOOK', classes: 'uk-text-center uk-text-bolder th-orderbook' });
   return spec;
 }
@@ -497,9 +521,10 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
       // Jumper (LIFI): Solana uses chain ID 1151111081099710
       const jumperChainId = String(data.chain || '').toLowerCase() === 'solana' ? 1151111081099710 : chainConfig.Kode_Chain;
       const linkJumper = createHoverLink(`https://jumper.exchange/?fromChain=${jumperChainId}&fromToken=${data.sc_in}&toChain=${jumperChainId}&toToken=${data.sc_out}`, '#JMX', 'uk-text-warning');
+      const linkEISEN = createHoverLink(`https://app.eisenfinance.com/swap?fromChain=${chainConfig.Kode_Chain}&toChain=${chainConfig.Kode_Chain}&fromToken=${data.sc_in}&toToken=${data.sc_out}`, '#ESN', 'uk-text-primary');
 
-      // Oku: https://oku.trade/swap?inputChain=ethereum&inToken=0x...&outToken=0x...
-      const linkOKU = createHoverLink(`https://oku.trade/swap?inputChain=${chainConfig.Nama_Chain}&inToken=${data.sc_in}&outToken=${data.sc_out}`, '#OKU', 'uk-text-primary');
+      // Oku: https://oku.trade/swap?inputChain=ethereum&inToken=0x...&outToken=0x...&inAmount=%22111%22&isExactOut=false
+      const linkOKU = createHoverLink(`https://oku.trade/swap?inputChain=${chainConfig.Nama_Chain.toLowerCase()}&inToken=${data.sc_in}&outToken=${data.sc_out}&inAmount=%22111%22&isExactOut=false`, '#OKU', 'uk-text-primary');
       // Rango: Multi-chain aggregator (requires blockchain name mapping)
       const rangoChainMap = { 'bsc': 'BSC', 'ethereum': 'ETH', 'polygon': 'POLYGON', 'arbitrum': 'ARBITRUM', 'base': 'BASE', 'optimism': 'OPTIMISM', 'avalanche': 'AVAX_CCHAIN', 'solana': 'SOLANA' };
       const rangoChain = rangoChainMap[String(data.chain || '').toLowerCase()] || String(data.chain || '').toUpperCase();
@@ -572,7 +597,7 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
                 <span class="detail-line uk-text-bolder">${WD_TOKEN}~ ${DP_TOKEN} | ${WD_PAIR}~ ${DP_PAIR}</span>
                 <span class="detail-line"><span style="color:${warnaChain}; font-weight:bold;">${(data.symbol_in || '').toUpperCase()}</span> ${linkSCtoken} : ${linkStokToken}</span>
                 <span class="detail-line"><span style="color:${warnaChain}; font-weight:bold;">${(data.symbol_out || '').toUpperCase()}</span> ${linkSCpair} : ${linkStokPair}</span>
-                <span class="detail-line">${linkJumper} ${linkOKU} ${linkDEFIL} ${linkOKDEX} </span>
+                <span class="detail-line">${linkJumper} ${linkEISEN} ${linkOKU} ${linkDEFIL} ${linkOKDEX} </span>
                 <span class="detail-line"> ${linkRango} ${linkDBX} ${linkDLX} ${linkRBX} ${linkDZAP}</span>
             </td>`;
 
