@@ -3,9 +3,9 @@ const CONFIG_APP = {
         NAME: "PENCARI SELISIH",
         //NAME: "PRIVATE_NOCORS",
         VERSION: "05.00",
-        SCAN_LIMIT: true,
-        AUTORUN: false,
-        AUTO_VOLUME: false,  // cek level order otomatis kalkulasi PNL
+        SCAN_LIMIT: false,
+        AUTORUN: true,
+        AUTO_VOLUME: true,  // cek level order otomatis kalkulasi PNL
         VOL_CHECK: true,
         DEBUG_LOG: false,
         // Gas units untuk ERC-20 transfer onchain (DEX → CEX wallet)
@@ -15,10 +15,10 @@ const CONFIG_APP = {
         // Berbeda dari DEX regular (single-quote). Berjalan TERPISAH dari scan DEX regular.
         // Jika true → Settings menampilkan panel: Modal DEX, Filter Scanner, Card Signal, Jeda DEX.
         META_DEX: true,
-        LIMIT_METADEX: 2,
+        LIMIT_METADEX: 0,
         // Batas jumlah DEX regular yang bisa dipilih di Filter Scanner.
         // 0 = tidak dibatasi.
-        LIMIT_DEX: 6,
+        LIMIT_DEX: 0,
     },
     // ========================================================================
     // META-DEX CONFIGURATION
