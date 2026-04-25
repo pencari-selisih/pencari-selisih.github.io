@@ -2,7 +2,7 @@ const CONFIG_APP = {
     APP: {
         NAME: "PENCARI SELISIH",
         //NAME: "PRIVATE_NOCORS",
-        VERSION: "05.00",
+        VERSION: "05.01",
         SCAN_LIMIT: false,
         AUTORUN: true,
         AUTO_VOLUME: true,  // cek level order otomatis kalkulasi PNL
@@ -336,7 +336,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://bscscan.com/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi","velora", "flytrade", "odos", "openocean", "cowswap", "lifidex","eisen"],  // ✅ lifidex = standalone LIFI (via Temple API)
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex", "eisen"],  // ✅ lifidex = standalone LIFI (via Temple API)
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BSC' },
             BINANCE: { address: '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3', address2: '0xe2fc31F816A9b94326492132018C3aEcC4a93aE1', chainCEX: 'BSC' },
@@ -359,7 +359,7 @@ const CONFIG_CHAINS = {
         DEFAULT_RPC: 'https://rpc.llama-rpc.com/polygon?source=llamaswap', // DefiLlama
         BADGE_CLASS: 'bg-success text-light',
         SYNONYMS: ['POLYGON', 'MATIC', 'POLYGON POS', 'POLYGON \\(MATIC\\)', 'POL', 'POLYGONPOS', 'POLYGON_POS', 'POLYGONEVM', 'Polygon PoS', 'polygon'],
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex","eisen"],   // ✅ lifidex = standalone LIFI (via Temple API)
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex"],   // ✅ lifidex = standalone LIFI (via Temple API)
         LINKS: {
             explorer: {
                 token: (address) => `https://polygonscan.com/token/${address}`,
@@ -397,7 +397,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://arbiscan.io/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi","velora", "flytrade", "odos", "openocean", "cowswap", "lifidex"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex", "eisen"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'ARBITRUM' },
             BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88', address2: '0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245', chainCEX: 'ARBITRUM' },
@@ -426,7 +426,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://etherscan.io/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi","velora", "flytrade", "odos", "openocean", "cowswap", "lifidex","eisen"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex", "eisen"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'ETH' },
             BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', address3: '0x21a31Ee1afC51d94C2eFcCAa2092aD1028285549', chainCEX: 'ETH' },
@@ -458,7 +458,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://basescan.org/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi","velora", "flytrade", "odos", "openocean", "cowswap", "lifidex","eisen"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex", "eisen"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BASE' },
             BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', chainCEX: 'BASE' },
@@ -672,7 +672,7 @@ const CONFIG_DEXS = {
             },
             secondary: {
                 tokentopair: 'talisman-kyber',   // CEX→DEX: Bungee filtered KyberSwap (rotation)
-                pairtotoken: 'zapper-kyber'    // DEX→CEX: Bungee filtered KyberSwap (rotation)
+                pairtotoken: 'brave-kyber'    // DEX→CEX: Bungee filtered KyberSwap (rotation)
             },
             alternative: {
                 tokentopair: 'bungee-kyber',  // CEX→DEX: Krystal allRates filtered KyberSwap (fallback)
@@ -700,7 +700,7 @@ const CONFIG_DEXS = {
                 pairtotoken: 'birdeye-okx'    // DEX→CEX: Krystal allRates filtered OKX
             },
             alternative: {
-                tokentopair: 'zapper-okx',       // CEX→DEX: Coin98 Superlink filtered for OKX
+                tokentopair: 'brave-okx',       // CEX→DEX: Coin98 Superlink filtered for OKX
                 pairtotoken: 'talisman-okx'            // DEX→CEX: Official OKX DEX API
             }
         },
@@ -727,7 +727,7 @@ const CONFIG_DEXS = {
             },
             secondary: {
                 tokentopair: 'rabby-flytrade', // CEX→DEX: Talisman filtered → Fly route
-                pairtotoken: 'backpack-flytrade'   // DEX→CEX: Zapper filtered → Fly route
+                pairtotoken: 'talisman-flytrade'   // DEX→CEX: Zapper filtered → Fly route
             },
             alternative: {
                 tokentopair: 'brave-flytrade',   // CEX→DEX: Rabby filtered → Fly route
@@ -792,12 +792,12 @@ const CONFIG_DEXS = {
             },
             alternative: {
                 tokentopair: 'brave-odos',  // CEX→DEX: Rainbow proxy 0x/Matcha (fallback)
-                pairtotoken: 'backpack-odos'   // DEX→CEX: Rainbow proxy 0x/Matcha (fallback)
+                pairtotoken: 'talisman-odos'   // DEX→CEX: Rainbow proxy 0x/Matcha (fallback)
             },
         },
         allowFallback: true,  // ✅ Jika yang dipilih gagal, coba yang lain
     },
-    
+
     // relay: {
     //     label: 'Relay',
     //     badgeClass: 'bg-relay',
@@ -840,7 +840,7 @@ const CONFIG_DEXS = {
 
             secondary: {
                 tokentopair: 'talisman-velora', // CEX→DEX: Talisman filtered → ParaSwap route
-                pairtotoken: 'zapper-velora'   // DEX→CEX: Zapper filtered → ParaSwap route
+                pairtotoken: 'brave-velora'   // DEX→CEX: Zapper filtered → ParaSwap route
             },
             alternative: {
                 tokentopair: 'rocketx-velora', // CEX→DEX: RocketX filtered → ParaSwap route
@@ -896,18 +896,14 @@ const CONFIG_DEXS = {
                 tokentopair: 'openocean',
                 pairtotoken: 'openocean'
             },
-            secondary: {
-                tokentopair: 'talisman-openocean',
-                pairtotoken: 'zapper-openocean'
-            },
             alternative: {
-                tokentopair: 'brave-openocean',
-                pairtotoken: 'backpack-openocean'
+                tokentopair: 'talisman-openocean',
+                pairtotoken: 'brave-openocean'
             }
         },
         allowFallback: true,
     },
-    
+
     lifidex: {
         label: 'LIFIDX',
         badgeClass: 'bg-lifidex',
@@ -943,11 +939,7 @@ const CONFIG_DEXS = {
             },
             alternative: {
                 tokentopair: 'talisman-sushi',
-                pairtotoken: 'zapper-sushi'
-            },
-            secondary: {
-                tokentopair: 'brave-sushi',
-                pairtotoken: 'backpack-sushi'
+                pairtotoken: 'brave-sushi'
             }
         },
         allowFallback: true,
@@ -968,20 +960,17 @@ const CONFIG_DEXS = {
             },
             alternative: {
                 tokentopair: 'talisman-eisen',
-                pairtotoken: 'zapper-eisen'
-            },
-            secondary: {
-                tokentopair: 'brave-eisen',
-                pairtotoken: 'backpack-eisen'
-            },
+                pairtotoken: 'brave-eisen'
+            }
         },
         allowFallback: true
     },
-cowswap: {
+    cowswap: {
         label: 'CoWSwap',
         badgeClass: 'bg-cowswap',
         fallbackSlug: 'cowswap',
         warna: '#904b0fff',
+        proxy: true,
         evmOnly: true,
         builder: ({ chainCode, tokenAddress, pairAddress }) =>
             `https://swap.cow.fi/#/${chainCode}/swap/${tokenAddress}/${pairAddress}`,
@@ -992,12 +981,8 @@ cowswap: {
             },
             alternative: {
                 tokentopair: 'talisman-cowswap',
-                pairtotoken: 'zapper-cowswap'
-            },
-            secondary: {
-                tokentopair: 'brave-cowswap',
-                pairtotoken: 'backpack-cowswap'
-            },
+                pairtotoken: 'brave-cowswap'
+            }
         },
         allowFallback: true,
     },
@@ -1017,7 +1002,7 @@ cowswap: {
     //     },
     //     allowFallback: false,
     // },
-    
+
 
     // ============ SOLANA DEXes ============
     jupiter: {
@@ -1101,7 +1086,7 @@ cowswap: {
         label: 'ZAPPER',
         badgeClass: 'bg-zapper',
         disabled: false,
-        isBackendProvider: true,
+        isBackendProvider: true,   // standalone — hanya untuk jumper alternative
         warna: "#24cc59ff",
         proxy: true,
         delay: 500,
@@ -1133,11 +1118,11 @@ cowswap: {
         fetchdex: {
             primary: {
                 tokentopair: 'brave',
-                pairtotoken: 'brave'
+                pairtotoken: 'talisman'
             },
             alternative: {
-                tokentopair: 'talisman',  // Sebaliknya jika primary gagal
-                pairtotoken: 'backpack'
+                tokentopair: 'zapper',    // GET /api/lifi/quote (zapper.xyz) jika brave gagal
+                pairtotoken: 'backpack'   // GET /quote (lifi.workers.madlads.com) jika talisman gagal
             },
         },
         allowFallback: true,
@@ -1467,9 +1452,12 @@ const CONFIG_UI = {
             'hinkal-one1inch': 12000,
 
             'jupiter': 3000,
+            'eisen': 8000,
+            'eisen-*': 8000,
             'dflow': 3000,
             'lifi-*': 5000,
-            'jumper-*': 6000,
+            'brave-*': 6000,
+            'talisman-*': 6000,
             'rabby-*': 5000,
             'rainbow-*': 5000,
             'swoop-*': 9000,
@@ -1479,7 +1467,10 @@ const CONFIG_UI = {
             'rubic-*': 6000,
             'c98-*': 6000,
             'lifi': 6000,
-            'jumper': 6000,
+            'brave': 6000,
+            'talisman': 6000,
+            'zapper': 6000,
+            'backpack': 6000,
 
             'swoop': 10000,
             'swing': 6000,

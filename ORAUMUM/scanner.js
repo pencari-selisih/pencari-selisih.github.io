@@ -1181,11 +1181,19 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     }
                                 } catch (_) { }
 
-                                statusSpan.innerHTML = `<span class="uk-label uk-label-danger">ERROR</span> <a href="${dexLink}" target="_blank" rel="noopener" class="uk-link-muted" title="Check swap manually on DEX" style="font-size:0.9em;">🔗</a>`;
+                                // ✅ ENHANCEMENT: Show specific labels for common errors
+                                let labelText = 'ERROR';
+                                if (message) {
+                                    const msgLower = String(message).toLowerCase();
+                                    if (msgLower.includes('mismatched')) labelText = 'MISMATCH';
+                                    else if (msgLower.includes('no route') || msgLower.includes('not found')) labelText = 'NO ROUTE';
+                                }
+
+                                statusSpan.innerHTML = `<span class="uk-label uk-label-danger">${labelText}</span> <a href="${dexLink}" target="_blank" rel="noopener" class="uk-link-muted" title="Check swap manually on DEX" style="font-size:0.9em;">🔗</a>`;
                                 if (message) {
                                     statusSpan.title = String(message);
                                     setCellTitleByEl(cell, String(message));
-                                    // Ensure the visible ERROR/TIMEOUT badge also shows the tooltip itself
+                                    // Ensure the visible label also shows the tooltip itself
                                     try { const lab = statusSpan.querySelector('.uk-label'); if (lab) lab.setAttribute('title', String(message)); } catch (_) { }
                                 } else {
                                     statusSpan.removeAttribute('title');
