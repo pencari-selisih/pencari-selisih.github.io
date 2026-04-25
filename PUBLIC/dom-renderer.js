@@ -521,7 +521,6 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
       // Jumper (LIFI): Solana uses chain ID 1151111081099710
       const jumperChainId = String(data.chain || '').toLowerCase() === 'solana' ? 1151111081099710 : chainConfig.Kode_Chain;
       const linkJumper = createHoverLink(`https://jumper.exchange/?fromChain=${jumperChainId}&fromToken=${data.sc_in}&toChain=${jumperChainId}&toToken=${data.sc_out}`, '#JMX', 'uk-text-warning');
-      const linkEISEN = createHoverLink(`https://app.eisenfinance.com/swap?fromChain=${chainConfig.Kode_Chain}&toChain=${chainConfig.Kode_Chain}&fromToken=${data.sc_in}&toToken=${data.sc_out}`, '#ESN', 'uk-text-primary');
 
       // Oku: https://oku.trade/swap?inputChain=ethereum&inToken=0x...&outToken=0x...&inAmount=%22111%22&isExactOut=false
       const linkOKU = createHoverLink(`https://oku.trade/swap?inputChain=${chainConfig.Nama_Chain.toLowerCase()}&inToken=${data.sc_in}&outToken=${data.sc_out}&inAmount=%22111%22&isExactOut=false`, '#OKU', 'uk-text-primary');
@@ -597,7 +596,7 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
                 <span class="detail-line uk-text-bolder">${WD_TOKEN}~ ${DP_TOKEN} | ${WD_PAIR}~ ${DP_PAIR}</span>
                 <span class="detail-line"><span style="color:${warnaChain}; font-weight:bold;">${(data.symbol_in || '').toUpperCase()}</span> ${linkSCtoken} : ${linkStokToken}</span>
                 <span class="detail-line"><span style="color:${warnaChain}; font-weight:bold;">${(data.symbol_out || '').toUpperCase()}</span> ${linkSCpair} : ${linkStokPair}</span>
-                <span class="detail-line">${linkJumper} ${linkEISEN} ${linkOKU} ${linkDEFIL} ${linkOKDEX} </span>
+                <span class="detail-line">${linkJumper} ${linkOKU} ${linkDEFIL} ${linkOKDEX} </span>
                 <span class="detail-line"> ${linkRango} ${linkDBX} ${linkDLX} ${linkRBX} ${linkDZAP}</span>
             </td>`;
 

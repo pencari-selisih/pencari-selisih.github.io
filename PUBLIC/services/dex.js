@@ -1454,15 +1454,21 @@
         const subResults = [];
         for (const route of routes) {
           if (!route || !route.toAmount) continue;
+          
+          // STRICT VALIDATION: Check if returned tool matches our target label
+          const actualTool = String(route.steps?.[0]?.toolDetails?.name || '').toUpperCase();
+          if (dexTitleLabel && !actualTool.includes(dexTitleLabel.toUpperCase()) && !dexTitleLabel.toUpperCase().includes(actualTool)) {
+            continue; // Skip mismatched route
+          }
+
           const amount_out = parseFloat(route.toAmount) / Math.pow(10, des_output);
           const { FeeSwap, feeSource } = resolveFeeSwap(parseFloat(route.gasCostUSD || 0), 0, chainName);
-          let dexTitle = dexTitleLabel || 'LIFI';
-          try { if (!dexTitleLabel) dexTitle = String(route.steps?.[0]?.toolDetails?.name || 'LIFI').toUpperCase(); } catch (_) { }
+          let dexTitle = dexTitleLabel || actualTool || 'LIFI';
           subResults.push({ amount_out, FeeSwap, feeSource, dexTitle, routeTool: `TALISMAN-${dexTitleLabel || 'JUMPER'}` });
           if (subResults.length >= 3) break;
         }
         const filtered = filterOffDexResults(subResults);
-        if (filtered.length === 0) throw new Error(`TALISMAN-${dexTitleLabel || 'JUMPER'}: Results filtered`);
+        if (filtered.length === 0) throw new Error(`TALISMAN-${dexTitleLabel || 'JUMPER'}: No matching DEX found (Requested: ${dexTitleLabel || 'ANY'})`);
         filtered.sort((a, b) => b.amount_out - a.amount_out);
         return { amount_out: filtered[0].amount_out, FeeSwap: filtered[0].FeeSwap, feeSource: filtered[0].feeSource, dexTitle: filtered[0].dexTitle, routeTool: filtered[0].routeTool, subResults: filtered, isMultiDex: !dexTitleLabel };
       }
@@ -1496,12 +1502,18 @@
       },
       parseResponse: (response, { des_output, chainName }) => {
         if (!response?.estimate?.toAmount) throw new Error(`ZAPPER-${dexTitleLabel || 'JUMPER'}: No valid quote received`);
+        
+        // STRICT VALIDATION: Check if returned tool matches our target label
+        const actualTool = String(response.toolDetails?.name || response.tool || '').toUpperCase();
+        if (dexTitleLabel && !actualTool.includes(dexTitleLabel.toUpperCase()) && !dexTitleLabel.toUpperCase().includes(actualTool)) {
+          throw new Error(`ZAPPER-${dexTitleLabel}: Mismatched DEX (Got: ${actualTool})`);
+        }
+
         const amount_out = parseFloat(response.estimate.toAmount) / Math.pow(10, des_output);
         let gasCostUsd = 0;
         if (response.estimate.gasCosts) gasCostUsd = response.estimate.gasCosts.reduce((sum, gc) => sum + parseFloat(gc.amountUSD || 0), 0);
         const { FeeSwap, feeSource } = resolveFeeSwap(gasCostUsd, 0, chainName);
-        let dexTitle = dexTitleLabel || 'LIFI';
-        try { if (!dexTitleLabel) dexTitle = String(response.toolDetails?.name || response.tool || 'ZAPPER').toUpperCase(); } catch (_) { }
+        let dexTitle = dexTitleLabel || actualTool || 'LIFI';
         const result = { amount_out, FeeSwap, feeSource, dexTitle, routeTool: `ZAPPER-${dexTitleLabel || 'JUMPER'}` };
         return { ...result, subResults: [result], isMultiDex: !dexTitleLabel };
       }
@@ -1545,15 +1557,21 @@
         const subResults = [];
         for (const route of routes) {
           if (!route || !route.toAmount) continue;
+
+          // STRICT VALIDATION: Check if returned tool matches our target label
+          const actualTool = String(route.steps?.[0]?.toolDetails?.name || '').toUpperCase();
+          if (dexTitleLabel && !actualTool.includes(dexTitleLabel.toUpperCase()) && !dexTitleLabel.toUpperCase().includes(actualTool)) {
+            continue; // Skip mismatched route
+          }
+
           const amount_out = parseFloat(route.toAmount) / Math.pow(10, des_output);
           const { FeeSwap, feeSource } = resolveFeeSwap(parseFloat(route.gasCostUSD || 0), 0, chainName);
-          let dexTitle = dexTitleLabel || 'LIFI';
-          try { if (!dexTitleLabel) dexTitle = String(route.steps?.[0]?.toolDetails?.name || 'LIFI').toUpperCase(); } catch (_) { }
+          let dexTitle = dexTitleLabel || actualTool || 'LIFI';
           subResults.push({ amount_out, FeeSwap, feeSource, dexTitle, routeTool: `BRAVE-${dexTitleLabel || 'JUMPER'}` });
           if (subResults.length >= 3) break;
         }
         const filtered = filterOffDexResults(subResults);
-        if (filtered.length === 0) throw new Error(`BRAVE-${dexTitleLabel || 'JUMPER'}: Results filtered`);
+        if (filtered.length === 0) throw new Error(`BRAVE-${dexTitleLabel || 'JUMPER'}: No matching DEX found (Requested: ${dexTitleLabel || 'ANY'})`);
         filtered.sort((a, b) => b.amount_out - a.amount_out);
         return { amount_out: filtered[0].amount_out, FeeSwap: filtered[0].FeeSwap, feeSource: filtered[0].feeSource, dexTitle: filtered[0].dexTitle, routeTool: filtered[0].routeTool, subResults: filtered, isMultiDex: !dexTitleLabel };
       }
@@ -1586,12 +1604,18 @@
       },
       parseResponse: (response, { des_output, chainName }) => {
         if (!response?.estimate?.toAmount) throw new Error(`JUMPER-${dexTitleLabel || 'JUMPER'}: No valid quote received`);
+        
+        // STRICT VALIDATION: Check if returned tool matches our target label
+        const actualTool = String(response.toolDetails?.name || response.tool || '').toUpperCase();
+        if (dexTitleLabel && !actualTool.includes(dexTitleLabel.toUpperCase()) && !dexTitleLabel.toUpperCase().includes(actualTool)) {
+          throw new Error(`JUMPER-${dexTitleLabel}: Mismatched DEX (Got: ${actualTool})`);
+        }
+
         const amount_out = parseFloat(response.estimate.toAmount) / Math.pow(10, des_output);
         let gasCostUsd = 0;
         if (response.estimate.gasCosts) gasCostUsd = response.estimate.gasCosts.reduce((sum, gc) => sum + parseFloat(gc.amountUSD || 0), 0);
         const { FeeSwap, feeSource } = resolveFeeSwap(gasCostUsd, 0, chainName);
-        let dexTitle = dexTitleLabel || 'LIFI';
-        try { if (!dexTitleLabel) dexTitle = String(response.toolDetails?.name || response.tool || 'JUMPER').toUpperCase(); } catch (_) { }
+        let dexTitle = dexTitleLabel || actualTool || 'LIFI';
         const result = { amount_out, FeeSwap, feeSource, dexTitle, routeTool: `JUMPER-${dexTitleLabel || 'JUMPER'}` };
         return { ...result, subResults: [result], isMultiDex: !dexTitleLabel };
       }
