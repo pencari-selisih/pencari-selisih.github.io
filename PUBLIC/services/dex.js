@@ -1454,7 +1454,7 @@
         const subResults = [];
         for (const route of routes) {
           if (!route || !route.toAmount) continue;
-          
+
           // STRICT VALIDATION: Check if returned tool matches our target label
           const actualTool = String(route.steps?.[0]?.toolDetails?.name || '').toUpperCase();
           if (dexTitleLabel && !actualTool.includes(dexTitleLabel.toUpperCase()) && !dexTitleLabel.toUpperCase().includes(actualTool)) {
@@ -1475,50 +1475,6 @@
     };
   }
 
-  function createFilteredZapperStrategy(allowExchanges, dexTitleLabel) {
-    return {
-      buildRequest: ({ codeChain, sc_input, sc_output, sc_input_in, sc_output_in, amount_in_big, SavedSettingData, chainName }) => {
-        const chainConfig = (root.CONFIG_CHAINS || {})[String(chainName || '').toLowerCase()];
-        const lifiChainId = chainConfig?.LIFI_CHAIN_ID || Number(codeChain);
-        const isSolana = String(chainName || '').toLowerCase() === 'solana';
-        const fromToken = isSolana ? sc_input_in : sc_input.toLowerCase();
-        const toToken = isSolana ? sc_output_in : sc_output.toLowerCase();
-        const userAddr = isSolana ? (SavedSettingData?.walletSolana || 'So11111111111111111111111111111111111111112') : (SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000');
-        const params = new URLSearchParams({
-          fromChain: lifiChainId.toString(),
-          toChain: lifiChainId.toString(),
-          fromToken: fromToken,
-          toToken: toToken,
-          fromAmount: amount_in_big.toString(),
-          fromAddress: userAddr,
-          slippage: String(parseFloat(getSlippageValue()) / 100),
-          integrator: 'zapper',
-          fee: '0.004'
-        });
-        if (allowExchanges) {
-          params.append('allowExchanges', Array.isArray(allowExchanges) ? allowExchanges.join(',') : allowExchanges);
-        }
-        return { url: `https://zapper.xyz/api/lifi/quote?${params.toString()}`, method: 'GET' };
-      },
-      parseResponse: (response, { des_output, chainName }) => {
-        if (!response?.estimate?.toAmount) throw new Error(`ZAPPER-${dexTitleLabel || 'JUMPER'}: No valid quote received`);
-        
-        // STRICT VALIDATION: Check if returned tool matches our target label
-        const actualTool = String(response.toolDetails?.name || response.tool || '').toUpperCase();
-        if (dexTitleLabel && !actualTool.includes(dexTitleLabel.toUpperCase()) && !dexTitleLabel.toUpperCase().includes(actualTool)) {
-          throw new Error(`ZAPPER-${dexTitleLabel}: Mismatched DEX (Got: ${actualTool})`);
-        }
-
-        const amount_out = parseFloat(response.estimate.toAmount) / Math.pow(10, des_output);
-        let gasCostUsd = 0;
-        if (response.estimate.gasCosts) gasCostUsd = response.estimate.gasCosts.reduce((sum, gc) => sum + parseFloat(gc.amountUSD || 0), 0);
-        const { FeeSwap, feeSource } = resolveFeeSwap(gasCostUsd, 0, chainName);
-        let dexTitle = dexTitleLabel || actualTool || 'LIFI';
-        const result = { amount_out, FeeSwap, feeSource, dexTitle, routeTool: `ZAPPER-${dexTitleLabel || 'JUMPER'}` };
-        return { ...result, subResults: [result], isMultiDex: !dexTitleLabel };
-      }
-    };
-  }
 
   function createFilteredBraveStrategy(allowExchanges, dexTitleLabel) {
     return {
@@ -1578,6 +1534,49 @@
     };
   }
 
+
+  function createFilteredZapperStrategy(allowExchanges, dexTitleLabel) {
+    return {
+      buildRequest: ({ codeChain, sc_input, sc_output, sc_input_in, sc_output_in, amount_in_big, SavedSettingData, chainName }) => {
+        const chainConfig = (root.CONFIG_CHAINS || {})[String(chainName || '').toLowerCase()];
+        const lifiChainId = chainConfig?.LIFI_CHAIN_ID || Number(codeChain);
+        const isSolana = String(chainName || '').toLowerCase() === 'solana';
+        const fromToken = isSolana ? sc_input_in : sc_input.toLowerCase();
+        const toToken = isSolana ? sc_output_in : sc_output.toLowerCase();
+        const userAddr = isSolana ? (SavedSettingData?.walletSolana || 'So11111111111111111111111111111111111111112') : (SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000');
+        const params = new URLSearchParams({
+          fromChain: lifiChainId.toString(),
+          toChain: lifiChainId.toString(),
+          fromToken: fromToken,
+          toToken: toToken,
+          fromAmount: amount_in_big.toString(),
+          fromAddress: userAddr,
+          slippage: String(parseFloat(getSlippageValue()) / 100),
+          integrator: 'zapper',
+          fee: '0.004'
+        });
+        if (allowExchanges) {
+          params.append('allowExchanges', Array.isArray(allowExchanges) ? allowExchanges.join(',') : allowExchanges);
+        }
+        return { url: `https://zapper.xyz/api/lifi/quote?${params.toString()}`, method: 'GET' };
+      },
+      parseResponse: (response, { des_output, chainName }) => {
+        if (!response?.estimate?.toAmount) throw new Error(`ZAPPER-${dexTitleLabel || 'JUMPER'}: No valid quote received`);
+        const actualTool = String(response.toolDetails?.name || response.tool || '').toUpperCase();
+        if (dexTitleLabel && !actualTool.includes(dexTitleLabel.toUpperCase()) && !dexTitleLabel.toUpperCase().includes(actualTool)) {
+          throw new Error(`ZAPPER-${dexTitleLabel}: Mismatched DEX (Got: ${actualTool})`);
+        }
+        const amount_out = parseFloat(response.estimate.toAmount) / Math.pow(10, des_output);
+        let gasCostUsd = 0;
+        if (response.estimate.gasCosts) gasCostUsd = response.estimate.gasCosts.reduce((sum, gc) => sum + parseFloat(gc.amountUSD || 0), 0);
+        const { FeeSwap, feeSource } = resolveFeeSwap(gasCostUsd, 0, chainName);
+        let dexTitle = dexTitleLabel || actualTool || 'LIFI';
+        const result = { amount_out, FeeSwap, feeSource, dexTitle, routeTool: `ZAPPER-${dexTitleLabel || 'JUMPER'}` };
+        return { ...result, subResults: [result], isMultiDex: !dexTitleLabel };
+      }
+    };
+  }
+
   function createFilteredBackpackStrategy(allowExchanges, dexTitleLabel) {
     return {
       buildRequest: ({ codeChain, sc_input, sc_output, sc_input_in, sc_output_in, amount_in_big, SavedSettingData, chainName }) => {
@@ -1604,13 +1603,10 @@
       },
       parseResponse: (response, { des_output, chainName }) => {
         if (!response?.estimate?.toAmount) throw new Error(`JUMPER-${dexTitleLabel || 'JUMPER'}: No valid quote received`);
-        
-        // STRICT VALIDATION: Check if returned tool matches our target label
         const actualTool = String(response.toolDetails?.name || response.tool || '').toUpperCase();
         if (dexTitleLabel && !actualTool.includes(dexTitleLabel.toUpperCase()) && !dexTitleLabel.toUpperCase().includes(actualTool)) {
           throw new Error(`JUMPER-${dexTitleLabel}: Mismatched DEX (Got: ${actualTool})`);
         }
-
         const amount_out = parseFloat(response.estimate.toAmount) / Math.pow(10, des_output);
         let gasCostUsd = 0;
         if (response.estimate.gasCosts) gasCostUsd = response.estimate.gasCosts.reduce((sum, gc) => sum + parseFloat(gc.amountUSD || 0), 0);
@@ -1625,15 +1621,9 @@
   // ✅ 4 canonical unfiltered aliases
   dexStrategies['brave'] = dexStrategies['lifi'];                     // Brave    — POST /advanced/routes (lifi.wallet.brave.com)
   dexStrategies['talisman'] = createFilteredTalismanStrategy(null, null); // Talisman — POST /advanced/routes (lifi.talisman.xyz)
-  dexStrategies['zapper'] = createFilteredZapperStrategy(null, null);   // Zapper   — GET /quote (zapper.xyz)
-  dexStrategies['jumper'] = createFilteredBackpackStrategy(null, null);  // Jumper   — GET /quote (lifi.workers.madlads.com)
-  dexStrategies['backpack'] = dexStrategies['jumper'];                     // Backpack — alias for jumper (same endpoint)
+  dexStrategies['zapper']   = createFilteredZapperStrategy(null, null);   // Zapper   — GET  /api/lifi/quote  (zapper.xyz)
+  dexStrategies['backpack'] = createFilteredBackpackStrategy(null, null);  // Backpack — GET  /quote           (lifi.workers.madlads.com)
 
-  // backward-compat aliases
-  dexStrategies['talisman-jumper'] = dexStrategies['talisman'];
-  dexStrategies['zapper-jumper'] = dexStrategies['zapper'];
-  dexStrategies['backpack-jumper'] = dexStrategies['jumper'];
-  dexStrategies['backpack-lifidex'] = dexStrategies['jumper'];
 
   // ✅ Unified LiFi filter factory
   // Usage: createLiFiFilterStrategy('brave', 'kyberswap', 'KYBER')
@@ -1642,9 +1632,7 @@
     const p = String(provider).toLowerCase();
     if (p === 'brave') return createFilteredBraveStrategy(allowExchanges, dexTitleLabel);
     if (p === 'talisman') return createFilteredTalismanStrategy(allowExchanges, dexTitleLabel);
-    if (p === 'zapper') return createFilteredZapperStrategy(allowExchanges, dexTitleLabel);
-    if (p === 'jumper' || p === 'backpack') return createFilteredBackpackStrategy(allowExchanges, dexTitleLabel);
-    throw new Error(`[LiFi] Unknown provider: "${provider}". Valid: brave, talisman, zapper, jumper`);
+    throw new Error(`[LiFi] Unknown provider: "${provider}". Valid: brave, talisman`);
   }
 
   // DEX filter map: strategy-suffix → [lifi-exchange-slug, LABEL]
@@ -1662,17 +1650,12 @@
     'cowswap': ['cow', 'COWSWAP'],
   };
 
-  // Auto-register: brave-kyber, talisman-velora, zapper-openocean, jumper-sushi, dll.
-  ['brave', 'talisman', 'zapper', 'jumper'].forEach(function (provider) {
+  // Auto-register: brave-kyber, brave-velora, talisman-kyber, talisman-velora, dll.
+  ['brave', 'talisman'].forEach(function (provider) {
     Object.entries(LIFI_DEX_MAP).forEach(function (_ref) {
       var dexKey = _ref[0], lifiSlug = _ref[1][0], label = _ref[1][1];
       dexStrategies[provider + '-' + dexKey] = createLiFiFilterStrategy(provider, lifiSlug, label);
     });
-  });
-
-  // backpack-* aliases (backward compat)
-  Object.keys(LIFI_DEX_MAP).forEach(function (dexKey) {
-    dexStrategies['backpack-' + dexKey] = dexStrategies['jumper-' + dexKey];
   });
 
 
