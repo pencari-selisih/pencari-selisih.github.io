@@ -5223,20 +5223,25 @@
 
           // ✅ FIX: Allow fallback for timeout/network error on ALL DEXs with fallback strategy
           const isNoRespFallback = noResp && computedFallback && allowFallback;
+          // ✅ FIX: Also fallback when HTTP 200 but response is not JSON (proxy returns HTML error page)
+          // Common when CORS proxy blocks POST or upstream endpoint is unavailable (jQuery parsererror)
+          const isParseError = code === 200 && String(e1 && e1.textStatus || '').toLowerCase() === 'parsererror';
 
           // Fallback conditions (only if allowFallback is true):
           // 1. Bad Request (400) - Often means "no route found" or provider-specific issue
           // 2. Rate limit (429)
           // 3. Server error (500+)
           // 4. No response (timeout/network error) for ALL DEXs with fallback strategy
+          // 5. HTTP 200 parseerror - proxy/upstream returned non-JSON (HTML error page)
           const shouldFallback = computedFallback && (
             (Number.isFinite(code) && (code === 400 || code === 429 || code >= 500)) || // 400, 429 atau server error
-            isNoRespFallback // Atau no response (timeout/network error)
+            isNoRespFallback || // Atau no response (timeout/network error)
+            isParseError        // Atau HTTP 200 tapi non-JSON (proxy error page)
           );
           if (!shouldFallback) throw e1;
 
           // DEBUG: Log fallback trigger with mode info
-          const fallbackReason = code === 429 ? 'RATE_LIMIT' : code >= 500 ? `SERVER_ERROR_${code}` : 'TIMEOUT/NO_RESPONSE';
+          const fallbackReason = code === 429 ? 'RATE_LIMIT' : code >= 500 ? `SERVER_ERROR_${code}` : isParseError ? 'PARSE_ERROR_200' : 'TIMEOUT/NO_RESPONSE';
           console.warn(`[DEX FALLBACK] ${chainName?.toUpperCase() || 'CHAIN'} ${dexType.toUpperCase()}: mode='${mode}' selected='${selectedStrategy}' FAILED (${fallbackReason}), trying fallback='${computedFallback}'`);
 
           // Try fallback strategy
@@ -5258,9 +5263,11 @@
               // ✅ LEVEL 3: Coba alternativeStrategy jika rotation primary+secondary keduanya gagal
               const e2Code = Number(e2 && e2.statusCode) || 0;
               const noResp2 = !Number.isFinite(e2Code) || e2Code === 0;
+              const isParseError2 = e2Code === 200 && String(e2 && e2.textStatus || '').toLowerCase() === 'parsererror';
               const shouldTryAlternative = alternativeStrategy && allowFallback && (
                 (Number.isFinite(e2Code) && (e2Code === 400 || e2Code === 429 || e2Code >= 500)) ||
-                noResp2
+                noResp2 ||
+                isParseError2
               );
 
               if (shouldTryAlternative) {

@@ -2,7 +2,7 @@ const CONFIG_APP = {
     APP: {
         NAME: "PENCARI SELISIH",
         //NAME: "PRIVATE_NOCORS",
-        VERSION: "05.01",
+        VERSION: "04.26",
         SCAN_LIMIT: false,
         AUTORUN: true,
         AUTO_VOLUME: true,  // cek level order otomatis kalkulasi PNL
@@ -754,14 +754,14 @@ const CONFIG_DEXS = {
         fetchdex: {
             primary: {
                 tokentopair: 'delta-matcha',    // CEX→DEX: 1Delta proxy (fast, free) - EVM only
-                pairtotoken: 'rabby-matcha'       // DEX→CEX: Coin98 Superlink filtered - EVM only
+                pairtotoken: 'backpack-matcha'       // DEX→CEX: Coin98 Superlink filtered - EVM only
             },
             secondary: {
                 tokentopair: 'rainbow-matcha',   // CEX→DEX: Bungee filtered 0x/Matcha (rotation)
-                pairtotoken: 'backpack-matcha'    // DEX→CEX: Bungee filtered 0x/Matcha (rotation)
+                pairtotoken: 'bungee-matcha'    // DEX→CEX: Bungee filtered 0x/Matcha (rotation)
             },
             alternative: {
-                tokentopair: 'bungee-matcha',  // CEX→DEX: Rainbow proxy 0x/Matcha (fallback)
+                tokentopair: 'rabby-matcha',  // CEX→DEX: Rainbow proxy 0x/Matcha (fallback)
                 pairtotoken: 'c98-matcha'   // DEX→CEX: Rainbow proxy 0x/Matcha (fallback)
             },
             // ✅ SOLANA OVERRIDE: For Solana chain, always use direct matcha endpoint
