@@ -2307,8 +2307,9 @@ function DisplayPNL(data) {
   const netClass = (pnl >= 0.02) ? 'uk-text-success' : 'uk-text-danger';
   const bracket = `[${bruto.toFixed(2)} ~ <b style="font-size: larger;">${feeAll.toFixed(2)}</b>]`;
 
-  // Background hijau muncul setiap ada sinyal selisih (pnl > 0)
-  const shouldHighlight = hasSignal;  // Background hijau saat ada sinyal (pnl > 0)
+  // Background hijau muncul setiap ada sinyal selisih (PNL > 0)
+  // Sesuai request: Konsisten dengan MetaDEX (JUMPX) yang tetap ijo walau volume kurang/di bawah filter
+  const shouldHighlight = hasSignal;
   const chainColorHexHL = getChainColorHexByName(nameChain);
   const modeNowHL = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
   const isMultiModeHL = String(modeNowHL.type).toLowerCase() !== 'single';
@@ -2405,7 +2406,8 @@ function DisplayPNL(data) {
 
   // ✅ FIXED: Sinyal hanya dikirim jika PNL > 0, highlight sesuai filter
   // passSignal: untuk highlight (PNL > filter dan volume OK jika dicentang)
-  const passSignal = (!checkVol && passPNL) || (checkVol && passPNL && volOK);
+  // FIX: Sinyal HIJAU hanya jika volume cukup (volumeSufficient)
+  const passSignal = ((!checkVol && passPNL) || (checkVol && passPNL && volOK)) && volumeSufficient;
 
   // ✅ AUTO VOLUME: Always show signal if PNL > 0, but pass volume flag for warning indicator
   // Kirim sinyal jika PNL > 0 (profit positif), dengan flag volume insufficiency
@@ -2499,7 +2501,31 @@ function DisplayPNL(data) {
 
 
   // Render akhir
-  const dexNameAndModal = ($mainCell.find('strong').first().prop('outerHTML')) || '';
+  // ✅ AUTO VOLUME: Update header (DEX [Modal]) with status
+  let dexNameAndModal = '';
+  const $strong = $mainCell.find('strong').first();
+
+  if ($strong.length) {
+    if (data.autoLevelEnabled) {
+      const actualModal = data.autoVolResult?.actualModal || 0;
+      const maxModal = data.maxModal || 0;
+
+      // Use DEX (column name) instead of dexLabel (which might be the provider/routeTool)
+      const label = (typeof DEX !== 'undefined') ? DEX : 'DEX';
+
+      if (volumeSufficient) {
+        // Sufficient: [Modal] ✅
+        $strong.css('color', ''); // Reset
+        $strong.html(`${label.substring(0, 8)} [$${maxModal.toFixed(0)}] ✅`);
+      } else {
+        // Insufficient: [Modal] | Actual$ ⚠️
+        $strong.css('color', ''); // Label & Target modal stay default
+        $strong.html(`${label.substring(0, 8)} [$${maxModal.toFixed(0)}] | <span style="color:#ff8c00; font-weight:900;">${actualModal.toFixed(0)}$ ⚠️</span>`);
+      }
+    }
+    dexNameAndModal = $strong.prop('outerHTML') || '';
+  }
+
   const modeNow = (typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' };
   const resultWrapClass = (lower(modeNow.type) === 'single') ? 'uk-text-dark' : 'uk-text-primary';
   const boldStyle = shouldHighlight ? 'font-weight:bolder;' : '';

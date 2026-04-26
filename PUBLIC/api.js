@@ -53,34 +53,40 @@ async function getUserIP() {
  * Stores 'PRICE_RATE_USDT' for IDR conversions (e.g., INDODAX display).
  */
 async function getRateUSDT() {
-  const url = "https://www.tokocrypto.site/api/v3/depth?symbol=USDTIDR&limit=5";
-  try {
-    const response = await fetchWithProxy(url, { timeout: 10000 });
-    const data = await response.json();
-    
-    if (data && data.bids && data.bids.length > 0) {
-      const topBid = parseFloat(data.bids[0][0]); // harga beli tertinggi
+  const urls = [
+    "https://www.tokocrypto.site/api/v3/depth?symbol=USDTIDR&limit=5",
+    "https://indodax.com/api/depth/usdtidr"
+  ];
+
+  for (const url of urls) {
+    try {
+      const response = await fetchWithProxy(url, { timeout: 10000 });
+      const data = await response.json();
+      
+      let topBid = 0;
+      if (url.includes('tokocrypto')) {
+        if (data && data.bids && data.bids.length > 0) {
+          topBid = parseFloat(data.bids[0][0]);
+        }
+      } else if (url.includes('indodax')) {
+        if (data && data.buy && data.buy.length > 0) {
+          topBid = parseFloat(data.buy[0][0]);
+        }
+      }
 
       if (!isNaN(topBid) && topBid > 0) {
         saveToLocalStorage('PRICE_RATE_USDT', topBid);
-        console.log('[getRateUSDT] ✅ Updated:', topBid);
-      } else {
-        console.error("[getRateUSDT] Failed to parse rate:", data);
-        if (typeof toast?.error === 'function') {
-          toast.error('Gagal parse kurs USDT/IDR dari Tokocrypto.');
-        }
+        console.log(`[getRateUSDT] ✅ Updated from ${url.includes('tokocrypto') ? 'Tokocrypto' : 'Indodax'}:`, topBid);
+        return; // Success, exit function
       }
-    } else {
-      console.error("[getRateUSDT] Invalid data structure:", data);
-      if (typeof toast?.error === 'function') {
-        toast.error('Struktur data kurs dari Tokocrypto tidak valid.');
-      }
+    } catch (error) {
+      console.warn(`[getRateUSDT] Fetch failed for ${url}:`, error.message);
     }
-  } catch (error) {
-    console.error("[getRateUSDT] Fetch error:", error.message);
-    if (typeof toast?.error === 'function') {
-      toast.error('Gagal mengambil kurs USDT/IDR dari Tokocrypto.');
-    }
+  }
+
+  console.error("[getRateUSDT] All sources failed to provide a valid rate.");
+  if (typeof toast?.error === 'function') {
+    toast.error('Gagal mengambil kurs USDT/IDR dari semua sumber (Tokocrypto & Indodax).');
   }
 }
 
