@@ -2,7 +2,7 @@ const CONFIG_APP = {
     APP: {
         NAME: "PENCARI SELISIH",
         //NAME: "PRIVATE_NOCORS",
-        VERSION: "04.26",
+        VERSION: "04.29",
         SCAN_LIMIT: false,
         AUTORUN: true,
         AUTO_VOLUME: true,  // cek level order otomatis kalkulasi PNL
@@ -37,8 +37,8 @@ const CONFIG_APP = {
         // Setiap aggregator mengembalikan BANYAK quote dari berbagai DEX sekaligus.
         aggregators: {
             jumper: { enabled: true, evmOnly: false, jedaDex: 600, label: 'JUMPX', badge: 'JM', warna: '#f764bcff' },       // EVM + Solana multi-route
-            metax: { enabled: true, evmOnly: true, jedaDex: 800, label: 'METAX', badge: 'MT', warna: '#ec7506ff' },       // EVM only (no Solana support)
-            onekey: { enabled: true, evmOnly: true, jedaDex: 800, label: 'ONEX', badge: '1K', warna: '#00b812ff' },       // EVM only — SSE streaming (OKX, 1inch, 0x)
+            metax: { enabled: true, evmOnly: false, jedaDex: 800, label: 'METAX', badge: 'MT', warna: '#ec7506ff' },       // EVM + Solana (chainId 1151111081099710)
+            onekey: { enabled: true, evmOnly: false, jedaDex: 800, label: 'ONEX', badge: '1K', warna: '#00b812ff' },       // EVM + Solana (networkId sol--101)
             ctrlfi: { enabled: true, evmOnly: false, jedaDex: 900, label: 'CTRLX', badge: 'CT', warna: '#808080ff' },      // EVM + Solana — XDEFI/CTRL GraphQL multi-route
             // okutrade: { enabled: true, evmOnly: true, jedaDex: 800, label: 'OKUX', badge: 'OT', warna: '#1a6fd4ff' }, // EVM only — Oku Trade multi-aggregator (3-step REST)
             // dzap: { enabled: false, evmOnly: true, jedaDex: 800, label: 'DZAP', badge: 'DZ', warna: '#d9dc36ff' },
@@ -492,7 +492,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://solscan.io/tx/${hash}`
             }
         },
-        DEXS: ["matcha", "okx", "jupiter"],  // ✅ DFlow requires API key - enable manually if you have one
+        DEXS: ["matcha", "okx", "jupiter", "flytrade"],  // ✅ DFlow requires API key - enable manually if you have one
         WALLET_CEX: {
             GATE: { address: 'HiRpdAZifEsZGdzQ5Xo5wcnaH3D2Jj9SoNsUzcYNK78J', address2: 'u6PJ8DtQuPFnfmwHbGFULQ4u4EgjDiyYKjVEsynXq2w', chainCEX: 'SOL' },
             BINANCE: { address: '28nYGHJyUVcVdxZtzKByBXEj127XnrUkrE3VaGuWj1ZU', address2: '2ojv9BAiHUrvsm9gxDe7fJSzbNZSJcxZvf8dqmWGHG8S', chainCEX: 'SOL' },
@@ -662,6 +662,7 @@ const CONFIG_DEXS = {
         label: 'KyberSwap',
         badgeClass: 'bg-kyberswap',
         fallbackSlug: 'kyberswap',
+        evmOnly: true,
         warna: "#0b7e18ff", // hijau tosca KyberSwap
         builder: ({ chainName, tokenAddress, pairAddress }) =>
             `https://kyberswap.com/swap/${chainName}/${tokenAddress}-to-${pairAddress}`,
@@ -711,6 +712,7 @@ const CONFIG_DEXS = {
         label: 'Flytrade',
         badgeClass: 'bg-flytrade',
         fallbackSlug: 'flytrade',
+        supportsSolana: true,
         warna: "#7d2ff4ff", // Indigo for Flytrade
         builder: ({ chainName, NameToken, NamePair }) => {
             const network = String(chainName || '').toLowerCase();
@@ -727,10 +729,10 @@ const CONFIG_DEXS = {
             },
             secondary: {
                 tokentopair: 'rabby-flytrade', // CEX→DEX: Talisman filtered → Fly route
-                pairtotoken: 'talisman-flytrade'   // DEX→CEX: Zapper filtered → Fly route
+                pairtotoken: 'rabby-flytrade'   // DEX→CEX: Zapper filtered → Fly route
             },
             alternative: {
-                tokentopair: 'brave-flytrade',   // CEX→DEX: Rabby filtered → Fly route
+                tokentopair: 'talisman-flytrade',   // CEX→DEX: Rabby filtered → Fly route
                 pairtotoken: 'brave-flytrade'    // DEX→CEX: Rabby filtered → Fly route
             }
         },
@@ -778,6 +780,7 @@ const CONFIG_DEXS = {
         badgeClass: 'bg-odos',
         fallbackSlug: 'odos',
         skipDelay: true,
+        evmOnly: true,
         warna: "#6e2006ff", // ungu-biru Odos
         builder: () => `https://app.odos.xyz`,
         // ⚡ MODE: SECONDARY (Rotation) - bergantian antara primary dan secondary
@@ -825,6 +828,7 @@ const CONFIG_DEXS = {
         badgeClass: 'bg-velora',
         fallbackSlug: 'velora',
         warna: "#1c64f2ff",
+        evmOnly: true,
         builder: ({ chainName, tokenAddress, pairAddress }) => {
             const network = String(chainName || '').toLowerCase();
             const from = String(tokenAddress || '').toLowerCase();
@@ -853,6 +857,7 @@ const CONFIG_DEXS = {
         label: 'ONEINCH',
         badgeClass: 'bg-1inch',
         fallbackSlug: 'oneinch',
+        evmOnly: true,
         warna: "#fd0404ff",  // 1inch blue brand color
         builder: ({ codeChain, tokenAddress, pairAddress }) =>
             `https://1inch.io/swap?src=${codeChain}:${tokenAddress}&dst=${codeChain}:${pairAddress}`,
@@ -880,6 +885,7 @@ const CONFIG_DEXS = {
         label: 'OpenOcean',
         badgeClass: 'bg-openocean',
         fallbackSlug: 'openocean',
+        evmOnly: true,
         warna: "#73aae8ff",
         builder: ({ chainName, tokenAddress, pairAddress }) => {
             const slugMap = {
@@ -930,6 +936,7 @@ const CONFIG_DEXS = {
         badgeClass: 'bg-sushi',
         fallbackSlug: 'sushi',
         warna: "#fa52a0",
+        evmOnly: true,
         builder: ({ chainName, tokenAddress, pairAddress }) =>
             `https://www.sushi.com/swap?fromChainId=${chainName}&token0=${tokenAddress}&token1=${pairAddress}`,
         fetchdex: {
@@ -1017,9 +1024,13 @@ const CONFIG_DEXS = {
             primary: {
                 tokentopair: 'jupiter',    // CEX→DEX: Jupiter aggregator (Solana)
                 pairtotoken: 'jupiter'     // DEX→CEX: Jupiter aggregator (Solana)
+            },
+            alternative: {
+                tokentopair: 'talisman-jupiter',
+                pairtotoken: 'brave-jupiter'
             }
         },
-        allowFallback: false // Jupiter is the main Solana DEX aggregator
+        allowFallback: true // Jupiter is the main Solana DEX aggregator
     },
 
 
@@ -1228,7 +1239,7 @@ const CONFIG_DEXS = {
         proxy: false,        // SSE langsung dari browser (EventSource), tidak lewat proxy
         warna: CONFIG_APP.META_DEX_CONFIG.aggregators.metax?.warna || '#ec7506ff',    // MetaMask orange
         isMetaDex: true,    // ✅ Meta-DEX: SSE streaming multi-quote
-        evmOnly: true,      // EVM only (no Solana support)
+        evmOnly: !!CONFIG_APP.META_DEX_CONFIG.aggregators.metax?.evmOnly,    // ✅ EVM + Solana
         delay: CONFIG_APP.META_DEX_CONFIG.aggregators.metax?.jedaDex || 800,
         isMultiDex: true,
         maxProviders: 3,   // Maks sub-kolom yang ditampilkan
@@ -1251,11 +1262,11 @@ const CONFIG_DEXS = {
         proxy: false,        // SSE langsung dari browser (EventSource), tidak lewat proxy
         warna: CONFIG_APP.META_DEX_CONFIG.aggregators.onekey?.warna || '#00b812ff',  // OneKey green
         isMetaDex: true,     // ✅ Meta-DEX: SSE streaming multi-quote
-        evmOnly: true,       // EVM only (no Solana support)
+        evmOnly: !!CONFIG_APP.META_DEX_CONFIG.aggregators.onekey?.evmOnly,    // ✅ EVM + Solana
         delay: CONFIG_APP.META_DEX_CONFIG.aggregators.onekey?.jedaDex || 800,
         isMultiDex: true,
         maxProviders: 3,     // Provider: OKX, 1inch, 0x/Matcha
-        builder: () => `https://app.onekey.so/swap/`,
+        builder: () => `https://app.onekey.so/r/XK4NHF/app/defi`,
         fetchdex: {
             primary: {
                 tokentopair: 'onekey',
