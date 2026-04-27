@@ -675,6 +675,7 @@
       }
     },
     matcha: {
+      proxy: true,  // Solana endpoint (matcha.xyz) requires CORS proxy
       buildRequest: ({ chainName, sc_input_in, sc_output_in, amount_in_big, codeChain, sc_output, sc_input, SavedSettingData }) => {
         /**
          * Matcha API - Official 0x Documentation
@@ -1648,6 +1649,7 @@
     '1inch': ['1inch', '1INCH'],
     'eisen': ['eisen', 'EISEN'],
     'cowswap': ['cow', 'COWSWAP'],
+    'jupiter': ['jupiter', 'JUPITER'],  // Solana — LiFi routes through Jupiter
   };
 
   // Auto-register: brave-kyber, brave-velora, talisman-kyber, talisman-velora, dll.
@@ -1881,10 +1883,41 @@
 
   dexStrategies['openocean'] = {
     proxy: true,
-    buildRequest: ({ codeChain, sc_input_in, sc_output_in, amount_in_big, des_input, SavedSettingData }) => {
+    buildRequest: ({ codeChain, chainName, sc_input_in, sc_output_in, amount_in_big, des_input, SavedSettingData, action, nameToken, namePair }) => {
+      const isSolana = String(chainName || '').toLowerCase() === 'solana';
+      const amountHuman = (parseFloat(amount_in_big) / Math.pow(10, des_input)).toString();
+
+      if (isSolana) {
+        // Solana: different endpoint and requires inTokenSymbol / outTokenSymbol
+        // referrer = Solana base58 wallet, account = dummy EVM address
+        const isTTP = String(action || '').toLowerCase() === 'tokentopair';
+        const inSymbol = String(isTTP ? (nameToken || '') : (namePair || ''));
+        const outSymbol = String(isTTP ? (namePair || '') : (nameToken || ''));
+        const params = new URLSearchParams({
+          quoteType: 'swap',
+          inTokenSymbol: inSymbol,
+          inTokenAddress: sc_input_in,
+          outTokenSymbol: outSymbol,
+          outTokenAddress: sc_output_in,
+          amountAll: amountHuman,
+          amount: String(amount_in_big),
+          gasPrice: '5000000000',
+          slippage: '100',
+          referrer: 'yEVG5DpokLuVRAqoWeKJANBY2wynzgTSXUbGz7aDKBq',
+          disabledDexIds: '',
+          disableRfq: '',
+          account: '0x0000000000000000000000000000000000000000',
+        });
+        return {
+          url: `https://ethapi.openocean.finance/v1/solana/quote?${params.toString()}`,
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' }
+        };
+      }
+
+      // EVM chains
       const chainId = codeChain || 1;
       const wallet = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
-      const amountHuman = (parseFloat(amount_in_big) / Math.pow(10, des_input)).toString();
       const params = new URLSearchParams({
         quoteType: 'swap',
         inTokenAddress: sc_input_in,
@@ -1906,19 +1939,27 @@
       };
     },
     parseResponse: (response, { des_output, chainName }) => {
+      const isSolana = String(chainName || '').toLowerCase() === 'solana';
       const rawOut = response?.outAmount;
       if (!rawOut) throw new Error('OpenOcean: missing outAmount in response');
       const amount_out = parseFloat(rawOut) / Math.pow(10, des_output);
       if (!Number.isFinite(amount_out) || amount_out <= 0) throw new Error('OpenOcean: invalid output amount');
       let calcUsd = 0;
       try {
-        const gasEstimate = parseFloat(response?.estimatedGas || 0);
-        if (gasEstimate > 0) {
-          const allGasData = (typeof getFromLocalStorage === 'function') ? getFromLocalStorage('ALL_GAS_FEES') : null;
-          if (allGasData) {
-            const gasInfo = allGasData.find(g => String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase());
-            if (gasInfo?.gwei && gasInfo?.tokenPrice) {
-              calcUsd = (gasEstimate * parseFloat(gasInfo.gwei) * parseFloat(gasInfo.tokenPrice)) / 1e9;
+        if (isSolana) {
+          // Solana: fee is in lamports (from networkFee or gasUsd field)
+          const feeRaw = parseFloat(response?.gasUsd || response?.networkFee || 0);
+          if (feeRaw > 0) calcUsd = feeRaw;
+        } else {
+          // EVM: fee derived from estimatedGas × gwei × tokenPrice
+          const gasEstimate = parseFloat(response?.estimatedGas || 0);
+          if (gasEstimate > 0) {
+            const allGasData = (typeof getFromLocalStorage === 'function') ? getFromLocalStorage('ALL_GAS_FEES') : null;
+            if (allGasData) {
+              const gasInfo = allGasData.find(g => String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase());
+              if (gasInfo?.gwei && gasInfo?.tokenPrice) {
+                calcUsd = (gasEstimate * parseFloat(gasInfo.gwei) * parseFloat(gasInfo.tokenPrice)) / 1e9;
+              }
             }
           }
         }
@@ -3337,7 +3378,6 @@
   dexStrategies.metax = {
     execute: ({ chainName, sc_input_in, sc_output_in, amount_in_big, des_output, SavedSettingData }) => {
       return new Promise((resolve, reject) => {
-        // Chain ID mapping (EVM only)
         const metaxChainMap = {
           'ethereum': 1, 'eth': 1,
           'bsc': 56, 'bnb': 56, 'binance': 56,
@@ -3347,24 +3387,32 @@
           'base': 8453,
           'avalanche': 43114, 'avax': 43114,
           'zksync': 324,
-          'linea': 59144
+          'linea': 59144,
+          'solana': 1151111081099710  // Solana LiFi chain ID
         };
 
         const chain = String(chainName || '').toLowerCase();
         const chainId = metaxChainMap[chain];
         if (!chainId) return reject(new Error(`MetaX: Chain tidak didukung: ${chainName}`));
 
-        const walletAddr = (SavedSettingData?.walletMeta) || '0x0000000000000000000000000000000000000000';
-        const fromToken = String(sc_input_in || '').toLowerCase();
-        const toToken = String(sc_output_in || '').toLowerCase();
+        const isSolana = chain === 'solana';
+        // Solana: gunakan walletSolana, token address case-sensitive (base58)
+        const walletAddr = isSolana
+          ? (SavedSettingData?.walletSolana || '7fJWE8nTy26AijgN9JrvuDhXDbxyjTY2znH8qc9H6sQk')
+          : (SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000');
+        const fromToken = isSolana ? sc_input_in : String(sc_input_in || '').toLowerCase();
+        const toToken = isSolana ? sc_output_in : String(sc_output_in || '').toLowerCase();
         const srcAmount = amount_in_big.toString();
 
+        // Solana: gasIncluded=false, tanpa slippage param
         const url = `https://bridge.api.cx.metamask.io/getQuoteStream` +
           `?walletAddress=${walletAddr}&destWalletAddress=${walletAddr}` +
           `&srcChainId=${chainId}&destChainId=${chainId}` +
           `&srcTokenAddress=${fromToken}&destTokenAddress=${toToken}` +
           `&srcTokenAmount=${srcAmount}` +
-          `&insufficientBal=true&resetApproval=false&gasIncluded=true&gasIncluded7702=false&slippage=${getSlippageValue()}`;
+          `&insufficientBal=true&resetApproval=false` +
+          `&gasIncluded=${isSolana ? 'false' : 'true'}&gasIncluded7702=false` +
+          (isSolana ? '' : `&slippage=${getSlippageValue()}`);
 
         const quotes = [];
         let settled = false;
@@ -3542,17 +3590,25 @@
         };
 
         const chain = String(chainName || '').toLowerCase();
-        const chainId = onekeyChainMap[chain];
-        if (!chainId) return reject(new Error(`OneKey: Chain tidak didukung: ${chainName}`));
+        const isSolana = chain === 'solana';
 
-        const walletAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+        // Solana: networkId = 'sol--101', EVM: 'evm--{chainId}'
+        let networkId;
+        if (isSolana) {
+          networkId = 'sol--101';
+        } else {
+          const chainId = onekeyChainMap[chain];
+          if (!chainId) return reject(new Error(`OneKey: Chain tidak didukung: ${chainName}`));
+          networkId = `evm--${chainId}`;
+        }
+
         const NATIVE = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
-        // OneKey pakai empty string untuk native token
-        const fromAddr = String(sc_input_in || '').toLowerCase() === NATIVE ? '' : sc_input_in;
+        // Solana: token address case-sensitive (base58), tidak ada native substitution
+        const fromAddr = isSolana ? sc_input_in
+          : (String(sc_input_in || '').toLowerCase() === NATIVE ? '' : sc_input_in);
         const toAddr = sc_output_in;
-        const networkId = `evm--${chainId}`;
 
-        // fromTokenAmount dalam human-readable (bukan wei)
+        // fromTokenAmount dalam human-readable (bukan lamports/wei)
         const fromAmountHuman = (parseFloat(amount_in_big.toString()) / Math.pow(10, des_input)).toString();
 
         const params = new URLSearchParams({
@@ -3562,13 +3618,18 @@
           fromNetworkId: networkId,
           toNetworkId: networkId,
           protocol: 'Swap',
-          userAddress: walletAddr,
           slippagePercentage: getSlippageValue(),
           autoSlippage: 'true',
-          receivingAddress: walletAddr,
           kind: 'sell',
           denySingleSwapProvider: ''
         });
+
+        // EVM only: userAddress dan receivingAddress
+        if (!isSolana) {
+          const walletAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+          params.set('userAddress', walletAddr);
+          params.set('receivingAddress', walletAddr);
+        }
 
         const url = `https://swap.onekeycn.com/swap/v1/quote/events?${params.toString()}`;
 
@@ -3732,14 +3793,21 @@
           };
 
           const chain = String(chainName || '').toLowerCase();
-          const chainId = onekeyChainMap[chain];
-          if (!chainId) return reject(new Error(`OneKey-${dexTitle}: Chain tidak didukung: ${chainName}`));
+          const isSolana = chain === 'solana';
 
-          const walletAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+          let networkId;
+          if (isSolana) {
+            networkId = 'sol--101';
+          } else {
+            const chainId = onekeyChainMap[chain];
+            if (!chainId) return reject(new Error(`OneKey-${dexTitle}: Chain tidak didukung: ${chainName}`));
+            networkId = `evm--${chainId}`;
+          }
+
           const NATIVE = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
-          const fromAddr = String(sc_input_in || '').toLowerCase() === NATIVE ? '' : sc_input_in;
+          const fromAddr = isSolana ? sc_input_in
+            : (String(sc_input_in || '').toLowerCase() === NATIVE ? '' : sc_input_in);
           const toAddr = sc_output_in;
-          const networkId = `evm--${chainId}`;
 
           const fromAmountHuman = (parseFloat(amount_in_big.toString()) / Math.pow(10, des_input)).toString();
 
@@ -3750,13 +3818,17 @@
             fromNetworkId: networkId,
             toNetworkId: networkId,
             protocol: 'Swap',
-            userAddress: walletAddr,
             slippagePercentage: getSlippageValue(),
             autoSlippage: 'true',
-            receivingAddress: walletAddr,
             kind: 'sell',
             denySingleSwapProvider: ''
           });
+
+          if (!isSolana) {
+            const walletAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+            params.set('userAddress', walletAddr);
+            params.set('receivingAddress', walletAddr);
+          }
 
           const url = `https://swap.onekeycn.com/swap/v1/quote/events?${params.toString()}`;
 
@@ -5001,7 +5073,7 @@
           const strategy = dexStrategies[sKey];
           if (!strategy) return rej(new Error(`Unsupported strategy: ${sKey}`));
 
-          const requestParams = { chainName, sc_input, sc_output, amount_in_big, des_output, SavedSettingData, codeChain, action, des_input, sc_input_in, sc_output_in };
+          const requestParams = { chainName, sc_input, sc_output, amount_in_big, des_output, SavedSettingData, codeChain, action, des_input, sc_input_in, sc_output_in, nameToken: NameToken, namePair: NamePair };
 
           // ✅ SSE strategy (e.g. MetaMask Bridge) — has execute() instead of buildRequest()
           if (typeof strategy.execute === 'function') {
