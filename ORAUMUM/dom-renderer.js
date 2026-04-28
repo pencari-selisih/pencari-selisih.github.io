@@ -1885,12 +1885,12 @@ function DisplayPNL(data) {
         }
       }
 
-      // Background hijau muncul setiap ada sinyal selisih (bestPnl > 0)
-      const shouldHighlight = hasSignal;  // Background hijau saat ada sinyal
+      // Outer cell: hanya border saat ada sinyal — background hijau ditangani per sub-kolom
+      // Jika hanya 1 provider profit, hanya sub-kolom itu yang hijau, outer cell tidak ikut hijau
+      const shouldHighlight = hasSignal;
 
       if (shouldHighlight) {
-        const multiDexGreen = isDarkMode() ? '#eeffdd' : '#ddf0b7ff';
-        el.style.cssText = `text-align:center;vertical-align:middle;background-color:${multiDexGreen}!important;font-weight:bolder!important;border:2px solid black !important`;
+        el.style.cssText = `text-align:center;vertical-align:middle;font-weight:bolder!important;border:2px solid black !important`;
         el.classList.add('dex-cell-highlight');
       } else {
         el.style.cssText = 'text-align:center;vertical-align:middle;';
