@@ -1536,94 +1536,76 @@
   }
 
 
-  function createFilteredZapperStrategy(allowExchanges, dexTitleLabel) {
-    return {
-      buildRequest: ({ codeChain, sc_input, sc_output, sc_input_in, sc_output_in, amount_in_big, SavedSettingData, chainName }) => {
-        const chainConfig = (root.CONFIG_CHAINS || {})[String(chainName || '').toLowerCase()];
-        const lifiChainId = chainConfig?.LIFI_CHAIN_ID || Number(codeChain);
-        const isSolana = String(chainName || '').toLowerCase() === 'solana';
-        const fromToken = isSolana ? sc_input_in : sc_input.toLowerCase();
-        const toToken = isSolana ? sc_output_in : sc_output.toLowerCase();
-        const userAddr = isSolana ? (SavedSettingData?.walletSolana || 'So11111111111111111111111111111111111111112') : (SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000');
-        const params = new URLSearchParams({
-          fromChain: lifiChainId.toString(),
-          toChain: lifiChainId.toString(),
-          fromToken: fromToken,
-          toToken: toToken,
-          fromAmount: amount_in_big.toString(),
-          fromAddress: userAddr,
-          slippage: String(parseFloat(getSlippageValue()) / 100),
-          integrator: 'zapper',
-          fee: '0.004'
-        });
-        if (allowExchanges) {
-          params.append('allowExchanges', Array.isArray(allowExchanges) ? allowExchanges.join(',') : allowExchanges);
-        }
-        return { url: `https://zapper.xyz/api/lifi/quote?${params.toString()}`, method: 'GET' };
-      },
-      parseResponse: (response, { des_output, chainName }) => {
-        if (!response?.estimate?.toAmount) throw new Error(`ZAPPER-${dexTitleLabel || 'JUMPER'}: No valid quote received`);
-        const actualTool = String(response.toolDetails?.name || response.tool || '').toUpperCase();
-        if (dexTitleLabel && !actualTool.includes(dexTitleLabel.toUpperCase()) && !dexTitleLabel.toUpperCase().includes(actualTool)) {
-          throw new Error(`ZAPPER-${dexTitleLabel}: Mismatched DEX (Got: ${actualTool})`);
-        }
-        const amount_out = parseFloat(response.estimate.toAmount) / Math.pow(10, des_output);
-        let gasCostUsd = 0;
-        if (response.estimate.gasCosts) gasCostUsd = response.estimate.gasCosts.reduce((sum, gc) => sum + parseFloat(gc.amountUSD || 0), 0);
-        const { FeeSwap, feeSource } = resolveFeeSwap(gasCostUsd, 0, chainName);
-        let dexTitle = dexTitleLabel || actualTool || 'LIFI';
-        const result = { amount_out, FeeSwap, feeSource, dexTitle, routeTool: `ZAPPER-${dexTitleLabel || 'JUMPER'}` };
-        return { ...result, subResults: [result], isMultiDex: !dexTitleLabel };
-      }
-    };
-  }
-
-  function createFilteredBackpackStrategy(allowExchanges, dexTitleLabel) {
-    return {
-      buildRequest: ({ codeChain, sc_input, sc_output, sc_input_in, sc_output_in, amount_in_big, SavedSettingData, chainName }) => {
-        const chainConfig = (root.CONFIG_CHAINS || {})[String(chainName || '').toLowerCase()];
-        const lifiChainId = chainConfig?.LIFI_CHAIN_ID || Number(codeChain);
-        const isSolana = String(chainName || '').toLowerCase() === 'solana';
-        const fromToken = isSolana ? sc_input_in : sc_input.toLowerCase();
-        const toToken = isSolana ? sc_output_in : sc_output.toLowerCase();
-        const userAddr = isSolana ? (SavedSettingData?.walletSolana || 'So11111111111111111111111111111111111111112') : (SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000');
-        const params = new URLSearchParams({
-          fromChain: lifiChainId.toString(),
-          toChain: lifiChainId.toString(),
-          fromToken: fromToken,
-          toToken: toToken,
-          fromAmount: amount_in_big.toString(),
-          fromAddress: userAddr,
-          toAddress: userAddr,
-          slippage: String(parseFloat(getSlippageValue()) / 100)
-        });
-        if (allowExchanges) {
-          params.append('allowExchanges', Array.isArray(allowExchanges) ? allowExchanges.join(',') : allowExchanges);
-        }
-        return { url: `https://lifi.workers.madlads.com/quote?${params.toString()}`, method: 'GET' };
-      },
-      parseResponse: (response, { des_output, chainName }) => {
-        if (!response?.estimate?.toAmount) throw new Error(`JUMPER-${dexTitleLabel || 'JUMPER'}: No valid quote received`);
-        const actualTool = String(response.toolDetails?.name || response.tool || '').toUpperCase();
-        if (dexTitleLabel && !actualTool.includes(dexTitleLabel.toUpperCase()) && !dexTitleLabel.toUpperCase().includes(actualTool)) {
-          throw new Error(`JUMPER-${dexTitleLabel}: Mismatched DEX (Got: ${actualTool})`);
-        }
-        const amount_out = parseFloat(response.estimate.toAmount) / Math.pow(10, des_output);
-        let gasCostUsd = 0;
-        if (response.estimate.gasCosts) gasCostUsd = response.estimate.gasCosts.reduce((sum, gc) => sum + parseFloat(gc.amountUSD || 0), 0);
-        const { FeeSwap, feeSource } = resolveFeeSwap(gasCostUsd, 0, chainName);
-        let dexTitle = dexTitleLabel || actualTool || 'LIFI';
-        const result = { amount_out, FeeSwap, feeSource, dexTitle, routeTool: `JUMPER-${dexTitleLabel || 'JUMPER'}` };
-        return { ...result, subResults: [result], isMultiDex: !dexTitleLabel };
-      }
-    };
-  }
-
   // ✅ 4 canonical unfiltered aliases
   dexStrategies['brave'] = dexStrategies['lifi'];                     // Brave    — POST /advanced/routes (lifi.wallet.brave.com)
   dexStrategies['talisman'] = createFilteredTalismanStrategy(null, null); // Talisman — POST /advanced/routes (lifi.talisman.xyz)
-  dexStrategies['zapper']   = createFilteredZapperStrategy(null, null);   // Zapper   — GET  /api/lifi/quote  (zapper.xyz)
-  dexStrategies['backpack'] = createFilteredBackpackStrategy(null, null);  // Backpack — GET  /quote           (lifi.workers.madlads.com)
+
+  dexStrategies['zapper'] = {
+    buildRequest: ({ codeChain, sc_input, sc_output, sc_input_in, sc_output_in, amount_in_big, SavedSettingData, chainName }) => {
+      const chainConfig = (root.CONFIG_CHAINS || {})[String(chainName || '').toLowerCase()];
+      const lifiChainId = chainConfig?.LIFI_CHAIN_ID || Number(codeChain);
+      const isSolana = String(chainName || '').toLowerCase() === 'solana';
+      const fromToken = isSolana ? sc_input_in : sc_input.toLowerCase();
+      const toToken = isSolana ? sc_output_in : sc_output.toLowerCase();
+      const userAddr = isSolana ? (SavedSettingData?.walletSolana || 'So11111111111111111111111111111111111111112') : (SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000');
+      const params = new URLSearchParams({
+        fromChain: lifiChainId.toString(),
+        toChain: lifiChainId.toString(),
+        fromToken: fromToken,
+        toToken: toToken,
+        fromAmount: amount_in_big.toString(),
+        fromAddress: userAddr,
+        slippage: String(parseFloat(getSlippageValue()) / 100),
+        integrator: 'zapper',
+        fee: '0.004'
+      });
+      return { url: `https://zapper.xyz/api/lifi/quote?${params.toString()}`, method: 'GET' };
+    },
+    parseResponse: (response, { des_output, chainName }) => {
+      if (!response?.estimate?.toAmount) throw new Error(`ZAPPER: No valid quote received`);
+      const actualTool = String(response.toolDetails?.name || response.tool || '').toUpperCase();
+      const amount_out = parseFloat(response.estimate.toAmount) / Math.pow(10, des_output);
+      let gasCostUsd = 0;
+      if (response.estimate.gasCosts) gasCostUsd = response.estimate.gasCosts.reduce((sum, gc) => sum + parseFloat(gc.amountUSD || 0), 0);
+      const { FeeSwap, feeSource } = resolveFeeSwap(gasCostUsd, 0, chainName);
+      const dexTitle = actualTool || 'LIFI';
+      const result = { amount_out, FeeSwap, feeSource, dexTitle, routeTool: `ZAPPER` };
+      return { ...result, subResults: [result], isMultiDex: true };
+    }
+  };
+
+  dexStrategies['backpack'] = {
+    buildRequest: ({ codeChain, sc_input, sc_output, sc_input_in, sc_output_in, amount_in_big, SavedSettingData, chainName }) => {
+      const chainConfig = (root.CONFIG_CHAINS || {})[String(chainName || '').toLowerCase()];
+      const lifiChainId = chainConfig?.LIFI_CHAIN_ID || Number(codeChain);
+      const isSolana = String(chainName || '').toLowerCase() === 'solana';
+      const fromToken = isSolana ? sc_input_in : sc_input.toLowerCase();
+      const toToken = isSolana ? sc_output_in : sc_output.toLowerCase();
+      const userAddr = isSolana ? (SavedSettingData?.walletSolana || 'So11111111111111111111111111111111111111112') : (SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000');
+      const params = new URLSearchParams({
+        fromChain: lifiChainId.toString(),
+        toChain: lifiChainId.toString(),
+        fromToken: fromToken,
+        toToken: toToken,
+        fromAmount: amount_in_big.toString(),
+        fromAddress: userAddr,
+        toAddress: userAddr,
+        slippage: String(parseFloat(getSlippageValue()) / 100)
+      });
+      return { url: `https://lifi.workers.madlads.com/quote?${params.toString()}`, method: 'GET' };
+    },
+    parseResponse: (response, { des_output, chainName }) => {
+      if (!response?.estimate?.toAmount) throw new Error(`BACKPACK: No valid quote received`);
+      const actualTool = String(response.toolDetails?.name || response.tool || '').toUpperCase();
+      const amount_out = parseFloat(response.estimate.toAmount) / Math.pow(10, des_output);
+      let gasCostUsd = 0;
+      if (response.estimate.gasCosts) gasCostUsd = response.estimate.gasCosts.reduce((sum, gc) => sum + parseFloat(gc.amountUSD || 0), 0);
+      const { FeeSwap, feeSource } = resolveFeeSwap(gasCostUsd, 0, chainName);
+      const dexTitle = actualTool || 'LIFI';
+      const result = { amount_out, FeeSwap, feeSource, dexTitle, routeTool: `BACKPACK` };
+      return { ...result, subResults: [result], isMultiDex: true };
+    }
+  };
 
 
   // ✅ Unified LiFi filter factory
@@ -1649,7 +1631,7 @@
     '1inch': ['1inch', '1INCH'],
     'eisen': ['eisen', 'EISEN'],
     'cowswap': ['cow', 'COWSWAP'],
-    'jupiter': ['jupiter', 'JUPITER'],  // Solana — LiFi routes through Jupiter
+    'jupiter': ['jupiter', 'JUPITER']  // Solana — LiFi routes through Jupiter
   };
 
   // Auto-register: brave-kyber, brave-velora, talisman-kyber, talisman-velora, dll.
@@ -1659,6 +1641,88 @@
       dexStrategies[provider + '-' + dexKey] = createLiFiFilterStrategy(provider, lifiSlug, label);
     });
   });
+
+  // =============================
+  // Deny-based backup strategies — Enso & Nordstern
+  // =============================
+  const _LIFI_DENY_ALL_EXCEPT_ENSO = [
+    "1inch","aftermath","bebop","bitget","bluefin7k","cetus","dflow","dodo","eisen",
+    "fly","gluex","hyperbloom","hyperflow","hyperliquidSpotDex","hypertrade",
+    "jupiter","kumbaya","kuru","kyberswap","lifiIntentsDex","lifidexaggregator",
+    "liquidswap","merkle","momentum","monorail","nordstern","odos","okx",
+    "openocean","paraswap","sushiswap","titan"
+  ];
+  
+  const _LIFI_DENY_ALL_EXCEPT_NORDSTERN = [
+    "1inch","aftermath","bebop","bitget","bluefin7k","cetus","dflow","dodo","eisen",
+    "enso","fly","gluex","hyperbloom","hyperflow","hyperliquidSpotDex","hypertrade",
+    "jupiter","kumbaya","kuru","kyberswap","lifiIntentsDex","lifidexaggregator",
+    "liquidswap","merkle","momentum","monorail","odos","okx","openocean",
+    "paraswap","sushiswap","titan"
+  ];
+
+  function createLiFiDenyStrategy(provider, denyList, dexTitle) {
+    const endpointMap = {
+      brave: 'https://lifi.wallet.brave.com/v1/advanced/routes',
+      talisman: 'https://lifi.talisman.xyz/v1/advanced/routes'
+    };
+    const url = endpointMap[provider] || endpointMap.brave;
+    return {
+      buildRequest: ({ codeChain, sc_input, sc_output, sc_input_in, sc_output_in, amount_in_big, SavedSettingData, chainName }) => {
+        const chainConfig = (root.CONFIG_CHAINS || {})[String(chainName || '').toLowerCase()];
+        const lifiChainId = chainConfig?.LIFI_CHAIN_ID || Number(codeChain);
+        const isSolana = String(chainName || '').toLowerCase() === 'solana';
+        const fromToken = isSolana ? sc_input_in : sc_input.toLowerCase();
+        const toToken = isSolana ? sc_output_in : sc_output.toLowerCase();
+        const userAddr = isSolana
+          ? (SavedSettingData?.walletSolana || 'So11111111111111111111111111111111111111112')
+          : (SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000');
+        const body = {
+          fromAddress: userAddr,
+          fromAmount: amount_in_big.toString(),
+          fromChainId: lifiChainId,
+          fromTokenAddress: fromToken,
+          toChainId: lifiChainId,
+          toTokenAddress: toToken,
+          options: {
+            integrator: 'jumper.exchange',
+            order: 'CHEAPEST',
+            maxPriceImpact: 0.4,
+            jitoBundle: true,
+            allowSwitchChain: true,
+            exchanges: { deny: denyList },
+            executionType: 'all'
+          }
+        };
+        return { url, method: 'POST', data: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } };
+      },
+      parseResponse: (response, { des_output, chainName }) => {
+        const routes = response?.routes;
+        if (!routes || !Array.isArray(routes) || routes.length === 0) {
+          throw new Error(`${provider.toUpperCase()}-${dexTitle}: No routes found`);
+        }
+        const best = routes.find(r => r?.toAmount) || routes[0];
+        if (!best?.toAmount) throw new Error(`${provider.toUpperCase()}-${dexTitle}: No valid route`);
+        const amount_out = parseFloat(best.toAmount) / Math.pow(10, des_output);
+        if (!Number.isFinite(amount_out) || amount_out <= 0) {
+          throw new Error(`${provider.toUpperCase()}-${dexTitle}: invalid output amount`);
+        }
+        const { FeeSwap, feeSource } = resolveFeeSwap(parseFloat(best.gasCostUSD || 0), 0, chainName);
+        const actualTool = String(best.steps?.[0]?.toolDetails?.name || dexTitle).toUpperCase();
+        return {
+          amount_out, FeeSwap, feeSource,
+          dexTitle: actualTool || dexTitle,
+          routeTool: `${provider.toUpperCase()}-${dexTitle}`
+        };
+      }
+    };
+  }
+
+  dexStrategies['brave-enso']         = createLiFiDenyStrategy('brave',    _LIFI_DENY_ALL_EXCEPT_ENSO,      'ENSO');
+  dexStrategies['talisman-enso']      = createLiFiDenyStrategy('talisman', _LIFI_DENY_ALL_EXCEPT_ENSO,      'ENSO');
+  dexStrategies['brave-nordstern']    = createLiFiDenyStrategy('brave',    _LIFI_DENY_ALL_EXCEPT_NORDSTERN, 'NORDSTERN');
+  dexStrategies['talisman-nordstern'] = createLiFiDenyStrategy('talisman', _LIFI_DENY_ALL_EXCEPT_NORDSTERN, 'NORDSTERN');
+
 
 
 
@@ -4234,6 +4298,101 @@
   dexStrategies['rubic-matcha'] = createFilteredRubicStrategy('ZEROX', 'MATCHA');  // Rubic uses 'ZEROX' for 0x
   dexStrategies['rubic-sushi'] = createFilteredRubicStrategy('SUSHISWAP', 'SUSHI');
   dexStrategies['rubic-uniswap'] = createFilteredRubicStrategy('UNISWAP_V3', 'UNISWAP');
+
+  // =============================
+  // Enso Finance Strategy — GET /api/v1/shortcuts/route
+  // Verified: base URL = https://api.enso.finance/api/v1/ (bukan /v1/)
+  //           param    = amountIn (bukan amount), routingStrategy=router
+  //           response = { amountOut: "...", gas: "..." }
+  // =============================
+  dexStrategies['enso'] = {
+    proxy: true,
+    buildRequest: ({ codeChain, sc_input, sc_output, amount_in_big, SavedSettingData }) => {
+      const userAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+      const params = new URLSearchParams({
+        chainId: String(codeChain),
+        fromAddress: userAddr,
+        tokenIn: sc_input,
+        tokenOut: sc_output,
+        amountIn: String(amount_in_big),
+        routingStrategy: 'router'
+      });
+      return {
+        url: `https://api.enso.finance/api/v1/shortcuts/route?${params.toString()}`,
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      };
+    },
+    parseResponse: (response, { des_output, chainName }) => {
+      const rawOut = response?.amountOut || response?.toAmount || response?.outputAmount;
+      if (!rawOut) throw new Error('Enso: missing amountOut in response');
+      const amount_out = parseFloat(rawOut) / Math.pow(10, des_output);
+      if (!Number.isFinite(amount_out) || amount_out <= 0) throw new Error('Enso: invalid output amount');
+      let calcUsd = 0;
+      try {
+        // response.gas = gas units (string, e.g. "731042")
+        const gasUnitsRaw = parseFloat(response?.gas || 0);
+        if (gasUnitsRaw > 0) {
+          const gasUnits = capGasUnits(gasUnitsRaw, chainName);
+          const allGasData = (typeof getFromLocalStorage === 'function') ? getFromLocalStorage('ALL_GAS_FEES') : null;
+          if (allGasData) {
+            const gasInfo = allGasData.find(g => String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase());
+            if (gasInfo?.gwei && gasInfo?.tokenPrice) calcUsd = (gasUnits * parseFloat(gasInfo.gwei) * parseFloat(gasInfo.tokenPrice)) / 1e9;
+          }
+        }
+      } catch (_) {}
+      const { FeeSwap, feeSource } = resolveFeeSwap(0, calcUsd, chainName);
+      return { amount_out, FeeSwap, feeSource, dexTitle: 'ENSO', routeTool: 'ENSO' };
+    }
+  };
+
+  // =============================
+  // Nordstern Strategy — GET /aggregator/{chain_id}
+  // Docs: https://docs.nordstern.finance/en/latest/usage.html#endpoint-get-optimal-swap-route
+  // =============================
+  dexStrategies['nordstern'] = {
+    proxy: false,
+    buildRequest: ({ codeChain, sc_input, sc_output, amount_in_big, SavedSettingData }) => {
+      const userAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+      const params = new URLSearchParams({
+        src: String(sc_input || '').toLowerCase(),
+        dst: String(sc_output || '').toLowerCase(),
+        amount: String(amount_in_big),
+        from: userAddr,
+        slippage: String(getSlippageValue())
+      });
+      return {
+        url: `https://api.nordstern.finance/aggregator/${Number(codeChain)}?${params.toString()}`,
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      };
+    },
+    parseResponse: (response, { des_output, chainName }) => {
+      const rawOut = response?.toAmount || response?.amountOut || response?.outputAmount || response?.outAmount;
+      if (!rawOut) throw new Error('Nordstern: missing toAmount in response');
+      const amount_out = parseFloat(rawOut) / Math.pow(10, des_output);
+      if (!Number.isFinite(amount_out) || amount_out <= 0) throw new Error('Nordstern: invalid output amount');
+
+      const directUsd = parseFloat(response?.gasUsd || response?.gas?.usd || response?.feeUsd || 0) || 0;
+      let calcUsd = 0;
+      try {
+        let gasUnitsRaw = parseFloat(response?.gasEstimate || response?.estimatedGas || response?.gas || response?.gasUnits || response?.gas?.amount || 0);
+        if ((!Number.isFinite(gasUnitsRaw) || gasUnitsRaw <= 0) && Array.isArray(response?.swaps)) {
+          gasUnitsRaw = response.swaps.reduce((sum, swap) => sum + (parseFloat(swap?.gasUnits || 0) || 0), 0);
+        }
+        if (gasUnitsRaw > 0) {
+          const gasUnits = capGasUnits(gasUnitsRaw, chainName);
+          const allGasData = (typeof getFromLocalStorage === 'function') ? getFromLocalStorage('ALL_GAS_FEES') : null;
+          if (allGasData) {
+            const gasInfo = allGasData.find(g => String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase());
+            if (gasInfo?.gwei && gasInfo?.tokenPrice) calcUsd = (gasUnits * parseFloat(gasInfo.gwei) * parseFloat(gasInfo.tokenPrice)) / 1e9;
+          }
+        }
+      } catch (_) {}
+      const { FeeSwap, feeSource } = resolveFeeSwap(directUsd, calcUsd, chainName);
+      return { amount_out, FeeSwap, feeSource, dexTitle: 'NORDSTERN', routeTool: 'NORDSTERN' };
+    }
+  };
 
   // Back-compat alias: support legacy 'kyberswap' key
   dexStrategies.kyberswap = dexStrategies.kyber;

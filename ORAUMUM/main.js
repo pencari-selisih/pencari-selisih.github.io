@@ -1982,7 +1982,7 @@ async function deferredInit() {
             // ======== SECTION META-DEX (terpisah) ========
             const $metaDexSection = $('<div class="filter-box filter-box-metadex"></div>');
             $metaDexSection.append($(`<div class="filter-section-title" style="color:#7c3aed;">&#x26A1; META-DEX AGGREGATORS${getDexLimitBadge(true)}</div>`));
-            const $metaDexGrid = $('<div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;"></div>');
+            const $metaDexGrid = $('<div class="filter-metadex-row"></div>');
 
             Object.keys(CONFIG_DEXS || {}).forEach(dx => {
                 const dexConfig = CONFIG_DEXS[dx];
@@ -2359,7 +2359,7 @@ async function deferredInit() {
             if (window.CONFIG_APP?.APP?.META_DEX === true) {
                 const $metaDexSc = $('<div class="filter-box filter-box-metadex"></div>');
                 $metaDexSc.append($(`<div class="filter-section-title" style="color:#7c3aed;">META-DEX${getDexLimitBadge(true)}</div>`));
-                const $metaGrid = $('<div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;"></div>');
+                const $metaGrid = $('<div class="filter-metadex-row"></div>');
                 const metaKeys = Object.keys(CONFIG_DEXS || {}).filter(k => {
                     const dcfg = CONFIG_DEXS[k];
                     if (!dcfg?.isMetaDex || dcfg?.disabled || dcfg?.isBackendProvider) return false;
@@ -2380,7 +2380,7 @@ async function deferredInit() {
                     const id = `modal-sc-dex-${dx}`;
                     const _mb2 = (typeof window.getMetaDexBadge === 'function') ? window.getMetaDexBadge(dx, '8px', 'solid') : `<span style="background:${col};color:#fff;padding:0 3px;border-radius:3px;font-size:8px;">MT</span>`;
                     $metaGrid.append($(`
-                        <label class="sc-dex" data-val="${dx}" data-color="${col}" for="${id}"
+                        <label class="sc-dex filter-chip meta-dex-chip" data-val="${dx}" data-color="${col}" for="${id}"
                                style="display:flex; align-items:center; gap:3px; padding:3px 8px; border-radius:3px; cursor:pointer;
                                       border:2px solid ${checked ? col : '#c4b5fd'}; background:${checked ? '#f5f3ff' : 'white'};">
                             <input type="checkbox" id="${id}" ${checked ? 'checked' : ''} style="width:11px; height:11px; margin:0;">
