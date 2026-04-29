@@ -1038,7 +1038,7 @@ const CONFIG_DEXS = {
                 tokentopair: 'nordstern',
                 pairtotoken: 'nordstern'
             },
-            secondary: {
+            alternative: {
                 tokentopair: 'talisman-nordstern',
                 pairtotoken: 'brave-nordstern'
             }
