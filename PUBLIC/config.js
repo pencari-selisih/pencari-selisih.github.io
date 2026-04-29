@@ -2,7 +2,7 @@ const CONFIG_APP = {
     APP: {
         NAME: "PENCARI-SELISIH",
         //NAME: "PRIVATE_NOCORS",
-        VERSION: "04.29",
+        VERSION: "04.30",
         SCAN_LIMIT: true,
         AUTORUN: false,
         AUTO_VOLUME: false,  // cek level order otomatis kalkulasi PNL
@@ -15,7 +15,7 @@ const CONFIG_APP = {
         // Berbeda dari DEX regular (single-quote). Berjalan TERPISAH dari scan DEX regular.
         // Jika true → Settings menampilkan panel: Modal DEX, Filter Scanner, Card Signal, Jeda DEX.
         META_DEX: true,
-        LIMIT_METADEX: 2,
+        LIMIT_METADEX: 1,
         // Batas jumlah DEX regular yang bisa dipilih di Filter Scanner.
         // 0 = tidak dibatasi.
         LIMIT_DEX: 6,
@@ -38,7 +38,7 @@ const CONFIG_APP = {
         aggregators: {
             jumper: { enabled: true, evmOnly: false, jedaDex: 600, label: 'JUMPX', badge: 'JM', warna: '#f764bcff' },       // EVM + Solana multi-route
             metax: { enabled: true, evmOnly: false, jedaDex: 800, label: 'METAX', badge: 'MT', warna: '#ec7506ff' },       // EVM + Solana (chainId 1151111081099710)
-            onekey: { enabled: true, evmOnly: false, jedaDex: 800, label: 'ONEX', badge: '1K', warna: '#00b812ff' },       // EVM + Solana (networkId sol--101)
+            //onekey: { enabled: true, evmOnly: false, jedaDex: 800, label: 'ONEX', badge: '1K', warna: '#00b812ff' },       // EVM + Solana (networkId sol--101)
             ctrlfi: { enabled: true, evmOnly: false, jedaDex: 900, label: 'CTRLX', badge: 'CT', warna: '#808080ff' },      // EVM + Solana — XDEFI/CTRL GraphQL multi-route
             // okutrade: { enabled: true, evmOnly: true, jedaDex: 800, label: 'OKUX', badge: 'OT', warna: '#1a6fd4ff' }, // EVM only — Oku Trade multi-aggregator (3-step REST)
             // dzap: { enabled: false, evmOnly: true, jedaDex: 800, label: 'DZAP', badge: 'DZ', warna: '#d9dc36ff' },
@@ -336,7 +336,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://bscscan.com/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex", "eisen"],  // ✅ lifidex = standalone LIFI (via Temple API)
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex", "nordstern"],  // ✅ lifidex = standalone LIFI (via Temple API)
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BSC' },
             BINANCE: { address: '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3', address2: '0xe2fc31F816A9b94326492132018C3aEcC4a93aE1', chainCEX: 'BSC' },
@@ -359,7 +359,7 @@ const CONFIG_CHAINS = {
         DEFAULT_RPC: 'https://rpc.llama-rpc.com/polygon?source=llamaswap', // DefiLlama
         BADGE_CLASS: 'bg-success text-light',
         SYNONYMS: ['POLYGON', 'MATIC', 'POLYGON POS', 'POLYGON \\(MATIC\\)', 'POL', 'POLYGONPOS', 'POLYGON_POS', 'POLYGONEVM', 'Polygon PoS', 'polygon'],
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex"],   // ✅ lifidex = standalone LIFI (via Temple API)
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex", "nordstern"],   // ✅ lifidex = standalone LIFI (via Temple API)
         LINKS: {
             explorer: {
                 token: (address) => `https://polygonscan.com/token/${address}`,
@@ -397,7 +397,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://arbiscan.io/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex", "eisen"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex", "nordstern"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'ARBITRUM' },
             BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88', address2: '0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245', chainCEX: 'ARBITRUM' },
@@ -426,7 +426,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://etherscan.io/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex", "eisen"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex", "nordstern"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'ETH' },
             BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', address3: '0x21a31Ee1afC51d94C2eFcCAa2092aD1028285549', chainCEX: 'ETH' },
@@ -458,7 +458,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://basescan.org/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex", "eisen"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex", "nordstern"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'BASE' },
             BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', chainCEX: 'BASE' },
@@ -951,27 +951,27 @@ const CONFIG_DEXS = {
         },
         allowFallback: true,
     },
-    eisen: {
-        label: 'EISEN',
-        badgeClass: 'bg-eisen',
-        fallbackSlug: 'eisen',
-        warna: '#f3bd49ff',
-        isMetaDex: false,
-        evmOnly: true,
-        builder: ({ chainCode, tokenAddress, pairAddress }) =>
-            `https://jumper.exchange/?fromChain=${chainCode}&fromToken=${tokenAddress}&toChain=${chainCode}&toToken=${pairAddress}`,
-        fetchdex: {
-            primary: {
-                tokentopair: 'eisen',
-                pairtotoken: 'eisen'
-            },
-            alternative: {
-                tokentopair: 'talisman-eisen',
-                pairtotoken: 'brave-eisen'
-            }
-        },
-        allowFallback: true
-    },
+    // eisen: {
+    //     label: 'EISEN',
+    //     badgeClass: 'bg-eisen',
+    //     fallbackSlug: 'eisen',
+    //     warna: '#f3bd49ff',
+    //     isMetaDex: false,
+    //     evmOnly: true,
+    //     builder: ({ chainCode, tokenAddress, pairAddress }) =>
+    //         `https://jumper.exchange/?fromChain=${chainCode}&fromToken=${tokenAddress}&toChain=${chainCode}&toToken=${pairAddress}`,
+    //     fetchdex: {
+    //         primary: {
+    //             tokentopair: 'eisen',
+    //             pairtotoken: 'eisen'
+    //         },
+    //         alternative: {
+    //             tokentopair: 'talisman-eisen',
+    //             pairtotoken: 'brave-eisen'
+    //         }
+    //     },
+    //     allowFallback: true
+    // },
     cowswap: {
         label: 'CoWSwap',
         badgeClass: 'bg-cowswap',
@@ -989,6 +989,58 @@ const CONFIG_DEXS = {
             alternative: {
                 tokentopair: 'talisman-cowswap',
                 pairtotoken: 'brave-cowswap'
+            }
+        },
+        allowFallback: true,
+    },
+    // enso: {
+    //     label: 'Enso',
+    //     badgeClass: 'bg-enso',
+    //     fallbackSlug: 'enso',
+    //     proxy: true,
+    //     evmOnly: true,
+    //     warna: '#6c63ffff',
+    //     builder: ({ chainName, tokenAddress, pairAddress, amountIn }) => {
+    //         const network = String(chainName || '').toLowerCase();
+    //         const from = String(tokenAddress || '').toLowerCase();
+    //         const to = String(pairAddress || '').toLowerCase();
+    //         const amt = encodeURIComponent(`"${amountIn || 111}"`);
+    //         return `https://oku.trade/swap?inputChain=${network}&inToken=${from}&outToken=${to}&inAmount=${amt}&isExactOut=false`;
+    //     },
+    //     fetchdex: {
+    //         primary: {
+    //             tokentopair: 'enso',
+    //             pairtotoken: 'enso'
+    //         },
+    //         secondary: {
+    //             tokentopair: 'brave-enso',
+    //             pairtotoken: 'talisman-enso'
+    //         }
+    //     },
+    //     allowFallback: true,
+    // },
+    nordstern: {
+        label: 'Nordstern',
+        badgeClass: 'bg-nordstern',
+        fallbackSlug: 'nordstern',
+        proxy: true,   // REST API resmi Nordstern dipanggil langsung tanpa CORS proxy
+        evmOnly: true,
+        warna: '#00b4d8ff',
+        builder: ({ chainName, tokenAddress, pairAddress, amountIn }) => {
+            const network = String(chainName || '').toLowerCase();
+            const from = String(tokenAddress || '').toLowerCase();
+            const to = String(pairAddress || '').toLowerCase();
+            const amt = encodeURIComponent(`"${amountIn || 111}"`);
+            return `https://oku.trade/swap?inputChain=${network}&inToken=${from}&outToken=${to}&inAmount=${amt}&isExactOut=false`;
+        },
+        fetchdex: {
+            primary: {
+                tokentopair: 'nordstern',
+                pairtotoken: 'nordstern'
+            },
+            secondary: {
+                tokentopair: 'talisman-nordstern',
+                pairtotoken: 'brave-nordstern'
             }
         },
         allowFallback: true,
