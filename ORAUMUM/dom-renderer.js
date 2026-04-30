@@ -211,7 +211,7 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
                         data-chain="${String(data.chain).toUpperCase()}"
                         data-row-index="${rowIndex}"
                         style="text-align: center; vertical-align: middle;${extraBg}">
-                    <strong class="uk-align-center" style="display:inline-block; margin:0;">${dexName.toUpperCase().substring(0, 6)} [$${modal}]</strong></br>
+                    <strong class="uk-align-center" style="display:inline-block; margin:0;">${dexName.toUpperCase().substring(0, 8)} [$${modal}]</strong></br>
                         <span class="dex-status uk-text-muted"> 🔒 </span>
                     </td>`;
       } else {
@@ -243,7 +243,7 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
                         data-chain="${String(data.chain).toUpperCase()}"
                         data-row-index="${rowIndex}"
                         style="text-align: center; vertical-align: middle;${extraBg}">
-                    <strong class="uk-align-center" style="display:inline-block; margin:0;">${dexNamem.toUpperCase().substring(0, 6)} [$${modalMeta}]</strong></br>
+                    <strong class="uk-align-center" style="display:inline-block; margin:0;">${dexNamem.toUpperCase().substring(0, 8)} [$${modalMeta}]</strong></br>
                         <span class="dex-status uk-text-muted"> 🔒 </span>
                     </td>`;
         } else {
@@ -1438,7 +1438,7 @@ function DisplayPNL(data) {
         const dexNameStrong = $mainCell.find('strong').first();
         if (dexNameStrong.length) {
           // ✅ FIX: Use dexTitle from strategy response if available, otherwise fallback to dextype
-          const displayName = data.dexTitle ? String(data.dexTitle).toUpperCase().substring(0, 6) : String(dextype || '').toUpperCase().substring(0, 6);
+          const displayName = data.dexTitle ? String(data.dexTitle).toUpperCase().substring(0, 8) : String(dextype || '').toUpperCase().substring(0, 8);
           const warningIcon = isInsufficientVolume ? '⚠️' : '';
 
           // ✅ NEW: Show checkmark if sufficient, actual modal + warning if insufficient
@@ -1483,7 +1483,7 @@ function DisplayPNL(data) {
         const dexNameStrong = $mainCell.find('strong').first();
         if (dexNameStrong.length) {
           // ✅ FIX: Use dexTitle from strategy response if available
-          const displayName = data.dexTitle ? String(data.dexTitle).toUpperCase().substring(0, 6) : String(dextype || '').toUpperCase().substring(0, 6);
+          const displayName = data.dexTitle ? String(data.dexTitle).toUpperCase().substring(0, 8) : String(dextype || '').toUpperCase().substring(0, 8);
 
           // Check if volume sufficient for AUTO VOL
           const warningIcon = isInsufficientVolume ? '⚠️' : '';
@@ -1644,7 +1644,7 @@ function DisplayPNL(data) {
         // Colors & names
         const pnlColor = subPnl >= 0 ? '#28a745' : '#dc3545';
         const providerName = String(subRes.dexTitle || subRes.dexName || subRes.provider || subRes.dexId || '').toUpperCase();
-        const displayName = providerName.length > 6 ? providerName.substring(0, 6) : providerName;
+        const displayName = providerName.length > 8 ? providerName.substring(0, 8) : providerName;
         // ⚠️ Dynamic border: hanya tampilkan border jika bukan kolom terakhir
         const borderRight = idx < (maxProviders - 1) ? 'border-right: 1px solid #dee2e6;' : '';
 
@@ -2692,7 +2692,7 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
   // DEX→CEX (PairToToken) = merah (#FF0000)
   const dexBadgeColor = (trx === "TokentoPair") ? "#00AA00" : "#FF0000";
   const dexInfoDisplay = isMetaDex && providerInfo
-    ? ` <span style="color:${dexBadgeColor}; font-size:11px; font-weight:bold;">[${String(providerInfo).toUpperCase().substring(0, 6)}]</span>`
+    ? ` <span style="color:${dexBadgeColor}; font-size:11px; font-weight:bold;">[${String(providerInfo).toUpperCase().substring(0, 8)}]</span>`
     : '';
 
   const sLink = `
