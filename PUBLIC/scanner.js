@@ -1923,14 +1923,28 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                 const missing = [];
                                 if (wdToken === false) missing.push(`WD ${sym1Meta}`);
                                 if (dpPair === false) missing.push(`DP ${sym2Meta}`);
-                                markMetaSkip(missing.join(' & ') + ' OFF');
+                                
+                                let skipReason = 'CEX Wallet OFF: ' + missing.join(' & ');
+                                if (missing.length === 1) {
+                                    skipReason = wdToken === false 
+                                        ? `CEX Wallet OFF: WD ${sym1Meta} - Tidak bisa kirim Token dari CEX ke DEX`
+                                        : `CEX Wallet OFF: DP ${sym2Meta} - Tidak bisa setor Pair hasil swap kembali ke CEX`;
+                                }
+                                markMetaSkip(skipReason);
                                 return;
                             }
                             if (!isKiriMeta && (wdPair === false || dpToken === false)) {
                                 const missing = [];
                                 if (wdPair === false) missing.push(`WD ${sym1Meta}`);
                                 if (dpToken === false) missing.push(`DP ${sym2Meta}`);
-                                markMetaSkip(missing.join(' & ') + ' OFF');
+                                
+                                let skipReason = 'CEX Wallet OFF: ' + missing.join(' & ');
+                                if (missing.length === 1) {
+                                    skipReason = wdPair === false 
+                                        ? `CEX Wallet OFF: WD ${sym1Meta} - Tidak bisa kirim Pair dari CEX ke DEX`
+                                        : `CEX Wallet OFF: DP ${sym2Meta} - Tidak bisa setor Token hasil swap kembali ke CEX`;
+                                }
+                                markMetaSkip(skipReason);
                                 return;
                             }
                         }

@@ -303,13 +303,16 @@
     function chainRegex(chainKey) {
         const synonyms = getChainSynonyms(chainKey);
         if (!synonyms.length) return null;
-        const alt = synonyms.map(escapeRegex).join('|');
+        // Gunakan ^...$ untuk exact matching agar 'LINEAETH' tidak kena match 'ETH'
+        const alt = synonyms.map(s => `^${escapeRegex(s)}$`).join('|');
         return new RegExp(alt, 'i');
     }
 
     function matches(chainKey, net) {
         const rx = chainRegex(chainKey);
-        return rx ? rx.test(String(net || '')) : true;
+        // Trim input agar matching lebih akurat
+        const input = String(net || '').trim();
+        return rx ? rx.test(input) : true;
     }
 
     function matchesCex(chainKey, net) {

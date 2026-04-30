@@ -5058,7 +5058,6 @@ async function deferredInit() {
                 depositPair: _indodaxOn, withdrawPair: _indodaxOn
             };
             // Selalu apply WD/DP status dari data token jika tersedia
-            // (tidak tergantung __source karena bisa tidak ter-set setelah SNAPSHOT UPDATE)
             const feeSnapshot = parseFloat(tok.feeWDToken ?? tok.feeWD);
             if (Number.isFinite(feeSnapshot) && feeSnapshot >= 0) {
                 baseCexInfo.feeWDToken = feeSnapshot;
@@ -5066,13 +5065,29 @@ async function deferredInit() {
             const depositSnap = parseSnapshotStatus(tok.depositToken ?? tok.deposit);
             if (depositSnap !== null) {
                 baseCexInfo.depositToken = depositSnap;
-                baseCexInfo.depositPair = depositSnap;
             }
             const withdrawSnap = parseSnapshotStatus(tok.withdrawToken ?? tok.withdraw);
             if (withdrawSnap !== null) {
                 baseCexInfo.withdrawToken = withdrawSnap;
-                baseCexInfo.withdrawPair = withdrawSnap;
             }
+
+            // ✅ FIX: Cari status WD/DP untuk Pair (USDT/BNB/dll) dari snapshot data
+            // (Mencegah status Pair mengikuti status koin utama)
+            const pairTok = remoteTokens.find(t => 
+                String(t.cex || '').toUpperCase().trim() === cexUpper &&
+                String(t.symbol_in || '').toUpperCase().trim() === symbolOut
+            );
+            if (pairTok) {
+                const depPairSnap = parseSnapshotStatus(pairTok.depositToken ?? pairTok.deposit);
+                if (depPairSnap !== null) baseCexInfo.depositPair = depPairSnap;
+                
+                const wdPairSnap = parseSnapshotStatus(pairTok.withdrawToken ?? pairTok.withdraw);
+                if (wdPairSnap !== null) baseCexInfo.withdrawPair = wdPairSnap;
+
+                const feePairSnap = parseFloat(pairTok.feeWDToken ?? pairTok.feeWD);
+                if (Number.isFinite(feePairSnap) && feePairSnap >= 0) baseCexInfo.feeWDPair = feePairSnap;
+            }
+            
             dataCexs[cexUpper] = baseCexInfo;
 
             if (!scIn || isAddrInvalid(scIn)) scIn = tok.sc_in || tok.contract_in || '';
