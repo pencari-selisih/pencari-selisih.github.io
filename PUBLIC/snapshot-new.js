@@ -1075,8 +1075,21 @@
                                     const allChainKeys = Object.keys(
                                         (typeof window !== 'undefined' && window.CHAIN_SYNONYMS) ? window.CHAIN_SYNONYMS : {}
                                     );
+                                    // ✅ Optimization: tracking for refined recovery
+                                    const matchedSymbols = new Set(chainMatched.map(i => String(i.tokenName || '').toUpperCase()));
+                                    const recoveredSymbols = new Set();
+
                                     chainRejected.forEach(item => {
                                         const symbol = String(item.tokenName || '').toUpperCase();
+
+                                        // ✅ Guard 0: Skip if already perfectly matched on target network
+                                        // Mencegah koin yang sudah ada di network target (misal: BSC - OFF)
+                                        // malah tertimpa status dari network lain (misal: CHZ - ON) melalui recovery.
+                                        if (matchedSymbols.has(symbol)) return;
+
+                                        // ✅ Guard 0.5: Skip if already recovered (prevent duplicates)
+                                        if (recoveredSymbols.has(symbol)) return;
+
                                         if (tokenDbMap.has(symbol)) {
                                             // Guard 1: skip if item.chain matches a different canonical chain
                                             // (e.g. AI/BSC should NOT be recovered into ETH snapshot)
@@ -1087,6 +1100,7 @@
                                             if (belongsToOtherChain) return;
 
                                             const dbEntry = tokenDbMap.get(symbol);
+                                            recoveredSymbols.add(symbol);
                                             recovered.push({
                                                 ...item,
                                                 contractAddress: dbEntry.sc,
@@ -1627,18 +1641,23 @@
         // ===========================================
 
         try {
-            // Use RPCManager for RPC access (auto fallback to defaults)
-            const rpc = (typeof window !== 'undefined' && window.RPCManager && typeof window.RPCManager.getRPC === 'function')
-                ? window.RPCManager.getRPC(chainKey)
-                : null;
+            // Use RPCManager for RPC pool (primary + fallback)
+            const rpcPool = (typeof window !== 'undefined' && window.RPCManager?.getRPCPool)
+                ? window.RPCManager.getRPCPool(chainKey)
+                : [];
+            const rpcSingle = (typeof window !== 'undefined' && window.RPCManager?.getRPC)
+                ? window.RPCManager.getRPC(chainKey) : null;
+            const pool = rpcPool.length ? rpcPool : (rpcSingle ? [rpcSingle] : []);
 
-            if (!rpc) {
+            if (!pool.length) {
                 throw new Error(`No RPC configured for chain ${chainKey}`);
             }
 
             // Create fetch promise and store it for deduplication
             const fetchPromise = (async () => {
-                try {
+                let lastRpcError;
+                for (const rpc of pool) {
+                  try {
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
@@ -1764,7 +1783,7 @@
                         }
                         // ===================================
 
-                        return result;
+                        return result; // RPC berhasil, keluar loop
                     } catch (fetchError) {
                         clearTimeout(timeoutId);
                         if (fetchError.name === 'AbortError') {
@@ -1772,10 +1791,15 @@
                         }
                         throw fetchError;
                     }
-                } finally {
-                    // Remove from pending requests when done
-                    WEB3_PENDING_REQUESTS.delete(requestKey);
-                }
+                  } catch (rpcErr) {
+                    // RPC ini gagal — coba fallback berikutnya
+                    window.RPCManager?.reportRPCFailure?.(chainKey, rpc);
+                    lastRpcError = rpcErr;
+                  }
+                } // end for loop
+                // Semua RPC habis
+                WEB3_PENDING_REQUESTS.delete(requestKey);
+                throw lastRpcError || new Error(`All RPCs failed for chain ${chainKey}`);
             })();
 
             // Store promise for deduplication
@@ -2218,11 +2242,16 @@
 
                 // Process batch with STAGGERED delays to prevent RPC rate limit
                 // Each token in batch starts with incremental delay (0ms, 150ms, 300ms, ...)
+                const web3CountBefore = web3FetchCount;
                 const batchResults = await Promise.allSettled(
                     batch.map(async (token, batchIndex) => {
-                        // STAGGERED DELAY: Token 0=0ms, Token 1=150ms, Token 2=300ms, dst
-                        // Ini mencegah semua request dikirim bersamaan ke RPC
-                        if (batchIndex > 0 && WEB3_REQUEST_DELAY > 0) {
+                        // STAGGERED DELAY: hanya jika token kemungkinan butuh Web3 call
+                        // Token yang sudah ada decimals di cache/DB tidak perlu delay
+                        const tokenSc = String(token.sc_in || '').toLowerCase().trim();
+                        const tokenHasDecimals = Number(token.des_in) > 0;
+                        const tokenInCache = !!(snapshotMap[tokenSc]?.des_in > 0);
+                        const tokenMayNeedWeb3 = !tokenHasDecimals && !tokenInCache;
+                        if (batchIndex > 0 && WEB3_REQUEST_DELAY > 0 && tokenMayNeedWeb3) {
                             await sleep(batchIndex * WEB3_REQUEST_DELAY);
                         }
 
@@ -2335,8 +2364,10 @@
                     );
                 }
 
-                // Delay between batches (except for last batch) - RATE LIMIT PROTECTION
-                if (batchEnd < allTokens.length && BATCH_DELAY > 0) {
+                // Delay between batches - HANYA jika batch ini ada Web3 call (rate limit protection)
+                // Jika semua token dari cache/DB, tidak perlu delay
+                const batchHadWeb3Calls = web3FetchCount > web3CountBefore;
+                if (batchEnd < allTokens.length && BATCH_DELAY > 0 && batchHadWeb3Calls) {
                     // Update overlay dengan info jeda
                     if (window.SnapshotOverlay) {
                         window.SnapshotOverlay.updateMessage(
@@ -2721,6 +2752,7 @@
                 totalInDatabase: mergedTokens.length,
                 tokens: enrichedTokens,
                 cexSources: selectedCex,
+                failedCexes: failedCexList,
                 statistics: {
                     cached: cachedCount,
                     web3: web3FetchCount,

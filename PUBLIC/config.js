@@ -1,11 +1,11 @@
 const CONFIG_APP = {
     APP: {
-        NAME: "PENCARI-SELISIH",
+        NAME: "PENCARI SELISIH",
         //NAME: "PRIVATE_NOCORS",
-        VERSION: "04.30",
-        SCAN_LIMIT: true,
-        AUTORUN: false,
-        AUTO_VOLUME: false,  // cek level order otomatis kalkulasi PNL
+        VERSION: "05.01",
+        SCAN_LIMIT: false,
+        AUTORUN: true,
+        AUTO_VOLUME: true,  // cek level order otomatis kalkulasi PNL
         VOL_CHECK: true,
         DEBUG_LOG: false,
         // Gas units untuk ERC-20 transfer onchain (DEX → CEX wallet)
@@ -15,10 +15,10 @@ const CONFIG_APP = {
         // Berbeda dari DEX regular (single-quote). Berjalan TERPISAH dari scan DEX regular.
         // Jika true → Settings menampilkan panel: Modal DEX, Filter Scanner, Card Signal, Jeda DEX.
         META_DEX: true,
-        LIMIT_METADEX: 1,
+        LIMIT_METADEX: 0,
         // Batas jumlah DEX regular yang bisa dipilih di Filter Scanner.
         // 0 = tidak dibatasi.
-        LIMIT_DEX: 6,
+        LIMIT_DEX: 0,
     },
     // ========================================================================
     // META-DEX CONFIGURATION
@@ -325,8 +325,9 @@ const DEFAULT_RPC_SUGGESTIONS = {};
 
 const CONFIG_CHAINS = {
     bsc: {
-        Kode_Chain: 56, Nama_Chain: "BSC", Nama_Pendek: "BSC", URL_Chain: "https://bscscan.com", WARNA: "#f0af18", ICON: "assets/icons/chains/bsc.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_BSC.json', BaseFEEDEX: "BNBUSDT", GASLIMIT: 300000, // real swap BEP-20 ~150k gas units
+        Kode_Chain: 56, Nama_Chain: "BSC", Nama_Pendek: "BSC", URL_Chain: "https://bscscan.com", WARNA: "#f0af18", ICON: "assets/icons/chains/bsc.png", DATAJSON: 'https://pencari-selisih.github.io/JSON-TOKEN/SNAPSHOT_koin_BSC.json', BaseFEEDEX: "BNBUSDT", GASLIMIT: 300000, // real swap BEP-20 ~150k gas units
         DEFAULT_RPC: 'https://rpc.llama-rpc.com/bsc?source=llamaswap', // DefiLlama — fallback jika user belum set RPC
+        FALLBACK_RPCS: ['https://bsc-mainnet.wallet.brave.com'],
         BADGE_CLASS: 'bg-warning text-dark',
         SYNONYMS: ['BSC', 'BEP20', 'BINANCE SMART CHAIN', 'BNB SMART CHAIN', 'BEP-20', 'BSCMAINNET', 'BNB', 'BSCBEP20', 'BNB CHAIN', 'BNBCHAIN'],
         LINKS: {
@@ -355,8 +356,9 @@ const CONFIG_CHAINS = {
         }
     },
     polygon: {
-        Kode_Chain: 137, Nama_Chain: "Polygon", Nama_Pendek: "POLY", URL_Chain: "https://polygonscan.com", ICON: "assets/icons/chains/polygon.png", WARNA: "#cd72f4ff", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_POLYGON.json', BaseFEEDEX: "MATICUSDT", GASLIMIT: 250000, // real swap MATIC/Polygon ~150k gas units
+        Kode_Chain: 137, Nama_Chain: "Polygon", Nama_Pendek: "POLY", URL_Chain: "https://polygonscan.com", ICON: "assets/icons/chains/polygon.png", WARNA: "#cd72f4ff", DATAJSON: 'https://pencari-selisih.github.io/JSON-TOKEN/SNAPSHOT_koin_POLYGON.json', BaseFEEDEX: "MATICUSDT", GASLIMIT: 250000, // real swap MATIC/Polygon ~150k gas units
         DEFAULT_RPC: 'https://rpc.llama-rpc.com/polygon?source=llamaswap', // DefiLlama
+        FALLBACK_RPCS: ['https://polygon-mainnet.wallet.brave.com'],
         BADGE_CLASS: 'bg-success text-light',
         SYNONYMS: ['POLYGON', 'MATIC', 'POLYGON POS', 'POLYGON \\(MATIC\\)', 'POL', 'POLYGONPOS', 'POLYGON_POS', 'POLYGONEVM', 'Polygon PoS', 'polygon'],
         DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex", "nordstern"],   // ✅ lifidex = standalone LIFI (via Temple API)
@@ -370,14 +372,14 @@ const CONFIG_CHAINS = {
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'MATIC' },
             BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88', address2: '0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245', chainCEX: 'MATIC' },
-            MEXC: { address: '0x51E3D44172868Acc60D68ca99591Ce4230bc75E0', chainCEX: 'MATIC' },
-            KUCOIN: { address: '0x9AC5637d295FEA4f51E086C329d791cC157B1C84', address2: '0xD6216fC19DB775Df9774a6E33526131dA7D19a2c', chainCEX: 'Polygon POS' },
-            BITGET: { address: '0x0639556F03714A74a5fEEaF5736a4A64fF70D206', address2: '0x51971c86b04516062c1e708CDC048CB04fbe959f', address3: '0xBDf5bAfEE1291EEc45Ae3aadAc89BE8152D4E673', chainCEX: 'Polygon' },
-            BYBIT: { address: '0xf89d7b9c864f589bbF53a82105107622B35EaA40', chainCEX: 'Polygon PoS' },
-            INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6', address2: '0x91Dca37856240E5e1906222ec79278b16420Dc92', chainCEX: 'POLYGON' },
-            HTX: { address: '0x9a7ffd7f6c42ab805e0edf16c25101964c6326b6', chainCEX: 'MATIC' },
-            OKX: { address: '0x343d752bB710c5575E417edB3F9FA06241A4749A', chainCEX: 'Polygon' },
-        },
+             MEXC: { address: '0x51E3D44172868Acc60D68ca99591Ce4230bc75E0', chainCEX: 'MATIC' },
+             KUCOIN: { address: '0x9AC5637d295FEA4f51E086C329d791cC157B1C84', address2: '0xD6216fC19DB775Df9774a6E33526131dA7D19a2c', chainCEX: 'Polygon POS' },
+             BITGET: { address: '0x0639556F03714A74a5fEEaF5736a4A64fF70D206', address2: '0x51971c86b04516062c1e708CDC048CB04fbe959f', address3: '0xBDf5bAfEE1291EEc45Ae3aadAc89BE8152D4E673', chainCEX: 'Polygon' },
+             BYBIT: { address: '0xf89d7b9c864f589bbF53a82105107622B35EaA40', chainCEX: 'Polygon PoS' },
+             INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6', address2: '0x91Dca37856240E5e1906222ec79278b16420Dc92', chainCEX: 'POLYGON' },
+             HTX: { address: '0x9a7ffd7f6c42ab805e0edf16c25101964c6326b6', chainCEX: 'MATIC' },
+             OKX: { address: '0x343d752bB710c5575E417edB3F9FA06241A4749A', chainCEX: 'Polygon' },
+         },
         PAIRDEXS: {
             "USDT": { symbolPair: 'USDT', scAddressPair: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', desPair: '6' },
             "USDC": { symbolPair: 'USDC', scAddressPair: '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359', desPair: '6' },
@@ -386,8 +388,9 @@ const CONFIG_CHAINS = {
         }
     },
     arbitrum: {
-        Kode_Chain: 42161, Nama_Chain: "Arbitrum", Nama_Pendek: "ARB", URL_Chain: "https://arbiscan.io", WARNA: "#a6b0c3", ICON: "assets/icons/chains/arbitrum.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_ARBITRUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 250000, // L2 gas units jauh lebih besar (~500k-1M) tapi gwei sangat kecil (0.01-0.05)
+        Kode_Chain: 42161, Nama_Chain: "Arbitrum", Nama_Pendek: "ARB", URL_Chain: "https://arbiscan.io", WARNA: "#a6b0c3", ICON: "assets/icons/chains/arbitrum.png", DATAJSON: 'https://pencari-selisih.github.io/JSON-TOKEN/SNAPSHOT_koin_ARBITRUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 250000, // L2 gas units jauh lebih besar (~500k-1M) tapi gwei sangat kecil (0.01-0.05)
         DEFAULT_RPC: 'https://rpc.llama-rpc.com/arbitrum?source=llamaswap', // DefiLlama
+        FALLBACK_RPCS: ['https://arbitrum.drpc.org'], // Brave Arbitrum RPC tidak tersedia (404)
         BADGE_CLASS: 'bg-info text-dark',
         SYNONYMS: ['ARBITRUM', 'ARB', 'ARBITRUM ONE', 'ARBEVM', 'ARBITRUMONE', 'ARB-ETH', 'ARBMAINNET', 'ARBONE', 'ARBITRUMEVM', 'ARBI'],
         LINKS: {
@@ -415,8 +418,9 @@ const CONFIG_CHAINS = {
         },
     },
     ethereum: {
-        Kode_Chain: 1, Nama_Chain: "Ethereum", Nama_Pendek: "ETH", URL_Chain: "https://etherscan.io", WARNA: "#8098ee", ICON: "assets/icons/chains/ethereum.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_ETHEREUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 356190, // real swap ERC-20 via aggregator ~100k-150k gas units
+        Kode_Chain: 1, Nama_Chain: "Ethereum", Nama_Pendek: "ETH", URL_Chain: "https://etherscan.io", WARNA: "#8098ee", ICON: "assets/icons/chains/ethereum.png", DATAJSON: 'https://pencari-selisih.github.io/JSON-TOKEN/SNAPSHOT_koin_ETHEREUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 356190, // real swap ERC-20 via aggregator ~100k-150k gas units
         DEFAULT_RPC: 'https://rpc.llama-rpc.com/ethereum?source=llamaswap', // DefiLlama
+        FALLBACK_RPCS: ['https://ethereum-mainnet.wallet.brave.com'],
         BADGE_CLASS: 'bg-primary text-light',
         SYNONYMS: ['ETH', 'ERC20', 'ETHEREUM', 'USDTERC20', 'ETH-ERC20', 'ERC-20', 'ETH MAINNET', 'ETHMAINNET', 'ETHEREUM MAINNET', 'Ethereum'],
         LINKS: {
@@ -447,8 +451,9 @@ const CONFIG_CHAINS = {
     },
 
     base: {
-        Kode_Chain: 8453, Nama_Chain: "Base", Nama_Pendek: "BASE", URL_Chain: "https://basescan.org/", WARNA: "#1e46f9", ICON: "assets/icons/chains/base.png", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_BASE.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 250000, // real swap Base ERC-20 ~150k gas units
+        Kode_Chain: 8453, Nama_Chain: "Base", Nama_Pendek: "BASE", URL_Chain: "https://basescan.org/", WARNA: "#1e46f9", ICON: "assets/icons/chains/base.png", DATAJSON: 'https://pencari-selisih.github.io/JSON-TOKEN/SNAPSHOT_koin_BASE.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 250000, // real swap Base ERC-20 ~150k gas units
         DEFAULT_RPC: 'https://rpc.llama-rpc.com/base?source=llamaswap', // DefiLlama
+        FALLBACK_RPCS: ['https://base-mainnet.wallet.brave.com'],
         BADGE_CLASS: 'bg-dark text-light',
         SYNONYMS: ['BASE', 'Base', 'BASE MAINNET', 'BASEEVM', 'BASEMAINNET', 'BASE CHAIN', 'BASECHAIN'],
         LINKS: {
@@ -478,8 +483,9 @@ const CONFIG_CHAINS = {
     },
 
     solana: {
-        Kode_Chain: 501, Nama_Chain: "Solana", Nama_Pendek: "SOL", URL_Chain: "https://solscan.io/", ICON: "assets/icons/chains/solana.png", WARNA: "#7508a0ff", DATAJSON: 'https://watchmarket.github.io/JSON/SNAPSHOT_koin_SOLANA.json', BaseFEEDEX: "SOLUSDT", GASLIMIT: 5000, // Solana uses compute units
+        Kode_Chain: 501, Nama_Chain: "Solana", Nama_Pendek: "SOL", URL_Chain: "https://solscan.io/", ICON: "assets/icons/chains/solana.png", WARNA: "#7508a0ff", DATAJSON: 'https://pencari-selisih.github.io/JSON-TOKEN/SNAPSHOT_koin_SOLANA.json', BaseFEEDEX: "SOLUSDT", GASLIMIT: 5000, // Solana uses compute units
         DEFAULT_RPC: 'https://api.mainnet-beta.solana.com', // Solana Foundation public RPC
+        FALLBACK_RPCS: ['https://solana-mainnet.wallet.brave.com'],
         BADGE_CLASS: 'bg-solana text-dark',
         SYNONYMS: ['SOL', 'SOLANA', 'SPL', 'SOLANA MAINNET', 'SOLMAINNET', 'SOLANA CHAIN', 'SOLCHAIN', 'SOLANASOL'],
         LIFI_CHAIN_ID: 1151111081099710,
@@ -511,9 +517,37 @@ const CONFIG_CHAINS = {
         }
     },
 
-    // avalanche: {
-    //     SYNONYMS: ['AVAX', 'AVAXC', 'AVALANCHE', 'AVAX-C', 'C-CHAIN', 'AVAX C-CHAIN', 'AVAXCCHAIN', 'AVALANCHE C-CHAIN']
-    // },
+    avax: {
+        Kode_Chain: 43114, Nama_Chain: "Avalanche", Nama_Pendek: "AVAX", URL_Chain: "https://snowscan.xyz", WARNA: "#e84142", ICON: "assets/icons/chains/avax.png", DATAJSON: 'https://pencari-selisih.github.io/JSON-TOKEN/SNAPSHOT_koin_AVAX.json', BaseFEEDEX: "AVAXUSDT", GASLIMIT: 300000, // real swap AVAX C-Chain ~150k-300k gas units
+        DEFAULT_RPC: 'https://rpc.llama-rpc.com/avax?source=llamaswap', // Avalanche Foundation public RPC
+        FALLBACK_RPCS: ['https://avalanche-mainnet.wallet.brave.com'],
+        BADGE_CLASS: 'bg-danger text-white',
+        SYNONYMS: ['AVAX', 'AVAXC', 'AVALANCHE', 'AVAX-C','AVAX_C', 'C-CHAIN', 'AVAX C-CHAIN', 'AVAXCCHAIN', 'AVALANCHE C-CHAIN', 'AVAX C CHAIN', 'AVALANCHE CCHAIN','CAVAX','Avalanche C Chain(AVAX CCHAIN)','AVAX_CCHAIN'],
+        LINKS: {
+            explorer: {
+                token: (address) => `https://snowscan.xyz/token/${address}`,
+                address: (address) => `https://snowscan.xyz/address/${address}`,
+                tx: (hash) => `https://snowscan.xyz/tx/${hash}`
+            }
+        },
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "lifidex", "nordstern"],
+        WALLET_CEX: {
+            GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'AVAX' },
+            BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88', address2: '0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245', chainCEX: 'AVAX C-CHAIN' },
+            MEXC: { address: '0x4982085C9e2F89F2eCb8131Eca71aFAD896e89CB', chainCEX: 'AVAX C-CHAIN' },
+            KUCOIN: { address: '0x58edF78281334335EfFa23101bBe3371b6a36A51', chainCEX: 'AVAX' },
+            BITGET: { address: '0x0639556F03714A74a5fEEaF5736a4A64fF70D206', address2: '0x51971c86b04516062c1e708CDC048CB04fbe959f', chainCEX: 'AVAX C-Chain' },
+            BYBIT: { address: '0xf89d7b9c864f589bbF53a82105107622B35EaA40', chainCEX: 'Avalanche C-Chain' },
+            HTX: { address: '0x9a7ffd7f6c42ab805e0edf16c25101964c6326b6', chainCEX: 'AVAX' },
+            OKX: { address: '0xA0420C29B214d09b9ec751aa1f592c7b1fa77dA3', chainCEX: 'AVAX C-Chain' },
+        },
+        PAIRDEXS: {
+            "AVAX": { symbolPair: 'AVAX', scAddressPair: '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7', desPair: '18' }, // WAVAX
+            "USDT": { symbolPair: 'USDT', scAddressPair: '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7', desPair: '6' }, // USDT on Avalanche
+            "USDC": { symbolPair: 'USDC', scAddressPair: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', desPair: '6' }, // USDC on Avalanche
+            "NON": { symbolPair: "NON", scAddressPair: "0x", desPair: "18" }
+        }
+    },
 
 };
 
@@ -745,12 +779,19 @@ const CONFIG_DEXS = {
         supportsSolana: true,  // Matcha supports Solana via 0x API
         warna: "#61ee73ff", // hitam abu-abu (Matcha/0x)
         builder: ({ chainName, tokenAddress, pairAddress, chainCode }) => {
-            const isSolana = String(chainName || '').toLowerCase() === 'solana';
+            const chain = String(chainName || '').toLowerCase();
+            const isSolana = chain === 'solana';
             if (isSolana) {
                 const solChainId = 1399811149;
                 return `https://matcha.xyz/tokens/solana/${tokenAddress}?buyChain=${solChainId}&buyAddress=${pairAddress}&sellChain=${solChainId}&sellAddress=${tokenAddress}`;
             }
-            return `https://matcha.xyz/tokens/${chainName}/${String(tokenAddress || '').toLowerCase()}?buyChain=${chainCode}&buyAddress=${String(pairAddress || '').toLowerCase()}`;
+            // Matcha.xyz menggunakan slug berbeda dari key chain internal kita
+            const matchaChainSlug = {
+                avax: 'avalanche',
+                bsc: 'bnb',  // BSC = "bnb" di Matcha
+            };
+            const slug = matchaChainSlug[chain] || chain;
+            return `https://matcha.xyz/tokens/${slug}/${String(tokenAddress || '').toLowerCase()}?buyChain=${chainCode}&buyAddress=${String(pairAddress || '').toLowerCase()}`;
         },
         // ⚡ CHAIN-SPECIFIC STRATEGY: Solana uses direct endpoint, EVM uses proxies
         fetchdex: {
@@ -886,7 +927,7 @@ const CONFIG_DEXS = {
         badgeClass: 'bg-openocean',
         fallbackSlug: 'openocean',
         evmOnly: true,
-        warna: "#73aae8ff",
+        warna: "#87898bff",
         builder: ({ chainName, tokenAddress, pairAddress }) => {
             const slugMap = {
                 ethereum: 'eth', bsc: 'bsc', polygon: 'polygon',
@@ -925,7 +966,7 @@ const CONFIG_DEXS = {
                 pairtotoken: 'swoop-lifidex'        // DEX→CEX: Hinkal LiFi Proxy
             },
             alternative: {
-                tokentopair: 'onekey-lifidex',         // CEX→DEX: C98 (using Superlink/LiFi API)
+                tokentopair: 'c98-lifidex',         // CEX→DEX: C98 (using Superlink/LiFi API)
                 pairtotoken: 'c98-lifidex'       // DEX→CEX: OneKey (using LiFi/SwapLifi API)
             }
         },
@@ -976,7 +1017,7 @@ const CONFIG_DEXS = {
         label: 'CoWSwap',
         badgeClass: 'bg-cowswap',
         fallbackSlug: 'cowswap',
-        warna: '#904b0fff',
+        warna: '#6488e4ff',
         proxy: true,
         evmOnly: true,
         builder: ({ chainCode, tokenAddress, pairAddress }) =>
@@ -1023,9 +1064,9 @@ const CONFIG_DEXS = {
         label: 'Nordstern',
         badgeClass: 'bg-nordstern',
         fallbackSlug: 'nordstern',
-        proxy: true,   // REST API resmi Nordstern dipanggil langsung tanpa CORS proxy
+        proxy: false,   // REST API resmi Nordstern dipanggil langsung tanpa CORS proxy
         evmOnly: true,
-        warna: '#00b4d8ff',
+        warna: '#d86500ff',
         builder: ({ chainName, tokenAddress, pairAddress, amountIn }) => {
             const network = String(chainName || '').toLowerCase();
             const from = String(tokenAddress || '').toLowerCase();
