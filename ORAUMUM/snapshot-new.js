@@ -1064,61 +1064,10 @@
                             }
                         });
 
-                        // STEP 2: DATAJSON recovery for rejected tokens
-                        // If a rejected token's symbol exists in DATAJSON for this chain,
-                        // it means the token IS on this chain — CEX just uses a different network name
-                        let recovered = [];
-                        if (chainRejected.length > 0) {
-                            try {
-                                const tokenDbMap = await loadChainTokenDatabase(chainKey);
-                                if (tokenDbMap.size > 0) {
-                                    const allChainKeys = Object.keys(
-                                        (typeof window !== 'undefined' && window.CHAIN_SYNONYMS) ? window.CHAIN_SYNONYMS : {}
-                                    );
-                                    // ✅ Optimization: tracking for refined recovery
-                                    const matchedSymbols = new Set(chainMatched.map(i => String(i.tokenName || '').toUpperCase()));
-                                    const recoveredSymbols = new Set();
-
-                                    chainRejected.forEach(item => {
-                                        const symbol = String(item.tokenName || '').toUpperCase();
-
-                                        // ✅ Guard 0: Skip if already perfectly matched on target network
-                                        // Mencegah koin yang sudah ada di network target (misal: BSC - OFF)
-                                        // malah tertimpa status dari network lain (misal: CHZ - ON) melalui recovery.
-                                        if (matchedSymbols.has(symbol)) return;
-
-                                        // ✅ Guard 0.5: Skip if already recovered (prevent duplicates)
-                                        if (recoveredSymbols.has(symbol)) return;
-
-                                        if (tokenDbMap.has(symbol)) {
-                                            // Guard 1: skip if item.chain matches a different canonical chain
-                                            // (e.g. AI/BSC should NOT be recovered into ETH snapshot)
-                                            const itemChain = String(item.chain || '');
-                                            const belongsToOtherChain = allChainKeys.some(
-                                                otherKey => otherKey !== chainKey && matchesCex(otherKey, itemChain)
-                                            );
-                                            if (belongsToOtherChain) return;
-
-                                            const dbEntry = tokenDbMap.get(symbol);
-                                            recoveredSymbols.add(symbol);
-                                            recovered.push({
-                                                ...item,
-                                                contractAddress: dbEntry.sc,
-                                                _recoveredFromDb: true
-                                            });
-                                        }
-                                    });
-                                    if (recovered.length > 0) {
-                                        console.log(`[${cexUpper}] ✅ DATAJSON recovery: ${recovered.length} tokens recovered from ${chainRejected.length} rejected`);
-                                    }
-                                }
-                            } catch (dbErr) {
-                                console.warn(`[${cexUpper}] DATAJSON recovery failed:`, dbErr.message);
-                            }
-                        }
-
-                        // STEP 3: Combine matched + recovered, then map to snapshot format
-                        const allValid = [...chainMatched, ...recovered];
+                        // STEP 2: Only use tokens that directly match the target chain via CEX data.
+                        // Recovery from DATAJSON is intentionally disabled: if CEX says a token
+                        // is on a different chain, trust CEX and exclude the token.
+                        const allValid = [...chainMatched];
                         coins = allValid.map(item => {
                             const symbol = String(item.tokenName || '').toUpperCase();
                             const lookupKey = `${cexUpper}_${symbol}`;
