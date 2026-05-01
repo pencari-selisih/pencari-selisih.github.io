@@ -4664,8 +4664,10 @@ async function deferredInit() {
                 const scDisplay = scRaw ? (scRaw.length > 12 ? `${scRaw.slice(0, 6)}...${scRaw.slice(-4)}` : scRaw) : '?';
 
                 // ========== WALLET STATUS: WITHDRAW & DEPOSIT ==========
-                const depositStatus = parseSnapshotStatus(token.deposit || token.depositEnable);
-                const withdrawStatus = parseSnapshotStatus(token.withdraw || token.withdrawEnable);
+                // INDODAX: no REST API for wallet status → always ON
+                const _isIndodax = cex === 'INDODAX';
+                const depositStatus = _isIndodax ? true : parseSnapshotStatus(token.deposit || token.depositEnable);
+                const withdrawStatus = _isIndodax ? true : parseSnapshotStatus(token.withdraw || token.withdrawEnable);
 
                 // Format display untuk WITHDRAW status (urutan pertama)
                 const wdStatusText = withdrawStatus === true ? 'ON' : (withdrawStatus === false ? 'OFF' : '?');
@@ -5058,17 +5060,20 @@ async function deferredInit() {
                 depositPair: _indodaxOn, withdrawPair: _indodaxOn
             };
             // Selalu apply WD/DP status dari data token jika tersedia
+            // INDODAX: no REST API for wallet status → keep default true, skip snapshot override
             const feeSnapshot = parseFloat(tok.feeWDToken ?? tok.feeWD);
             if (Number.isFinite(feeSnapshot) && feeSnapshot >= 0) {
                 baseCexInfo.feeWDToken = feeSnapshot;
             }
-            const depositSnap = parseSnapshotStatus(tok.depositToken ?? tok.deposit);
-            if (depositSnap !== null) {
-                baseCexInfo.depositToken = depositSnap;
-            }
-            const withdrawSnap = parseSnapshotStatus(tok.withdrawToken ?? tok.withdraw);
-            if (withdrawSnap !== null) {
-                baseCexInfo.withdrawToken = withdrawSnap;
+            if (cexUpper !== 'INDODAX') {
+                const depositSnap = parseSnapshotStatus(tok.depositToken ?? tok.deposit);
+                if (depositSnap !== null) {
+                    baseCexInfo.depositToken = depositSnap;
+                }
+                const withdrawSnap = parseSnapshotStatus(tok.withdrawToken ?? tok.withdraw);
+                if (withdrawSnap !== null) {
+                    baseCexInfo.withdrawToken = withdrawSnap;
+                }
             }
 
             // ✅ FIX: Cari status WD/DP untuk Pair (USDT/BNB/dll) dari snapshot data

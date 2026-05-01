@@ -732,8 +732,8 @@
                     sc_out: String(token.sc_out || '').trim(),
                     des_out: Number(token.des_out || 0),
                     token_name: token.token_name || token.name || token.symbol_in,
-                    deposit: (token.deposit !== undefined && token.deposit !== null) ? token.deposit : (token.depositEnable ? '1' : '0'),
-                    withdraw: (token.withdraw !== undefined && token.withdraw !== null) ? token.withdraw : (token.withdrawEnable ? '1' : '0'),
+                    deposit: cexUpper === 'INDODAX' ? '1' : ((token.deposit !== undefined && token.deposit !== null) ? token.deposit : (token.depositEnable ? '1' : '0')),
+                    withdraw: cexUpper === 'INDODAX' ? '1' : ((token.withdraw !== undefined && token.withdraw !== null) ? token.withdraw : (token.withdrawEnable ? '1' : '0')),
                     feeWD: token.feeWD || token.feeWDs || 0,
                     tradeable: token.tradeable,
                     current_price: Number.isFinite(Number(token.current_price)) ? Number(token.current_price) : 0,
@@ -2890,10 +2890,11 @@
                                     }
 
                                     // Build dataCexs format for compatibility with wallet-exchanger.js
+                                    // INDODAX: no REST API for wallet status, always treat as enabled
                                     const dataCexs = {};
                                     dataCexs[cexUpper] = {
-                                        withdrawToken: item.withdrawEnable || false,
-                                        depositToken: item.depositEnable || false,
+                                        withdrawToken: isIndodax ? true : (item.withdrawEnable || false),
+                                        depositToken: isIndodax ? true : (item.depositEnable || false),
                                         withdrawPair: true, // Not available from wallet API
                                         depositPair: true   // Not available from wallet API
                                     };
@@ -2906,8 +2907,8 @@
                                         sc_in: contractAddress, // Use contract address from CEX API
                                         des_in: existing?.des_in || existing?.decimals || '',
                                         decimals: existing?.des_in || existing?.decimals || '',
-                                        deposit: item.depositEnable ? '1' : '0',
-                                        withdraw: item.withdrawEnable ? '1' : '0',
+                                        deposit: isIndodax ? '1' : (item.depositEnable ? '1' : '0'),
+                                        withdraw: isIndodax ? '1' : (item.withdrawEnable ? '1' : '0'),
                                         feeWD: parseFloat(item.feeWDs || 0),
                                         current_price: existing?.current_price || 0,
                                         dataCexs: dataCexs // Add dataCexs for compatibility
