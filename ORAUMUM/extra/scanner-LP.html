@@ -119,19 +119,21 @@
 
         .btn-stop  { background: var(--red); }
         .btn-stop:hover { background: #b91c1c; }
-           .btn-info {
-            background: #5be572;
-            border: 1px solid var(--border-dk);
-            color: var(--text-dim);
-        }
-        .btn-info:hover { background: var(--bg); border-color: var(--text-dim); color: var(--text); transform: none; }
-       
+
         .btn-ghost {
             background: #fff;
             border: 1px solid var(--border-dk);
             color: var(--text-dim);
         }
         .btn-ghost:hover { background: var(--bg); border-color: var(--text-dim); color: var(--text); transform: none; }
+        
+        #infoBtn, #infoBtnManual {
+            background: var(--green);
+            color: #fff;
+            border: none;
+        }
+        #infoBtn:hover, #infoBtnManual:hover { background: #15803d; transform: translateY(-1px); }
+        
         .btn-dl { background: var(--teal); }
         .btn-dl:hover { background: #0f766e; }
         .btn-dl { display: none; }
@@ -486,7 +488,7 @@
     </div>
 
     <!-- CSV MODE -->
-    <div id="mode-csv" class="mode-content active">
+    <div id="mode-csv" class="mode-content">
         <div class="ctrl-row">
             <label class="file-btn" id="fileLbl" for="csvFile">📂 Pilih CSV</label>
             <input type="file" id="csvFile" accept=".csv">
@@ -521,13 +523,13 @@
             <button type="button" class="btn-stop" onclick="stopScan()">⏹ STOP</button>
             <button type="button" class="btn-dl" onclick="downloadCSV()" id="dlBtn">⬇ Export CSV</button>
             <button type="button" class="btn-ghost" onclick="downloadSample()">Sample CSV</button>
-                    <button type="button" class="btn-info" id="infoBtn" onclick="toggleStats()">ℹ️ Info Hasil Scanning</button>
+            <button type="button" class="btn-ghost" id="infoBtn" onclick="toggleStats()">ℹ️ Info Hasil</button>
 
         </div>
     </div>
 
     <!-- MANUAL INPUT MODE -->
-    <div id="mode-manual" class="mode-content">
+    <div id="mode-manual" class="mode-content active">
         <div class="ctrl-row">
             <select id="networkManual" title="Pilih Network">
                 <option value="ethereum|1">Ethereum (ETH)</option>
@@ -560,7 +562,7 @@
 
             <button id="scanBtnManual" type="button" onclick="startScanManual()">▶ SCAN</button>
             <button type="button" class="btn-stop" onclick="stopScan()">⏹ STOP</button>
-            <button type="button" class="btn-ghost" id="infoBtnManual" onclick="toggleStats()">ℹ️ Info</button>
+            <button type="button" class="btn-ghost" id="infoBtnManual" onclick="toggleStats()">ℹ️ Info Hasil</button>
         </div>
 
         <div class="sc-label-wrap">
@@ -676,7 +678,7 @@ const EXPLORER = {
 let allRows      = [];   // { cex, symbol, sc, scA, scB, symA, symB, dex, pair, lp, liq, vol, price, src, networkId }
 let csvScSet     = new Set(); // semua SC address dari CSV/INPUT (lowercase) — untuk filter "kedua SC"
 let scDecimalMap = new Map(); // sc_address (lowercase) → decimals (dari kolom CSV)
-let currentMode  = "csv";     // tracking mode aktif: "csv" atau "manual"
+let currentMode  = "manual"; // tracking mode aktif: "csv" atau "manual"
 let stopFlag     = false;
 let statsCodex   = 0;
 let statsDex     = 0;
@@ -1250,14 +1252,17 @@ function updateStats() {
 function toggleStats() {
     const statsBar = $("#statsBar");
     const infoBtn = $("#infoBtn");
+    const infoBtnManual = $("#infoBtnManual");
     
     statsBar.toggleClass("active");
     
     // Update button text based on state
     if (statsBar.hasClass("active")) {
         infoBtn.text("ℹ️ Sembunyikan Info");
+        infoBtnManual.text("ℹ️ Sembunyikan Info");
     } else {
-        infoBtn.text("ℹ️ Info Hasil Scanning");
+        infoBtn.text("ℹ️ Info");
+        infoBtnManual.text("ℹ️ Info");
     }
 }
 
