@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LP SCANNER KOIN</title>
+    <title>SCANNER LP KOIN</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔍</text></svg>">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="../js/flat-dialog.js"></script>
@@ -119,6 +119,13 @@
 
         .btn-stop  { background: var(--red); }
         .btn-stop:hover { background: #b91c1c; }
+           .btn-info {
+            background: #5be572;
+            border: 1px solid var(--border-dk);
+            color: var(--text-dim);
+        }
+        .btn-info:hover { background: var(--bg); border-color: var(--text-dim); color: var(--text); transform: none; }
+       
         .btn-ghost {
             background: #fff;
             border: 1px solid var(--border-dk);
@@ -127,6 +134,8 @@
         .btn-ghost:hover { background: var(--bg); border-color: var(--text-dim); color: var(--text); transform: none; }
         .btn-dl { background: var(--teal); }
         .btn-dl:hover { background: #0f766e; }
+        .btn-dl { display: none; }
+        .btn-dl.active { display: inline-block; }
 
         /* ── SOURCE ROW ── */
         .src-row {
@@ -163,7 +172,8 @@
         .min-liq-wrap input[type="number"]:focus { border-color: var(--primary); }
 
         /* ── PROGRESS ── */
-        .prog-wrap { margin-top: 12px; }
+        .prog-wrap { margin-top: 12px; display: none; }
+        .prog-wrap.active { display: block; }
         .prog-bar-outer {
             background: #e2e8f0;
             border-radius: 99px;
@@ -182,11 +192,19 @@
 
         /* ── STATS ── */
         .stats-bar {
-            display: flex;
+            display: none;
             gap: 8px;
             flex-wrap: wrap;
             margin-top: 12px;
         }
+        .stats-bar.active { display: flex; }
+
+        .info-btn-wrap {
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
+        .info-btn-wrap button { display: none; }
+        .info-btn-wrap button.active { display: inline-block; }
         .stat-chip {
             background: var(--bg);
             border: 1px solid var(--border);
@@ -269,13 +287,26 @@
         .range-sep { color: var(--text-light); font-weight: 400; }
 
         /* ── TABLE ── */
-        .tbl-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+        .tbl-wrap { 
+            overflow-x: auto; 
+            border-radius: 8px; 
+            border: 1px solid var(--border); 
+            max-height: 600px;
+            overflow-y: auto;
+        }
 
         table.main-tbl {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.81em;
             min-width: 1000px;
+        }
+
+        /* Sticky header */
+        table.main-tbl thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         /* Header berwarna per grup kolom */
@@ -293,6 +324,8 @@
             user-select: none;
             border-bottom: 2px solid var(--border);
             border-right: 1px solid var(--border);
+            position: sticky;
+            top: 0;
         }
         table.main-tbl th.grp-no    { background: #f8fafc; color: var(--text-dim); }
         table.main-tbl th.grp-cex   { background: #f0fdf4; color: var(--green); }
@@ -395,54 +428,151 @@
 
 <!-- ── HEADER ─────────────────────────────────────────────────────── -->
 <div class="hdr">
-    <h1>🔍 LP BATCH SCANNER</h1>
+    <h1>🔍 APLIKASI SCANNER LP KOIN</h1>
     <span class="badge badge-count" id="hdrCount">0 LP</span>
 </div>
 
+<!-- ── MODE SELECTOR ────────────────────────────────────────────────────── -->
+<style>
+    .mode-tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 2px solid var(--border); }
+    .mode-tabs button {
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: var(--text-dim);
+        padding: 10px 14px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.85em;
+        transition: all .2s;
+    }
+    .mode-tabs button:hover { color: var(--text); border-color: var(--border); }
+    .mode-tabs button.active {
+        color: var(--primary);
+        border-color: var(--primary);
+    }
+    .mode-content { display: none; }
+    .mode-content.active { display: block; }
+    .sc-input-area {
+        width: 100%;
+        min-height: 100px;
+        border: 1px solid var(--border-dk);
+        border-radius: 6px;
+        padding: 10px 12px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.85em;
+        color: var(--text);
+        background: #fff;
+        outline: none;
+        resize: vertical;
+    }
+    .sc-input-area:focus { border-color: var(--primary); }
+    .sc-help { font-size: 0.75em; color: var(--text-dim); margin-top: 6px; }
+
+    /* ── MODE MANUAL INPUT ── */
+    .sc-label-wrap { margin-top: 12px; }
+    .sc-label-wrap label { display: block; font-size: 0.78em; font-weight: 600; color: var(--text-dim); margin-bottom: 6px; }
+    .dl-btn-wrap { display: none; }
+    .dl-btn-wrap.active { display: block; }
+</style>
+
 <!-- ── CONTROLS ────────────────────────────────────────────────────── -->
 <div class="panel ctrl">
-    <div class="ctrl-row">
-        <label class="file-btn" id="fileLbl" for="csvFile">📂 Pilih CSV</label>
-        <input type="file" id="csvFile" accept=".csv">
+    <!-- Mode Toggle -->
+    <div class="mode-tabs">
+                <button type="button" class="mode-tab active" data-mode="manual" onclick="switchMode('manual')">✏️ Input SC Manual</button>
 
-        <select id="network" title="Pilih Network">
-            <option value="ethereum|1">Ethereum (ETH)</option>
-            <option value="bsc|56" selected>BNB Chain (BSC)</option>
-            <option value="polygon|137">Polygon</option>
-            <option value="arbitrum|42161">Arbitrum One</option>
-            <option value="base|8453">Base</option>
-            <option value="avalanche|43114">Avalanche</option>
-        </select>
+        <button type="button" class="mode-tab " data-mode="csv" onclick="switchMode('csv')">📂 CSV Upload</button>
+    </div>
 
-        <select id="concurrency" title="Request paralel per batch">
-            <option value="1">1 / batch</option>
-            <option value="2">2 / batch</option>
-            <option value="3" selected>3 / batch</option>
-            <option value="5">5 / batch</option>
-        </select>
+    <!-- CSV MODE -->
+    <div id="mode-csv" class="mode-content active">
+        <div class="ctrl-row">
+            <label class="file-btn" id="fileLbl" for="csvFile">📂 Pilih CSV</label>
+            <input type="file" id="csvFile" accept=".csv">
+
+            <select id="network" title="Pilih Network">
+                <option value="ethereum|1">Ethereum (ETH)</option>
+                <option value="bsc|56" selected>BNB Chain (BSC)</option>
+                <option value="polygon|137">Polygon</option>
+                <option value="arbitrum|42161">Arbitrum One</option>
+                <option value="base|8453">Base</option>
+                <option value="avalanche|43114">Avalanche</option>
+            </select>
+
+            <select id="concurrency" title="Request paralel per batch">
+                <option value="1">1 / batch</option>
+                <option value="2">2 / batch</option>
+                <option value="3" selected>3 / batch</option>
+                <option value="5">5 / batch</option>
+            </select>
 <span class="src-label">Sumber Data:</span>
-        <label class="src-check">
-            <input type="checkbox" id="useCodex" checked> CODEX.IO
-        </label>
-        <label class="src-check">
-            <input type="checkbox" id="useDex" checked> DEXSCREENER
-        </label>
-        <div class="min-liq-wrap">
-            Min Liq $
-            <input type="number" id="minLiq" value="0" min="0" title="Minimum Likuiditas USD">
+            <label class="src-check">
+                <input type="checkbox" id="useCodex" checked> CODEX.IO
+            </label>
+            <label class="src-check">
+                <input type="checkbox" id="useDex" checked> DEXSCREENER
+            </label>
+            <div class="min-liq-wrap">
+                Min Liq $
+                <input type="number" id="minLiq" value="0" min="0" title="Minimum Likuiditas USD">
+            </div>
+            <button id="scanBtn" type="button" onclick="startScan()">▶ SCAN</button>
+            <button type="button" class="btn-stop" onclick="stopScan()">⏹ STOP</button>
+            <button type="button" class="btn-dl" onclick="downloadCSV()" id="dlBtn">⬇ Export CSV</button>
+            <button type="button" class="btn-ghost" onclick="downloadSample()">Sample CSV</button>
+                    <button type="button" class="btn-info" id="infoBtn" onclick="toggleStats()">ℹ️ Info Hasil Scanning</button>
+
         </div>
-        <button id="scanBtn" type="button" onclick="startScan()">▶ SCAN</button>
-        <button type="button" class="btn-stop" onclick="stopScan()">⏹ STOP</button>
-        <button type="button" class="btn-dl" onclick="downloadCSV()" id="dlBtn" style="display:none">⬇ Export CSV</button>
-        <button type="button" class="btn-ghost" onclick="downloadSample()">Sample CSV</button>
-        
     </div>
 
-    <div class="src-row">
-       
+    <!-- MANUAL INPUT MODE -->
+    <div id="mode-manual" class="mode-content">
+        <div class="ctrl-row">
+            <select id="networkManual" title="Pilih Network">
+                <option value="ethereum|1">Ethereum (ETH)</option>
+                <option value="bsc|56" selected>BNB Chain (BSC)</option>
+                <option value="polygon|137">Polygon</option>
+                <option value="arbitrum|42161">Arbitrum One</option>
+                <option value="base|8453">Base</option>
+                <option value="avalanche|43114">Avalanche</option>
+            </select>
+
+            <select id="concurrencyManual" title="Request paralel per batch">
+                <option value="1">1 / batch</option>
+                <option value="2">2 / batch</option>
+                <option value="3" selected>3 / batch</option>
+                <option value="5">5 / batch</option>
+            </select>
+
+            <span class="src-label">Sumber Data:</span>
+            <label class="src-check">
+                <input type="checkbox" id="useCodexManual" checked> CODEX.IO
+            </label>
+            <label class="src-check">
+                <input type="checkbox" id="useDexManual" checked> DEXSCREENER
+            </label>
+
+            <div class="min-liq-wrap">
+                Min Liq $
+                <input type="number" id="minLiqManual" value="0" min="0" title="Minimum Likuiditas USD">
+            </div>
+
+            <button id="scanBtnManual" type="button" onclick="startScanManual()">▶ SCAN</button>
+            <button type="button" class="btn-stop" onclick="stopScan()">⏹ STOP</button>
+            <button type="button" class="btn-ghost" id="infoBtnManual" onclick="toggleStats()">ℹ️ Info</button>
+        </div>
+
+        <div class="sc-label-wrap">
+            <label>📋 Masukkan Smart Contract Address (satu per baris):</label>
+            <textarea id="scInputArea" class="sc-input-area" placeholder="0x1fa4a73a3f0133f0025378af00236f3abdee5d63&#10;0xc5f0f7b66764f6ec8c8dff7ba683102295e16409&#10;0xfe56d5892bdffc7bf58f2e84be1b2c32d21c308b"></textarea>
+            <div class="sc-help">
+                💡 Format: Satu address per baris, mulai dengan 0x. Symbol & decimals akan auto-deteksi dari blockchain.
+            </div>
+        </div>
     </div>
 
-    <div class="prog-wrap" id="progWrap" style="display:none">
+    <div class="prog-wrap" id="progWrap">
         <div class="prog-bar-outer"><div class="prog-bar-inner" id="progBar"></div></div>
         <div class="prog-text">
             <span id="progLabel">0 / 0</span>
@@ -450,7 +580,10 @@
         </div>
     </div>
 
-    <div class="stats-bar">
+    <div class="info-btn-wrap">
+    </div>
+
+    <div class="stats-bar" id="statsBar">
         <div class="stat-chip">Token Unik: <span id="statTokens">0</span></div>
         <div class="stat-chip c-blue">LP Rows: <span id="statRows">0</span></div>
         <div class="stat-chip c-teal">CODEX: <span id="statCodex">0</span></div>
@@ -473,7 +606,7 @@
         </label>
         <label class="filter-strict" title="Hanya tampilkan pair dimana KEDUA SC ada di daftar CSV">
             <input type="checkbox" id="bothInCsv" onchange="applyFilter()">
-            ⚡ Kedua SC ada di CSV
+            <span id="bothInCsvLabel">⚡ Kedua SC ada di CSV</span>
         </label>
         <div class="range-group liq-range">
             💧 Liq $
@@ -493,10 +626,10 @@
 
     <div class="tbl-wrap">
         <table class="main-tbl" id="mainTable">
-            <thead>
+            <thead id="tableHead">
                 <tr>
                     <th class="grp-no"  data-col="no">No</th>
-                    <th class="grp-cex" data-col="cex">CEX</th>
+                    <th class="grp-cex" data-col="cex" id="headerCex">CEX</th>
                     <th class="grp-a"   data-col="symA">Symbol A</th>
                     <th class="grp-a"   data-col="scA">SC Token A</th>
                     <th class="grp-a"   data-col="decA">Decimals A</th>
@@ -541,8 +674,9 @@ const EXPLORER = {
 //  STATE
 // ══════════════════════════════════════════════════════════════════════
 let allRows      = [];   // { cex, symbol, sc, scA, scB, symA, symB, dex, pair, lp, liq, vol, price, src, networkId }
-let csvScSet     = new Set(); // semua SC address dari CSV (lowercase) — untuk filter "kedua SC"
+let csvScSet     = new Set(); // semua SC address dari CSV/INPUT (lowercase) — untuk filter "kedua SC"
 let scDecimalMap = new Map(); // sc_address (lowercase) → decimals (dari kolom CSV)
+let currentMode  = "csv";     // tracking mode aktif: "csv" atau "manual"
 let stopFlag     = false;
 let statsCodex   = 0;
 let statsDex     = 0;
@@ -811,8 +945,8 @@ async function startScan() {
     updateStats();
     $("#tbl").html(`<tr><td colspan="13" class="empty-msg">Memindai…</td></tr>`);
     $("#scanBtn").prop("disabled", true).text("SCANNING…");
-    $("#progWrap").show();
-    $("#dlBtn").hide();
+    $("#progWrap").addClass("active");
+    $("#dlBtn").addClass("active");
     $("#logBox").html("");
 
     const reader = new FileReader();
@@ -950,6 +1084,144 @@ async function startScan() {
 function stopScan() {
     stopFlag = true;
     $("#scanBtn").prop("disabled", false).text("▶ SCAN");
+    $("#scanBtnManual").prop("disabled", false).text("▶ SCAN");
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  MODE SWITCHER
+// ══════════════════════════════════════════════════════════════════════
+function switchMode(mode) {
+    // Hide all mode contents
+    $(".mode-content").removeClass("active");
+    $(".mode-tab").removeClass("active");
+    
+    // Show selected mode
+    $("#mode-" + mode).addClass("active");
+    $("[data-mode='" + mode + "']").addClass("active");
+    
+    // Update current mode
+    currentMode = mode;
+    
+    // Update filter label based on mode
+    const filterLabel = mode === 'csv' 
+        ? "⚡ Kedua SC ada di CSV" 
+        : "⚡ Kedua SC ada di inputan";
+    
+    $("#bothInCsvLabel").text(filterLabel);
+    $("#bothInCsv").prop("title", 
+        mode === 'csv'
+            ? "Hanya tampilkan pair dimana KEDUA SC ada di daftar CSV"
+            : "Hanya tampilkan pair dimana KEDUA SC ada di inputan SC"
+    );
+    
+    // Update table header based on mode
+    const headerText = mode === 'csv' ? "CEX" : "Sumber";
+    $("#headerCex").text(headerText);
+    
+    log(`Mode: ${mode === 'csv' ? 'CSV Upload' : 'Manual SC Input'}`, "info");
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  SCAN MANUAL SC (without CSV)
+// ══════════════════════════════════════════════════════════════════════
+async function startScanManual() {
+    const scText = $("#scInputArea").val().trim();
+    if (!scText) {
+        await FlatDialog.alert("Masukkan minimal 1 Smart Contract address!", "Peringatan", "warning");
+        return;
+    }
+
+    const netVal     = $("#networkManual").val();
+    const [dexNet, codexNetStr] = netVal.split("|");
+    const codexNetId = parseInt(codexNetStr);
+    const useCodex   = $("#useCodexManual").is(":checked");
+    const useDex     = $("#useDexManual").is(":checked");
+    const batchSize  = parseInt($("#concurrencyManual").val());
+
+    if (!useCodex && !useDex) {
+        await FlatDialog.alert("Aktifkan minimal satu sumber data!", "Peringatan", "warning");
+        return;
+    }
+
+    // Parse SC addresses from textarea
+    const scList = scText
+        .split("\n")
+        .map(line => line.trim())
+        .filter(line => line && line.startsWith("0x") && line.length === 42);
+
+    if (scList.length === 0) {
+        await FlatDialog.alert("Format SC tidak valid. Gunakan format 0x... (42 karakter)", "Error", "error");
+        return;
+    }
+
+    // Reset
+    allRows      = [];
+    csvScSet     = new Set();
+    scDecimalMap = new Map();
+    stopFlag     = false;
+    statsCodex = statsDex = statsErr = statsHidden = 0;
+    updateStats();
+    $("#tbl").html(`<tr><td colspan="13" class="empty-msg">Memindai…</td></tr>`);
+    $("#scanBtnManual").prop("disabled", true).text("SCANNING…");
+    $("#progWrap").addClass("active");
+    $("#dlBtn").addClass("active");
+    $("#logBox").html("");
+
+    const tokens = scList.map(sc => ({
+        cex:      "MANUAL",
+        symbol:   sc.slice(0, 6) + "…",  // Display shortened
+        sc:       sc.toLowerCase(),
+        decimals: null
+    }));
+
+    // Populate csvScSet dengan SC dari input (untuk filter "kedua SC ada di inputan")
+    tokens.forEach(t => {
+        csvScSet.add(t.sc);
+    });
+
+    log(`Input: ${tokens.length} SC address untuk scan — network: ${dexNet} / codexId: ${codexNetId}`, "info");
+
+    // Process in batches
+    const total = tokens.length;
+    for (let i = 0; i < total; i += batchSize) {
+        if (stopFlag) { log("⏹ Dihentikan oleh user.", "warn"); break; }
+
+        const batch = tokens.slice(i, i + batchSize);
+
+        await Promise.all(batch.map(async (row) => {
+            const calls = [];
+            if (useCodex) calls.push(fetchCodex(row.sc, codexNetId, row));
+            if (useDex)   calls.push(fetchDex(row.sc, dexNet, codexNetId, row));
+
+            const settled = await Promise.allSettled(calls);
+            settled.forEach(r => {
+                if (r.status === "fulfilled") {
+                    r.value.forEach(row => {
+                        if (row.src === "CODEX")      statsCodex++;
+                        else if (row.src === "DEXSCREENER") statsDex++;
+                        allRows.push(row);
+                    });
+                }
+            });
+        }));
+
+        // Progress
+        const done = Math.min(i + batchSize, total);
+        const pct  = (done / total * 100).toFixed(1);
+        $("#progBar").css("width", pct + "%");
+        $("#progLabel").text(`${done} / ${total}`);
+        $("#progPct").text(pct + "%");
+        updateStats();
+        renderTable();
+
+        // Rate limit pause
+        await new Promise(r => setTimeout(r, 300));
+    }
+
+    log(`Selesai! ${allRows.length} LP row ditemukan dari ${tokens.length} SC address.`, "ok");
+    $("#scanBtnManual").prop("disabled", false).text("▶ SCAN");
+    updateStats();
+    renderTable();
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -965,6 +1237,28 @@ function updateStats() {
     const bothCount = allRows.filter(r => csvScSet.has(r.scA) && csvScSet.has(r.scB)).length;
     $("#statBoth").text(bothCount);
     $("#hdrCount").text(allRows.length + " LP ditemukan");
+    
+    // Show info button jika ada hasil
+    if (allRows.length > 0) {
+        $("#infoBtn").addClass("active");
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  TOGGLE STATS DISPLAY
+// ══════════════════════════════════════════════════════════════════════
+function toggleStats() {
+    const statsBar = $("#statsBar");
+    const infoBtn = $("#infoBtn");
+    
+    statsBar.toggleClass("active");
+    
+    // Update button text based on state
+    if (statsBar.hasClass("active")) {
+        infoBtn.text("ℹ️ Sembunyikan Info");
+    } else {
+        infoBtn.text("ℹ️ Info Hasil Scanning");
+    }
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -1047,9 +1341,19 @@ function renderTable() {
         const scBLink = addrLink(r.scB, r.networkId);
         const lpLink  = lpAddrLink(r.lp, r.networkId);
 
+        // For manual mode, column 2 shows source (CODEX/DEXSCREENER), for CSV mode shows CEX
+        let col2Content;
+        if (currentMode === "manual") {
+            col2Content = r.src === "CODEX"
+                ? `<span class="pill pill-codex">CODEX</span>`
+                : `<span class="pill pill-dex">DEXSCREENER</span>`;
+        } else {
+            col2Content = r.cex || "—";
+        }
+
         return `<tr>
             <td class="no-cell">${i + 1}</td>
-            <td class="cex-cell">${r.cex || "—"}</td>
+            <td class="cex-cell">${col2Content}</td>
             <td class="sym-cell sym-a">${r.symA}</td>
             <td>${scALink} <button class="copy-btn" type="button" onclick="copyText('${r.scA}')" title="Copy">⧉</button></td>
             <td style="text-align:center"><span class="dec-badge">${decA}</span></td>
