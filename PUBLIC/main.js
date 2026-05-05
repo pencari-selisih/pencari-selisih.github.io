@@ -5884,7 +5884,7 @@ $(document).ready(function () {
 
         if (!activeChainFound || isCEXActive) {
             $('#toolbar-chain-icon').hide();
-            $('#toolbar-chain-name').text('mode chain');
+            $('#toolbar-chain-name').text('pilih chain');
             $('#chain-dropdown-btn').removeClass('active').css('--icon-color', '').css('--icon-shadow', '');
         } else {
             $('#toolbar-chain-icon').show();

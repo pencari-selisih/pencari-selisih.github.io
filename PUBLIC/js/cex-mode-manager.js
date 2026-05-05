@@ -462,7 +462,7 @@
 
             if (!activeCEXFound) {
                 $('#toolbar-cex-icon').hide();
-                $('#toolbar-cex-name').text('mode exchanger');
+                $('#toolbar-cex-name').text('pilih exchanger');
                 $('#cex-dropdown-btn').removeClass('active').css('--icon-color', '').css('--icon-shadow', '');
             } else {
                 $('#toolbar-cex-icon').show();
