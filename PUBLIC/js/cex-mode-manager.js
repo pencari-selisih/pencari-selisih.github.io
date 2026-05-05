@@ -443,16 +443,25 @@
                 if (isActive) {
                     activeCEXFound = true;
                     $('#toolbar-cex-icon').attr('src', iconSrc);
-                    $('#toolbar-cex-name').text(cex.toUpperCase());
-                    $('#cex-dropdown-btn').addClass('active').css('--icon-color', cexColor).css('--icon-shadow', cexColor + '40');
+                    $('#toolbar-cex-name').text(cex.toUpperCase()).css('color', cexColor);
+                    $('#cex-dropdown-btn')
+                        .addClass('active')
+                        .css('--icon-color', cexColor)
+                        .css('--icon-shadow', cexColor + '40')
+                        .css('background', cexColor + '22')
+                        .css('border-color', cexColor);
                 }
 
                 const href = `${currentPage}?cex=${encodeURIComponent(cex.toLowerCase())}`;
                 const activeClass = isActive ? 'uk-active' : '';
+                // Warna aktif langsung ke elemen <a> dari CONFIG_CEX.WARNA
+                const activeAStyle = isActive
+                    ? `style="background:${cexColor}20; color:${cexColor}; font-weight:700; border-left:3px solid ${cexColor};"`
+                    : '';
 
                 container.append(`
                     <li class="${activeClass}">
-                        <a href="${href}">
+                        <a href="${href}" ${activeAStyle}>
                             <img src="${iconSrc}" width="20" />
                             <span>${cex.toUpperCase()}</span>
                         </a>
@@ -462,8 +471,10 @@
 
             if (!activeCEXFound) {
                 $('#toolbar-cex-icon').hide();
-                $('#toolbar-cex-name').text('pilih exchanger');
-                $('#cex-dropdown-btn').removeClass('active').css('--icon-color', '').css('--icon-shadow', '');
+                $('#toolbar-cex-name').text('pilih exchanger').css('color', '');
+                $('#cex-dropdown-btn').removeClass('active')
+                    .css('--icon-color', '').css('--icon-shadow', '')
+                    .css('background', '').css('border-color', '');
             } else {
                 $('#toolbar-cex-icon').show();
             }
