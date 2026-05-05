@@ -427,7 +427,7 @@ $(document).ready(function () {
                 const color = cfg?.WARNA || '#333';
                 $hdr.text(`[${label}]`).css('color', color);
             } else {
-                $hdr.text('[ALL]').css('color', '#666');
+                $hdr.text('[MULTICHAIN]').css('color', '#666');
             }
         }
         const $sync = $('#sync-tokens-btn');

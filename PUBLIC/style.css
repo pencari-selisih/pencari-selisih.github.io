@@ -330,6 +330,17 @@ a:hover,
     word-wrap: break-word;
     overflow-wrap: break-word;
     white-space: nowrap;
+
+}
+
+.detail-index-badge {
+    min-width: 22px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 18px;
+    vertical-align: middle;
 }
 
 .dex-price-link {
@@ -3409,7 +3420,8 @@ body.cex-mode-active .header-card {
 /* Base styling for all toolbar icon containers */
 .chain-link,
 .cex-icon-btn,
-#multichain_scanner {
+#multichain_scanner,
+#multicex_scanner {
     display: inline-flex;
     align-items: center;
     vertical-align: middle;
@@ -3423,7 +3435,8 @@ body.cex-mode-active .header-card {
 /* All toolbar icon images */
 .chain-link img,
 .cex-icon-btn img,
-#multichain_scanner img {
+#multichain_scanner img,
+#multicex_scanner img {
     border-radius: 50%;
     display: block;
     width: 24px;
@@ -3433,14 +3446,16 @@ body.cex-mode-active .header-card {
 /* Hover effect — seragam untuk semua icon toolbar */
 .chain-link:hover,
 .cex-icon-btn:hover,
-#multichain_scanner:hover {
+#multichain_scanner:hover,
+#multicex_scanner:hover {
     transform: scale(1.1);
 }
 
 /* Active state — unified for chain, CEX, multichain */
 .chain-link.active,
 .cex-icon-btn.active,
-#multichain_scanner.active-mode {
+#multichain_scanner.active-mode,
+#multicex_scanner.active-mode {
     opacity: 1;
     border: 2px solid var(--icon-color, #2563eb);
     box-shadow: 0 0 0 2px var(--icon-shadow, rgba(37, 99, 235, 0.25));
@@ -3585,7 +3600,7 @@ body.cex-mode-active .header-card {
 }
 
 .uk-table tbody td {
-    padding: 4px 6px !important;
+    padding: 2px 2px !important;
 }
 
 /* Form inputs height */
@@ -3767,12 +3782,101 @@ body.cex-mode-active .header-card {
     line-height: 1.6;
     transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
+
 .sync-clear-btn:hover {
     color: #f44336;
     border-color: #f44336;
     background: #fff5f5;
 }
+
 .sync-clear-btn:disabled {
     opacity: 0.38;
     cursor: not-allowed;
+}
+
+/* ==========================================================================
+   TOOLBAR DROPDOWN STYLING
+   ========================================================================== */
+
+.toolbar-btn-dropdown {
+    display: inline-flex;
+    align-items: center;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 11px;
+    padding: 2px 5px 2px 14px;
+    gap: 8px;
+    transition: all 0.2s ease;
+    text-decoration: none !important;
+    height: 25px;
+    text-transform: uppercase;
+}
+
+.toolbar-btn-dropdown img.icon:not([style*="display: none"]) {
+    margin-left: -6px;
+    /* Offset for icons when present to keep pill look */
+}
+
+.toolbar-btn-dropdown:hover {
+    background: #e5e7eb;
+    transform: translateY(-1px);
+}
+
+.toolbar-btn-dropdown.active {
+    background: #fff;
+    border-color: var(--icon-color, #2563eb);
+    box-shadow: 0 0 0 2px var(--icon-shadow, rgba(37, 99, 235, 0.1));
+}
+
+.toolbar-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    white-space: nowrap;
+}
+
+.toolbar-btn-dropdown img.icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.toolbar-dropdown {
+    min-width: 180px;
+    padding: 8px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid #f3f4f6 !important;
+}
+
+.toolbar-dropdown .uk-nav>li>a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #4b5563;
+    transition: all 0.2s ease;
+}
+
+.toolbar-dropdown .uk-nav>li>a:hover {
+    background: #f9fafb;
+    color: #111827;
+}
+
+.toolbar-dropdown .uk-nav>li.uk-active>a {
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 600;
+}
+
+.toolbar-dropdown .uk-nav>li>a img {
+    border-radius: 4px;
+    width: 20px;
+    height: 20px;
 }

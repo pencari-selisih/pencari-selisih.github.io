@@ -751,7 +751,7 @@
       if (window.CONFIG_CHAINS) {
         Object.keys(window.CONFIG_CHAINS).forEach(id => {
           const cfg = window.CONFIG_CHAINS[id];
-          if (id === 'multichain') return;
+          if (id === 'favorit') return;
           if (hasSettings && !enabledChains.includes(id)) return;
 
           CHAINS[id] = {
@@ -786,7 +786,7 @@
 
       // Try to find via Nama_Pendek or Synonyms
       for (const [key, cfg] of Object.entries(window.CONFIG_CHAINS || {})) {
-        if (key === 'multichain') continue;
+        if (key === 'favorit') continue;
         if (cfg.Nama_Pendek && cfg.Nama_Pendek.toLowerCase() === nid) return key;
         if (cfg.Nama_Chain && cfg.Nama_Chain.toLowerCase() === nid) return key;
         if (Array.isArray(cfg.SYNONYMS)) {
@@ -1052,6 +1052,46 @@
     /* ══════════════════════════════
        FILTER + SORT
     ══════════════════════════════ */
+    function entryMatchesStatus(entry, statusFilter) {
+      if (statusFilter === 'all') return true;
+
+      const hasDeposit = entry?.depositToken === true;
+      const hasWithdraw = entry?.withdrawToken === true;
+      const depositKnown = typeof entry?.depositToken === 'boolean';
+      const withdrawKnown = typeof entry?.withdrawToken === 'boolean';
+
+      if (statusFilter === 'depo') return hasDeposit;
+      if (statusFilter === 'wd') return hasWithdraw;
+      if (statusFilter === 'both') return hasDeposit && hasWithdraw;
+      if (statusFilter === 'any') return hasDeposit || hasWithdraw;
+      if (statusFilter === 'unk') return !depositKnown || !withdrawKnown;
+      return true;
+    }
+
+    function getVisibleCexGroups(coin, statusFilter) {
+      const cexGroups = {};
+      const visibleChains = new Set();
+
+      Object.entries(coin.chains).forEach(([cid, tData]) => {
+        if (!activeChains.has(cid)) return;
+
+        const dataCexs = tData.dataCexs || {};
+        Object.entries(dataCexs).forEach(([cxid, entry]) => {
+          if (!activeCexes.has(cxid)) return;
+          if (!entryMatchesStatus(entry, statusFilter)) return;
+
+          if (!cexGroups[cxid]) cexGroups[cxid] = [];
+          cexGroups[cxid].push({ cid, entry, sc: tData.sc_in });
+          visibleChains.add(cid);
+        });
+      });
+
+      return {
+        cexGroups,
+        chainCount: visibleChains.size
+      };
+    }
+
     function onFilter() {
       const q = (document.getElementById('searchBox')?.value || '').trim().toLowerCase();
       const sf = document.getElementById('stFilter')?.value || 'all';
@@ -1061,40 +1101,21 @@
       Object.values(coinMap).forEach(coin => {
         if (q && !coin.ticker.toLowerCase().includes(q) && !coin.name.toLowerCase().includes(q)) return;
 
-        const relevantChains = Object.keys(coin.chains).filter(c => activeChains.has(c));
-        if (!relevantChains.length) return;
+        const { cexGroups, chainCount } = getVisibleCexGroups(coin, sf);
+        if (!Object.keys(cexGroups).length) return;
+        if (multiOnly && chainCount < 2) return;
 
-        if (sf !== 'all') {
-          let d = false, w = false;
-          relevantChains.forEach(cid => {
-            const ce = coin.chains[cid].dataCexs || {};
-            Object.keys(ce).forEach(cx => {
-              if (!activeCexes.has(cx)) return;
-              if (ce[cx].depositToken) d = true;
-              if (ce[cx].withdrawToken) w = true;
-            });
-          });
-          if (sf === 'depo' && !d) return;
-          if (sf === 'wd' && !w) return;
-          if (sf === 'both' && !(d && w)) return;
-          if (sf === 'any' && !d && !w) return;
-        }
-
-        let hasActiveEx = false;
-        relevantChains.forEach(cid => {
-          const ce = coin.chains[cid].dataCexs || {};
-          if (Object.keys(ce).some(cx => activeCexes.has(cx))) hasActiveEx = true;
+        out.push({
+          ...coin,
+          viewCexGroups: cexGroups,
+          viewChainCount: chainCount
         });
-        if (!hasActiveEx) return;
-
-        if (multiOnly && relevantChains.length < 2) return;
-        out.push(coin);
       });
 
       out.sort((a, b) => {
         if (sortBy === 'az') return a.ticker.localeCompare(b.ticker);
         if (sortBy === 'za') return b.ticker.localeCompare(a.ticker);
-        if (sortBy === 'most') return Object.keys(b.chains).length - Object.keys(a.chains).length;
+        if (sortBy === 'most') return (b.viewChainCount || 0) - (a.viewChainCount || 0);
         return 0;
       });
 
@@ -1128,17 +1149,7 @@
       for (const coin of viewList) {
         const av = avatarColor(coin.ticker);
 
-        // Group chains by CEX
-        const cexGroups = {}; // { CEX_ID: [ { chainId, data } ] }
-        Object.entries(coin.chains).forEach(([cid, tData]) => {
-          if (!activeChains.has(cid)) return;
-          const dataCexs = tData.dataCexs || {};
-          Object.entries(dataCexs).forEach(([cxid, entry]) => {
-            if (!activeCexes.has(cxid)) return;
-            if (!cexGroups[cxid]) cexGroups[cxid] = [];
-            cexGroups[cxid].push({ cid, entry, sc: tData.sc_in });
-          });
-        });
+        const cexGroups = coin.viewCexGroups || getVisibleCexGroups(coin, document.getElementById('stFilter')?.value || 'all').cexGroups;
 
         let exHtml = '';
         // Sort CEXes by name or as in config

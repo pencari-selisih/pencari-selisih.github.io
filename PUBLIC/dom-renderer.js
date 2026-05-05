@@ -211,7 +211,7 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
                         data-chain="${String(data.chain).toUpperCase()}"
                         data-row-index="${rowIndex}"
                         style="text-align: center; vertical-align: middle;${extraBg}">
-                    <strong class="uk-align-center" style="display:inline-block; margin:0;">${dexName.toUpperCase().substring(0, 8)} [$${modal}]</strong></br>
+                    <strong class="uk-align-center" style="display:inline-block; margin:0;">${dexName.toUpperCase().substring(0, 6)} [$${modal}]</strong></br>
                         <span class="dex-status uk-text-muted"> 🔒 </span>
                     </td>`;
       } else {
@@ -243,7 +243,7 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
                         data-chain="${String(data.chain).toUpperCase()}"
                         data-row-index="${rowIndex}"
                         style="text-align: center; vertical-align: middle;${extraBg}">
-                    <strong class="uk-align-center" style="display:inline-block; margin:0;">${dexNamem.toUpperCase().substring(0, 8)} [$${modalMeta}]</strong></br>
+                    <strong class="uk-align-center" style="display:inline-block; margin:0;">${dexNamem.toUpperCase().substring(0, 6)} [$${modalMeta}]</strong></br>
                         <span class="dex-status uk-text-muted"> 🔒 </span>
                     </td>`;
         } else {
@@ -511,6 +511,9 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
       const linkSCpair = createHoverLink(urlScOut, '[SC]', 'uk-text-primary');
 
       const linkOKDEX = createHoverLink(`https://www.okx.com/web3/dex-swap?inputChain=${chainConfig.Kode_Chain}&inputCurrency=${data.sc_in}&outputChain=${chainConfig.Kode_Chain}&outputCurrency=${data.sc_out}`, '#OKX', 'uk-text-success');
+      const brxChainHex = '0x' + Number(chainConfig.Kode_Chain).toString(16);
+      const brxUrl = `brave://wallet/swap?fromChainId=${brxChainHex}&fromToken=${data.sc_in}&toChainId=${brxChainHex}&toAccountId=60_0_1_0x97f55c24EB7DAa8C54Cf64958117ad22bc830921&toToken=${data.sc_out}`;
+      const linkBRX = `<span class="hover-link uk-text-warning" style="cursor:pointer;color:inherit;" title="Klik untuk copy URL Brave Wallet" onclick="(function(el,url){navigator.clipboard.writeText(url).then(function(){var t=el.textContent;el.textContent='✓copied';setTimeout(function(){el.textContent=t;},1500);});})(this,'${brxUrl.replace(/'/g, "\\'")}');">#BRX</span>`;
       const linkDLX = createHoverLink(`https://app.1delta.io/swap?chain=${chainConfig.Nama_Chain}&inputCurrency=${data.sc_in}&outputCurrency=${data.sc_out}`, '#DLT', 'uk-text-secondary');
 
       const linkDBX = createHoverLink(`https://app.debridge.com/?inputChain=${chainConfig.Kode_Chain}&outputChain=${chainConfig.Kode_Chain}&inputCurrency=${data.sc_in}&outputCurrency=${data.sc_out}&dlnMode=simple&referralCode=32935`, '#DBX', 'uk-text-secondary');
@@ -548,7 +551,7 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
 
       rowHtml += `
             <td id="${idPrefix}${rowId}" class="uk-text-center uk-background td-detail" style="text-align: center; border:1px solid black; padding:5px; ${detailBgStyle}">
-             [${index + 1}]<span style="color: ${warnaCex}; font-weight:bolder; font-size:medium;"> ${data.cex} </span> on <span style="color: ${warnaChain}; font-weight:bolder; font-size:medium;">${chainShort} </span>
+             <span style="color: ${warnaCex}; font-weight:bolder; font-size:medium;"> ${data.cex} </span> on <span style="color: ${warnaChain}; font-weight:bolder; font-size:medium;">${chainShort} </span>
                 <span id="${idPrefix}EditMulti-${data.id}" data-id="${data.id}"
                       data-chain="${String(data.chain).toLowerCase()}"
                       data-cex="${String(data.cex).toUpperCase()}"
@@ -593,10 +596,10 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
         })()}
             </span>
 
-                <span class="detail-line uk-text-bolder">${WD_TOKEN}~ ${DP_TOKEN} | ${WD_PAIR}~ ${DP_PAIR}</span>
+                <span class="detail-line uk-text-bolder"><span class="uk-badge detail-index-badge">${index + 1}</span>&nbsp; ${WD_TOKEN}~ ${DP_TOKEN} | ${WD_PAIR}~ ${DP_PAIR}</span>
                 <span class="detail-line"><span style="color:${warnaChain}; font-weight:bold;">${(data.symbol_in || '').toUpperCase()}</span> ${linkSCtoken} : ${linkStokToken}</span>
                 <span class="detail-line"><span style="color:${warnaChain}; font-weight:bold;">${(data.symbol_out || '').toUpperCase()}</span> ${linkSCpair} : ${linkStokPair}</span>
-                <span class="detail-line">${linkJumper} ${linkOKU} ${linkDEFIL} ${linkOKDEX} </span>
+                <span class="detail-line">${linkJumper} ${linkOKU} ${linkDEFIL} ${linkOKDEX} ${linkBRX}</span>
                 <span class="detail-line"> ${linkRango} ${linkDBX} ${linkDLX} ${linkRBX} ${linkDZAP}</span>
             </td>`;
 
@@ -1438,7 +1441,7 @@ function DisplayPNL(data) {
         const dexNameStrong = $mainCell.find('strong').first();
         if (dexNameStrong.length) {
           // ✅ FIX: Use dexTitle from strategy response if available, otherwise fallback to dextype
-          const displayName = data.dexTitle ? String(data.dexTitle).toUpperCase().substring(0, 8) : String(dextype || '').toUpperCase().substring(0, 8);
+          const displayName = data.dexTitle ? String(data.dexTitle).toUpperCase().substring(0, 6) : String(dextype || '').toUpperCase().substring(0, 6);
           const warningIcon = isInsufficientVolume ? '⚠️' : '';
 
           // ✅ NEW: Show checkmark if sufficient, actual modal + warning if insufficient
@@ -1483,7 +1486,7 @@ function DisplayPNL(data) {
         const dexNameStrong = $mainCell.find('strong').first();
         if (dexNameStrong.length) {
           // ✅ FIX: Use dexTitle from strategy response if available
-          const displayName = data.dexTitle ? String(data.dexTitle).toUpperCase().substring(0, 8) : String(dextype || '').toUpperCase().substring(0, 8);
+          const displayName = data.dexTitle ? String(data.dexTitle).toUpperCase().substring(0, 6) : String(dextype || '').toUpperCase().substring(0, 6);
 
           // Check if volume sufficient for AUTO VOL
           const warningIcon = isInsufficientVolume ? '⚠️' : '';
@@ -1644,7 +1647,7 @@ function DisplayPNL(data) {
         // Colors & names
         const pnlColor = subPnl >= 0 ? '#28a745' : '#dc3545';
         const providerName = String(subRes.dexTitle || subRes.dexName || subRes.provider || subRes.dexId || '').toUpperCase();
-        const displayName = providerName.length > 8 ? providerName.substring(0, 8) : providerName;
+        const displayName = providerName.length > 6 ? providerName.substring(0, 6) : providerName;
         // ⚠️ Dynamic border: hanya tampilkan border jika bukan kolom terakhir
         const borderRight = idx < (maxProviders - 1) ? 'border-right: 1px solid #dee2e6;' : '';
 
@@ -1828,7 +1831,7 @@ function DisplayPNL(data) {
               <a class="monitor-line uk-text-danger dex-price-link" href="${sellLink}" target="_blank" rel="noopener" title="${tipFull}">⬇ ${fmtUSD(sellPrice)}</a>
               <span class="monitor-line">${feeLabel1}</span>
               <span class="monitor-line uk-text-dark" title="${divTitle}">💸 SW: ${feeSwap.toFixed(4)}$  </span>
-              <span class="monitor-line uk-text-danger" title="BRUTO ~ TOTAL FEE">[${subBruto.toFixed(2)} ~ <b style="font-size: larger;">${subTotalFee.toFixed(2)}</b>]</span>
+              <span class="monitor-line" title="BRUTO ~ TOTAL FEE">[<span class="${subBruto >= 0 ? 'uk-text-success' : 'uk-text-danger'}">${subBruto.toFixed(2)}</span> ~ <b class="uk-text-danger" style="font-size: larger;">${subTotalFee.toFixed(2)}</b>]</span>
               <span class="monitor-line ${pnlClass}" title="PROFIT / LOSS" style="font-weight: bold;">🤑 PNL: ${subPnl.toFixed(2)}</span>
             </span>
           </div>
@@ -2305,7 +2308,8 @@ function DisplayPNL(data) {
 
   // Highlight + UIkit
   const netClass = (pnl >= 0.02) ? 'uk-text-success' : 'uk-text-danger';
-  const bracket = `[${bruto.toFixed(2)} ~ <b style="font-size: larger;">${feeAll.toFixed(2)}</b>]`;
+  const brutColor = bruto >= 0 ? 'uk-text-success' : 'uk-text-danger';
+  const bracket = `[<span class="${brutColor}">${bruto.toFixed(2)}</span> ~ <b class="uk-text-danger" style="font-size: larger;">${feeAll.toFixed(2)}</b>]`;
 
   // Background hijau muncul setiap ada sinyal selisih (PNL > 0)
   // Sesuai request: Konsisten dengan MetaDEX (JUMPX) yang tetap ijo walau volume kurang/di bawah filter
@@ -2333,7 +2337,7 @@ function DisplayPNL(data) {
   const lineSell = `<a class="monitor-line uk-text-danger  dex-price-link" href="${sellLink}" target="_blank" rel="noopener" title="${tipSell}">⬇ ${fmtUSD(sellPrice)}</a>`;
   const feeBlock1 = `<span class="monitor-line">${feeLine}</span>`;
   const feeBlock2 = `<span class="monitor-line">${swapLine}</span>`; // ← baris terpisah
-  const lineBrut = `<span class="monitor-line uk-text-danger" title="BRUTO ~ TOTAL FEE">${bracket}</span>`;
+  const lineBrut = `<span class="monitor-line" title="BRUTO ~ TOTAL FEE">${bracket}</span>`;
   const linePNL = `<span class="monitor-line ${netClass}" title="PROFIT / LOSS">🤑 PNL: ${pnl.toFixed(2)}</span>`;
 
   // Icon multi-tab: hanya muncul saat ada sinyal (bg hijau / PNL > 0)
@@ -2692,7 +2696,7 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
   // DEX→CEX (PairToToken) = merah (#FF0000)
   const dexBadgeColor = (trx === "TokentoPair") ? "#00AA00" : "#FF0000";
   const dexInfoDisplay = isMetaDex && providerInfo
-    ? ` <span style="color:${dexBadgeColor}; font-size:11px; font-weight:bold;">[${String(providerInfo).toUpperCase().substring(0, 8)}]</span>`
+    ? ` <span style="color:${dexBadgeColor}; font-size:11px; font-weight:bold;">[${String(providerInfo).toUpperCase().substring(0, 6)}]</span>`
     : '';
 
   const sLink = `

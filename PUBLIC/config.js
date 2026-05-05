@@ -2,7 +2,7 @@ const CONFIG_APP = {
     APP: {
         NAME: "PENCARI-SELISIH",
         //NAME: "PRIVATE_NOCORS",
-        VERSION: "05.01",
+        VERSION: "05.07",
         SCAN_LIMIT: true,
         AUTORUN: false,
         AUTO_VOLUME: false,  // cek level order otomatis kalkulasi PNL
@@ -356,6 +356,37 @@ const CONFIG_CHAINS = {
             "NON": { symbolPair: "NON", scAddressPair: "0x", desPair: "18" }
         }
     },
+    ethereum: {
+        Kode_Chain: 1, Nama_Chain: "Ethereum", Nama_Pendek: "ETH", URL_Chain: "https://etherscan.io", WARNA: "#8098ee", ICON: "assets/icons/chains/ethereum.png", DATAJSON: 'https://pencari-selisih.github.io/JSON-TOKEN/SNAPSHOT_koin_ETHEREUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 356190, // real swap ERC-20 via aggregator ~100k-150k gas units
+        DEFAULT_RPC: 'https://rpc.llama-rpc.com/ethereum?source=llamaswap', // DefiLlama
+        FALLBACK_RPCS: ['https://ethereum-mainnet.wallet.brave.com'],
+        BADGE_CLASS: 'bg-primary text-light',
+        SYNONYMS: ['ETH', 'ERC20', 'ETHEREUM', 'USDTERC20', 'ETH-ERC20', 'ERC-20', 'ETH MAINNET', 'ETHMAINNET', 'ETHEREUM MAINNET', 'Ethereum'],
+        LINKS: {
+            explorer: {
+                token: (address) => `https://etherscan.io/token/${address}`,
+                address: (address) => `https://etherscan.io/address/${address}`,
+                tx: (hash) => `https://etherscan.io/tx/${hash}`
+            }
+        },
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex", "nordstern"],
+        WALLET_CEX: {
+            GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'ETH' },
+            BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', address3: '0x21a31Ee1afC51d94C2eFcCAa2092aD1028285549', chainCEX: 'ETH' },
+            INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6', address2: '0x91Dca37856240E5e1906222ec79278b16420Dc92', chainCEX: 'ETH' },
+            MEXC: { address: '0x75e89d5979E4f6Fba9F97c104c2F0AFB3F1dcB88', address2: '0x9642b23Ed1E01Df1092B92641051881a322F5D4E', chainCEX: 'ETH' },
+            KUCOIN: { address: '0x58edF78281334335EfFa23101bBe3371b6a36A51', address2: '0xD6216fC19DB775Df9774a6E33526131dA7D19a2c', chainCEX: 'ERC20' },
+            BITGET: { address: '0x0639556F03714A74a5fEEaF5736a4A64fF70D206', address2: '0x51971c86b04516062c1e708CDC048CB04fbe959f', address3: '0xBDf5bAfEE1291EEc45Ae3aadAc89BE8152D4E673', chainCEX: 'ERC20' },
+            BYBIT: { address: '0xf89d7b9c864f589bbF53a82105107622B35EaA40', address2: '0xf89d7b9c864f589bbF53a82105107622B35EaA40', chainCEX: 'Ethereum' },
+            HTX: { address: '0xa03400E098F4421b34a3a44A1B4e571419517687', chainCEX: 'ETH' },
+            OKX: { address: '0x91D40E4818F4D4C57b4578d9ECa6AFc92aC8DEbE', chainCEX: 'Ethereum' },
+        },
+        PAIRDEXS: {
+            "USDT": { symbolPair: 'USDT', scAddressPair: '0xdAC17F958D2ee523a2206206994597C13D831ec7', desPair: '6' },
+            "ETH": { symbolPair: 'ETH', scAddressPair: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', desPair: '18' },
+            "NON": { symbolPair: "NON", scAddressPair: "0x", desPair: "18" }
+        }
+    },
     polygon: {
         Kode_Chain: 137, Nama_Chain: "Polygon", Nama_Pendek: "POLY", URL_Chain: "https://polygonscan.com", ICON: "assets/icons/chains/polygon.png", WARNA: "#cd72f4ff", DATAJSON: 'https://pencari-selisih.github.io/JSON-TOKEN/SNAPSHOT_koin_POLYGON.json', BaseFEEDEX: "MATICUSDT", GASLIMIT: 250000, // real swap MATIC/Polygon ~150k gas units
         DEFAULT_RPC: 'https://rpc.llama-rpc.com/polygon?source=llamaswap', // DefiLlama
@@ -419,37 +450,7 @@ const CONFIG_CHAINS = {
             "NON": { symbolPair: "NON", scAddressPair: "0x", desPair: "18" }
         },
     },
-    ethereum: {
-        Kode_Chain: 1, Nama_Chain: "Ethereum", Nama_Pendek: "ETH", URL_Chain: "https://etherscan.io", WARNA: "#8098ee", ICON: "assets/icons/chains/ethereum.png", DATAJSON: 'https://pencari-selisih.github.io/JSON-TOKEN/SNAPSHOT_koin_ETHEREUM.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 356190, // real swap ERC-20 via aggregator ~100k-150k gas units
-        DEFAULT_RPC: 'https://rpc.llama-rpc.com/ethereum?source=llamaswap', // DefiLlama
-        FALLBACK_RPCS: ['https://ethereum-mainnet.wallet.brave.com'],
-        BADGE_CLASS: 'bg-primary text-light',
-        SYNONYMS: ['ETH', 'ERC20', 'ETHEREUM', 'USDTERC20', 'ETH-ERC20', 'ERC-20', 'ETH MAINNET', 'ETHMAINNET', 'ETHEREUM MAINNET', 'Ethereum'],
-        LINKS: {
-            explorer: {
-                token: (address) => `https://etherscan.io/token/${address}`,
-                address: (address) => `https://etherscan.io/address/${address}`,
-                tx: (hash) => `https://etherscan.io/tx/${hash}`
-            }
-        },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex", "nordstern"],
-        WALLET_CEX: {
-            GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'ETH' },
-            BINANCE: { address: '0xDFd5293D8e347dFe59E90eFd55b2956a1343963d', address2: '0x28C6c06298d514Db089934071355E5743bf21d60', address3: '0x21a31Ee1afC51d94C2eFcCAa2092aD1028285549', chainCEX: 'ETH' },
-            INDODAX: { address: '0x3C02290922a3618A4646E3BbCa65853eA45FE7C6', address2: '0x91Dca37856240E5e1906222ec79278b16420Dc92', chainCEX: 'ETH' },
-            MEXC: { address: '0x75e89d5979E4f6Fba9F97c104c2F0AFB3F1dcB88', address2: '0x9642b23Ed1E01Df1092B92641051881a322F5D4E', chainCEX: 'ETH' },
-            KUCOIN: { address: '0x58edF78281334335EfFa23101bBe3371b6a36A51', address2: '0xD6216fC19DB775Df9774a6E33526131dA7D19a2c', chainCEX: 'ERC20' },
-            BITGET: { address: '0x0639556F03714A74a5fEEaF5736a4A64fF70D206', address2: '0x51971c86b04516062c1e708CDC048CB04fbe959f', address3: '0xBDf5bAfEE1291EEc45Ae3aadAc89BE8152D4E673', chainCEX: 'ERC20' },
-            BYBIT: { address: '0xf89d7b9c864f589bbF53a82105107622B35EaA40', address2: '0xf89d7b9c864f589bbF53a82105107622B35EaA40', chainCEX: 'Ethereum' },
-            HTX: { address: '0xa03400E098F4421b34a3a44A1B4e571419517687', chainCEX: 'ETH' },
-            OKX: { address: '0x91D40E4818F4D4C57b4578d9ECa6AFc92aC8DEbE', chainCEX: 'Ethereum' },
-        },
-        PAIRDEXS: {
-            "USDT": { symbolPair: 'USDT', scAddressPair: '0xdAC17F958D2ee523a2206206994597C13D831ec7', desPair: '6' },
-            "ETH": { symbolPair: 'ETH', scAddressPair: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', desPair: '18' },
-            "NON": { symbolPair: "NON", scAddressPair: "0x", desPair: "18" }
-        }
-    },
+
 
     base: {
         Kode_Chain: 8453, Nama_Chain: "Base", Nama_Pendek: "BASE", URL_Chain: "https://basescan.org/", WARNA: "#1e46f9", ICON: "assets/icons/chains/base.png", DATAJSON: 'https://pencari-selisih.github.io/JSON-TOKEN/SNAPSHOT_koin_BASE.json', BaseFEEDEX: "ETHUSDT", GASLIMIT: 250000, // real swap Base ERC-20 ~150k gas units
@@ -532,7 +533,7 @@ const CONFIG_CHAINS = {
                 tx: (hash) => `https://snowscan.xyz/tx/${hash}`
             }
         },
-        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "lifidex", "nordstern"],
+        DEXS: ["kyber", "okx", "matcha", "oneinch", "sushi", "velora", "flytrade", "odos", "openocean", "cowswap", "lifidex", "nordstern"],
         WALLET_CEX: {
             GATE: { address: '0x0D0707963952f2fBA59dD06f2b425ace40b492Fe', chainCEX: 'AVAX' },
             BINANCE: { address: '0x290275e3db66394C52272398959845170E4DCb88', address2: '0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245', chainCEX: 'AVAX C-CHAIN' },
@@ -832,13 +833,13 @@ const CONFIG_DEXS = {
                 tokentopair: 'odos3',
                 pairtotoken: 'swoop-odos'
             },
-            secondary: {
-                tokentopair: 'hinkal-odos',
-                pairtotoken: 'hinkal-odos'
-            },
+            // secondary: {
+            //     tokentopair: 'hinkal-odos',
+            //     pairtotoken: 'hinkal-odos'
+            // },
             alternative: {
-                tokentopair: 'brave-odos',  // CEX→DEX: Rainbow proxy 0x/Matcha (fallback)
-                pairtotoken: 'talisman-odos'   // DEX→CEX: Rainbow proxy 0x/Matcha (fallback)
+                tokentopair: 'hinkal-odos',  // CEX→DEX: Rainbow proxy 0x/Matcha (fallback)
+                pairtotoken: 'hinkal-odos'   // DEX→CEX: Rainbow proxy 0x/Matcha (fallback)
             },
         },
         allowFallback: true,  // ✅ Jika yang dipilih gagal, coba yang lain

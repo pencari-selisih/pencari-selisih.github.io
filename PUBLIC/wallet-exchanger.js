@@ -501,7 +501,7 @@
             .sort(); // Sort alphabetically untuk konsistensi
 
         // ✅ CEX MODE: Filter to show only selected CEX
-        if (isCEXMode && selectedCEX) {
+        if (isCEXMode && selectedCEX && selectedCEX !== 'ALL') {
             availableCexes = availableCexes.filter(cx => cx === selectedCEX);
             console.log(`[Update Wallet] CEX Mode active - showing only ${selectedCEX}`);
         }
@@ -510,6 +510,8 @@
         if (mode.type === 'single') {
             const canonicalChain = getCanonicalChainKey(mode.chain) || String(mode.chain || '').toLowerCase();
             activeChain = canonicalChain || mode.chain;
+        } else if (mode.type === 'cex' && mode.cex === 'ALL') {
+            activeChain = 'MULTIEXCHANGER';
         } else {
             activeChain = 'MULTICHAIN';
         }
@@ -518,6 +520,7 @@
         try {
             const canonicalActive = getCanonicalChainKey(activeChain) || String(activeChain || '').toLowerCase();
             const chainName = (activeChain === 'MULTICHAIN') ? 'MULTICHAIN' :
+                (activeChain === 'MULTIEXCHANGER') ? 'MULTIEXCHANGER' :
                 (CONFIG_CHAINS?.[canonicalActive]?.Nama_Chain || activeChain);
             $('#wallet-chain-label').text(String(chainName).toUpperCase());
         } catch (_) { }
@@ -559,7 +562,7 @@
             $grid.html(`
                 <div class="uk-width-1-1">
                     <div class="uk-alert uk-alert-warning">
-                        <p><strong>Belum ada koin untuk chain ${String(activeChain).toUpperCase()}</strong></p>
+                        <p><strong>Belum ada koin untuk ${activeChain === 'MULTIEXCHANGER' ? 'mode' : 'chain'} ${String(activeChain).toUpperCase()}</strong></p>
                         <p class="uk-text-small uk-margin-remove">Silakan tambah koin terlebih dahulu di menu <strong>MANAJEMEN KOIN</strong>, kemudian buka Update Wallet Exchanger untuk fetch status deposit/withdraw.</p>
                     </div>
                 </div>

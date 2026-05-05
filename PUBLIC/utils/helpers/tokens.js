@@ -237,13 +237,67 @@
     function getAllChainTokensFlat() {
         const chains = Object.keys(window.CONFIG_CHAINS || {});
         let raw = [];
+        const symbolChainMap = {}; // symbol -> Set of unique chains
+
         chains.forEach(chainKey => {
             const chainTokens = getTokensChain(chainKey);
-            if (Array.isArray(chainTokens)) raw.push(...chainTokens);
+            if (Array.isArray(chainTokens)) {
+                raw.push(...chainTokens);
+                chainTokens.forEach(t => {
+                    const sym = String(t.symbol_in || '').toUpperCase().trim();
+                    if (sym) {
+                        if (!symbolChainMap[sym]) symbolChainMap[sym] = new Set();
+                        symbolChainMap[sym].add(chainKey.toLowerCase());
+                    }
+                });
+            }
         });
+
         // Fallback ke TOKEN_MULTICHAIN jika per-chain kosong
-        if (raw.length === 0) raw = getTokensMulti() || [];
-        return flattenDataKoin(raw);
+        if (raw.length === 0) {
+            raw = getTokensMulti() || [];
+            raw.forEach(t => {
+                const sym = String(t.symbol_in || '').toUpperCase().trim();
+                const ch = String(t.chain || '').toLowerCase();
+                if (sym && ch) {
+                    if (!symbolChainMap[sym]) symbolChainMap[sym] = new Set();
+                    symbolChainMap[sym].add(ch);
+                }
+            });
+        }
+
+        const flat = flattenDataKoin(raw);
+        
+        // Attach chainCount to each flattened item
+        flat.forEach(t => {
+            const sym = String(t.symbol_in || '').toUpperCase().trim();
+            t.chainCount = symbolChainMap[sym] ? symbolChainMap[sym].size : 1;
+        });
+
+        return flat;
+    }
+
+    function getFlattenedSortedMulti() {
+        const pref = getSortPrefForMulti();
+        const tokens = getTokensMulti();
+        const flat = flattenDataKoin(tokens);
+        
+        // Attach chainCount for multichain mode too
+        const symbolChainMap = {};
+        tokens.forEach(t => {
+            const sym = String(t.symbol_in || '').toUpperCase().trim();
+            const ch = String(t.chain || '').toLowerCase();
+            if (sym && ch) {
+                if (!symbolChainMap[sym]) symbolChainMap[sym] = new Set();
+                symbolChainMap[sym].add(ch);
+            }
+        });
+        flat.forEach(t => {
+            const sym = String(t.symbol_in || '').toUpperCase().trim();
+            t.chainCount = symbolChainMap[sym] ? symbolChainMap[sym].size : 1;
+        });
+
+        return sortBySymbolIn(flat, pref);
     }
 
     // =================================================================================

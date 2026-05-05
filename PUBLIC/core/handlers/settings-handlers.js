@@ -31,7 +31,7 @@
      * Settings config button handler
      * Opens settings section and renders form
      */
-    $("#SettingConfig").on("click", function () {
+    $(document).on("click", "#triggerSettingConfig", function () {
         showMainSection('#form-setting-app');
         try { document.getElementById('form-setting-app').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) { }
         renderSettingsForm();
