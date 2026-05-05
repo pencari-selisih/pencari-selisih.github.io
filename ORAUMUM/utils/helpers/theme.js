@@ -55,7 +55,7 @@
             if (!root || !body) return;
 
             let accent = '#5c9514'; // default for multi
-            let label = '[ALL]';
+            let label = '[MULTICHAIN]';
             body.classList.remove('theme-single', 'theme-multi');
 
             // CEX mode: skip theme application here, let CEXModeManager handle it
@@ -168,7 +168,7 @@
                     document.title = `${nm} SCANNER`;
                     if (fav) fav.setAttribute('href', cfg.ICON || window.DEFAULT_FAVICON_HREF || fav.getAttribute('href'));
                 } else {
-                    document.title = 'SCANNER MULTICHAIN';
+                    document.title = 'MULTICHAIN SCANNER';
                     if (fav && window.DEFAULT_FAVICON_HREF) fav.setAttribute('href', window.DEFAULT_FAVICON_HREF);
                 }
             } catch (_) { }

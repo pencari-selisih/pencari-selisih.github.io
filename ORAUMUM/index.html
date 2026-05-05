@@ -32,12 +32,12 @@
       <div class="uk-grid-small uk-flex-middle" uk-grid>
 
         <!-- Kiri: Judul -->
-        <div class="uk-width-expand@s uk-width-1-1">
-          <div class="uk-flex uk-flex-middle uk-flex-wrap" style="align-items: center;">
+        <div class="uk-width-auto@s uk-width-1-1">
+          <div class="uk-flex uk-flex-middle" style="align-items: center; white-space: nowrap;">
             <h3 id="judul" class="uk-margin-remove"
-              style="font-size: 18px; line-height: 1.4; color: #1c1a1a; font-weight: bold; display: inline-flex; align-items: center;">
+              style="font-size: 16px; line-height: 1.4; color: #1c1a1a; font-weight: bold; display: inline-flex; align-items: center;">
               <span id="app-title"></span>
-              <span id="current-chain-label" style="margin-left:3px;">[ALL]</span>
+              <span id="current-chain-label" style="margin-left:5px;">[MULTICHAIN]</span>
             </h3>
             &nbsp;&nbsp;
             <span style="display: inline-flex; align-items: center;"> <b>
@@ -47,43 +47,97 @@
         </div>
 
         <!-- Kanan: Toolbar icon -->
-        <div class="uk-width-auto@s uk-width-1-1">
-          <div class="uk-flex uk-flex-middle uk-flex-wrap uk-flex-right@s toolbar-scroll">
-            <a href="index.html?chain=all" id="multichain_scanner"
-              style="--icon-color: #10b981; --icon-shadow: rgba(16,185,129,0.25);"><img class="icon"
-                title="SCANNER MULTICHAIN" width="24" src="assets/icons/robot.png" /></a>
+        <div class="uk-width-expand@s uk-width-1-1">
+          <div class="uk-flex uk-flex-middle uk-flex-wrap uk-flex-right@s" style="gap: 8px;">
 
-            <span id="chain-links-container"></span>
 
+
+            <!-- 2. MULTICHAIN -->
+            <a href="index.html?chain=all" id="multichain_scanner" title="MULTICHAIN"
+              style="--icon-color: #10b981; --icon-shadow: rgba(16,185,129,0.25);">
+              <img class="icon" width="28" src="assets/icons/robot.png" />
+            </a>
+
+            <!-- 3. CHAIN DROPDOWN -->
+            <div class="uk-inline">
+              <a href="#" class="toolbar-btn-dropdown" id="chain-dropdown-btn">
+                <img class="icon" id="toolbar-chain-icon" src="assets/icons/robot.png" width="24" />
+                <span class="toolbar-label" id="toolbar-chain-name"> mode chain</span>
+                <span uk-icon="icon: chevron-down; ratio: 0.8"></span>
+              </a>
+              <div uk-dropdown="mode: click; pos: bottom-left; offset: 5; animation: false;" class="toolbar-dropdown">
+                <ul class="uk-nav uk-dropdown-nav" id="chain-links-container">
+                  <!-- Populated by JS -->
+                </ul>
+              </div>
+            </div>
+
+            <!-- 1. MULTIEXCHANGER -->
+            <a href="index.html?cex=all" id="multicex_scanner" title="MULTIEXCHANGER"
+              style="margin-left: 8px; --icon-color: #4b5563; --icon-shadow: rgba(75,85,99,0.25);">
+              <img class="icon" width="24" src="assets/icons/all.png" />
+            </a>
+            <!-- 4. CEX DROPDOWN -->
+            <div class="uk-inline">
+              <a href="#" class="toolbar-btn-dropdown" id="cex-dropdown-btn">
+                <span class="toolbar-label" id="toolbar-cex-name"> mode exchanger</span>
+                <span uk-icon="icon: chevron-down; ratio: 0.8"></span>
+              </a>
+              <div uk-dropdown="mode: click; pos: bottom-left; offset: 5; animation: false;" class="toolbar-dropdown">
+                <ul class="uk-nav uk-dropdown-nav" id="cex-links-container">
+                  <!-- Populated by JS -->
+                </ul>
+              </div>
+            </div>
+
+            <!-- 5. CALCULATOR -->
             <img class="icon" id="openCalculatorModal" title="KALKULATOR CRYPTO (Ctrl+K)" width="24px"
               src="assets/icons/calculator.png" style="cursor: pointer;" />
 
-            <!-- CEX Icons Container - Populated by JS -->
-
-            <span id="cex-links-container"></span>
-
-            <!-- Calculator Icon - Always accessible -->
-
-            <img class="icon" id="SettingConfig" data-feature="settings" title="SETTING APLIKASI (Ctrl+S)" width="24px"
-              src="assets/icons/database.png" />
-
+            <!-- 6. ASSETS -->
             <a href="saldo.html" target="_blank" data-feature="assets"><img class="icon" title="SALDO ASSET"
                 width="24px" src="assets/icons/asset.png" /></a>
 
-            <a href="#" id="openDatabaseViewer" title="MANAJEMEN DATABASE"><img class="icon" width="24"
-                src="assets/icons/signal.png" /></a>
-            <a href="#" id="openHistoryModal" title="RIWAYAT AKSI"><img class="icon" width="24"
-                src="assets/icons/history.png" /></a>
+            <!-- 7. SETTINGS DROPDOWN (Grouped) -->
+            <div class="uk-inline">
+              <a href="#" class="icon-link-btn" title="PENGATURAN & RIWAYAT">
+                <img class="icon" id="SettingConfig" width="24px" src="assets/icons/database.png" />
+              </a>
+              <div uk-dropdown="mode: click; pos: bottom-right; offset: 5; animation: false;" class="toolbar-dropdown">
+                <ul class="uk-nav uk-dropdown-nav">
+                  <li>
+                    <a href="#" id="triggerSettingConfig">
+                      <span uk-icon="icon: settings; ratio: 0.8"></span>
+                      <span class="uk-margin-small-left">Setting Aplikasi</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#" id="darkModeToggle">
+                      <span uk-icon="icon: eye; ratio: 0.8"></span>
+                      <span class="uk-margin-small-left"> Mode Terang/Gelap</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#" id="openHistoryModal">
+                      <span uk-icon="icon: history; ratio: 0.8"></span>
+                      <span class="uk-margin-small-left">Riwayat Aksi</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#" id="openDatabaseViewer">
+                      <span uk-icon="icon: database; ratio: 0.8"></span>
+                      <span class="uk-margin-small-left">Database View</span>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
 
-            <img class="icon" id="darkModeToggle" title="GANTI MODE TERANG/GELAP" width="24px"
-              src="assets/icons/dark-mode.png" />
-
-            <a href="extra/index.html" target="_blank" rel="noopener noreferrer" title="APLIKASI EKSTRA"><img
-                class="icon" width="24" src="assets/icons/extra.png" />
-
+            <!-- 9. EXTRA APP -->
+            <a href="extra/index.html" target="_blank" rel="noopener noreferrer" title="APLIKASI EKSTRA">
+              <img class="icon" width="24" src="assets/icons/extra.png" />
             </a>
           </div>
-
         </div>
 
       </div>
@@ -276,7 +330,7 @@
               <span uk-icon="check"></span> SIMPAN PENGATURAN
             </button>
             <button type="button" id="btn-cancel-setting" class="uk-button uk-button-danger uk-button-small">
-              <span uk-icon="icon: close"></span> TUTUP
+              <span uk-icon="icon: close; ratio: 0.8"></span> TUTUP
             </button>
           </div>
         </div>
@@ -736,10 +790,12 @@
                       name="sync-price-filter" value="with-price" class="uk-radio"> Berharga</label>
                   <span style="color:#ddd; margin:0 2px;">|</span>
                   <span class="uk-text-bold" style="font-size:11px;">Wallet [ON/OFF]:</span>
-                  <label class="uk-text-small uk-margin-remove sync-wallet-label" style="font-size:11px;" title="Filter Withdraw ON (aktif setelah Snapshot Update)">
+                  <label class="uk-text-small uk-margin-remove sync-wallet-label" style="font-size:11px;"
+                    title="Filter Withdraw ON (aktif setelah Snapshot Update)">
                     <input type="checkbox" id="sync-wd-filter" class="uk-checkbox" disabled> WD
                   </label>
-                  <label class="uk-text-small uk-margin-remove sync-wallet-label" style="font-size:11px;" title="Filter Deposit ON (aktif setelah Snapshot Update)">
+                  <label class="uk-text-small uk-margin-remove sync-wallet-label" style="font-size:11px;"
+                    title="Filter Deposit ON (aktif setelah Snapshot Update)">
                     <input type="checkbox" id="sync-dp-filter" class="uk-checkbox" disabled> DP
                   </label>
                 </div>
@@ -751,7 +807,8 @@
                       name="sync-pick-mode" value="selected" class="uk-radio"> Dipilih</label>
                   <label class="uk-text-small uk-margin-remove" style="font-size:11px;"><input type="radio"
                       name="sync-pick-mode" value="snapshot" class="uk-radio"> Snapshot</label>
-                  <button type="button" id="sync-clear-btn" class="sync-clear-btn" title="Batal semua pilihan">✕</button>
+                  <button type="button" id="sync-clear-btn" class="sync-clear-btn"
+                    title="Batal semua pilihan">✕</button>
                 </div>
               </div>
 
@@ -1178,7 +1235,8 @@
 
   <!-- Modal: Scanner Filter -->
   <div id="scanner-filter-modal" uk-modal>
-    <div class="uk-modal-dialog uk-margin-auto-vertical" style="max-width: 520px; min-width: 400px;">
+    <div class="uk-modal-dialog uk-margin-auto-vertical"
+      style="max-width: 380px; min-width: 300px; border-radius: 12px; overflow: hidden;">
       <div class="uk-modal-header" style="padding: 8px 12px; border-bottom: 1px solid #e5e5e5;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <h4 class="uk-margin-remove" style="font-size: 13px; font-weight: 600;"><span

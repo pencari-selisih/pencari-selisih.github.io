@@ -22,7 +22,8 @@
         'OKX': { color: '#000000', bg: '#f9fafb' },     // Black/White
         'HTX': { color: '#202e3b', bg: '#f3f4f6' },     // Dark Blue
         'INDODAX': { color: '#094e9d', bg: '#eff6ff' }, // Blue
-        'LBANK': { color: '#e5ad19', bg: '#fffbeb' }    // Yellow
+        'LBANK': { color: '#e5ad19', bg: '#fffbeb' },   // Yellow
+        'ALL': { color: '#8e8f91ff', bg: '#f9fafb' }
     };
 
     class CEXModeManager {
@@ -182,7 +183,8 @@
 
             // Notify user
             if (typeof toast !== 'undefined' && toast.info) {
-                toast.info(`Mode Per CEX Aktif: ${this.selectedCEX}`);
+                const label = this.selectedCEX === 'ALL' ? 'MULTIEXCHANGER' : this.selectedCEX;
+                toast.info(`Mode Per CEX Aktif: ${label}`);
             }
 
             if (reload) {
@@ -281,7 +283,7 @@
             document.body.setAttribute('data-cex', cexName);
 
             // Update document title
-            document.title = `${cexName} SCANNER`;
+            document.title = cexName === 'ALL' ? 'MULTIEXCHANGER' : `${cexName} SCANNER`;
 
             // Update favicon
             try {
@@ -298,7 +300,8 @@
             }
 
             // Update header title and label
-            $('#current-chain-label').text(`[${cexName}]`).css('color', theme.color);
+            const displayLabel = cexName === 'ALL' ? 'MULTIEXCHANGER' : cexName;
+            $('#current-chain-label').text(`[${displayLabel}]`).css('color', theme.color);
 
             // Apply CEX mode background gradient
             this.applyCEXModeStyles(theme.color);
@@ -365,7 +368,7 @@
             document.title = 'SCANNER';
 
             // Reset header
-            $('#current-chain-label').text('[ALL]').css('color', '');
+            $('#current-chain-label').text('[MULTICHAIN]').css('color', '');
 
             // Re-apply theme for current mode (single/multi chain)
             if (typeof applyThemeForMode === 'function') {
@@ -399,6 +402,7 @@
                 } else {
                     $('#multichain_scanner').removeClass('active-mode');
                 }
+                $('#multicex_scanner').removeClass('active-mode');
                 $('.cex-icon-btn').removeClass('active');
 
                 // Show Snapshot Button & Option
@@ -412,37 +416,58 @@
         }
 
         renderToolbar() {
+            const currentPage = (window.location.pathname.split('/').pop() || 'index.html');
             const container = $('#cex-links-container');
             if (!container.length) return;
+            container.empty();
 
-            let html = '';
-            const enabledCEXs = (typeof getEnabledCEXs === 'function') ? getEnabledCEXs() : Object.keys(CEX_THEMES);
+            const isAllActive = this.active && this.selectedCEX === 'ALL';
+            if (isAllActive) {
+                $('#multicex_scanner').addClass('active-mode');
+                $('#multichain_scanner').removeClass('active-mode');
+            } else {
+                $('#multicex_scanner').removeClass('active-mode');
+            }
 
-            const currentPage = (window.location.pathname.split('/').pop() || 'index.html');
+            let enabledCEXs = (typeof getEnabledCEXs === 'function') ? getEnabledCEXs() : [];
+            if (!enabledCEXs || enabledCEXs.length === 0) {
+                enabledCEXs = Object.keys(window.CEX_THEMES || {});
+            }
+            let activeCEXFound = false;
+
             enabledCEXs.forEach(cex => {
                 const iconSrc = (window.CONFIG_CEX?.[cex]?.ICON) || '';
                 const cexColor = window.CONFIG_CEX?.[cex]?.WARNA || '#2563eb';
-
-                // Check if this CEX is active
                 const isActive = this.active && this.selectedCEX === cex;
-                const activeClass = isActive ? 'active' : '';
-                const activeStyle = isActive
-                    ? `--icon-color: ${cexColor}; --icon-shadow: ${cexColor}40;`
-                    : '';
 
-                // Use href navigation (like chain icons) so page refreshes
+                if (isActive) {
+                    activeCEXFound = true;
+                    $('#toolbar-cex-icon').attr('src', iconSrc);
+                    $('#toolbar-cex-name').text(cex.toUpperCase());
+                    $('#cex-dropdown-btn').addClass('active').css('--icon-color', cexColor).css('--icon-shadow', cexColor + '40');
+                }
+
                 const href = `${currentPage}?cex=${encodeURIComponent(cex.toLowerCase())}`;
-                html += `
-                    <a href="${href}" class="cex-icon-btn ${activeClass}" id="cex-btn-${cex}" title="EXCHANGER ${cex}"
-                       style="${activeStyle}">
-                        <img class="icon" src="${iconSrc}" width="24" />
-                    </a>
-                `;
+                const activeClass = isActive ? 'uk-active' : '';
+
+                container.append(`
+                    <li class="${activeClass}">
+                        <a href="${href}">
+                            <img src="${iconSrc}" width="20" />
+                            <span>${cex.toUpperCase()}</span>
+                        </a>
+                    </li>
+                `);
             });
 
-            container.html(html);
+            if (!activeCEXFound) {
+                $('#toolbar-cex-icon').hide();
+                $('#toolbar-cex-name').text('mode exchanger');
+                $('#cex-dropdown-btn').removeClass('active').css('--icon-color', '').css('--icon-shadow', '');
+            } else {
+                $('#toolbar-cex-icon').show();
+            }
 
-            // Ensure robot icon state is correct
             if (this.active) {
                 $('#multichain_scanner').removeClass('active-mode');
             } else {
@@ -470,10 +495,12 @@
                 ? window.getAllChainTokensFlat()
                 : [];
 
-            // Filter by CEX: hanya token yang cex-nya = targetCEX
-            const filtered = allFlat.filter(token => {
-                return String(token.cex || '').toUpperCase() === targetCEX;
-            });
+            // Filter by CEX: hanya token yang cex-nya = targetCEX (jika bukan ALL)
+            const filtered = targetCEX === 'ALL'
+                ? allFlat
+                : allFlat.filter(token => {
+                    return String(token.cex || '').toUpperCase() === targetCEX;
+                });
 
             console.log(`[CEX Mode] Tokens for ${targetCEX}: ${filtered.length} (from ${allFlat.length} total)`);
             return filtered;

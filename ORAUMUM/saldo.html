@@ -1574,15 +1574,56 @@
             async function cekAssetBitget() {
                 const creds = getCEXCredentials('BITGET');
                 if (!creds?.ApiKey || !creds?.ApiSecret) { setCEXStatus('BITGET', 'nokey'); return; }
-                const ts = Date.now().toString();
-                const sign = CryptoJS.HmacSHA256(ts + 'GET' + '/api/v2/spot/account/assets', creds.ApiSecret).toString(CryptoJS.enc.Base64);
+
+                function bitgetSign(path) {
+                    const ts = Date.now().toString();
+                    const sign = CryptoJS.HmacSHA256(`${ts}GET${path}`, creds.ApiSecret).toString(CryptoJS.enc.Base64);
+                    return { ts, sign };
+                }
+
+                async function bitgetFetch(path) {
+                    const { ts, sign } = bitgetSign(path);
+                    const url = `${PROXY_BASE_KUCOIN}?url=${encodeURIComponent('https://api.bitget.com' + path)}`;
+                    const r = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'ACCESS-KEY': creds.ApiKey,
+                            'ACCESS-SIGN': sign,
+                            'ACCESS-TIMESTAMP': ts,
+                            'ACCESS-PASSPHRASE': creds.Passphrase || '',
+                            'Content-Type': 'application/json',
+                            'locale': 'en-US'
+                        }
+                    });
+                    const d = await r.json();
+                    if (d.code && d.code !== '00000') throw new Error(d.msg || `Error ${d.code}`);
+                    return d.data || [];
+                }
+
                 try {
                     setCEXStatus('BITGET', 'loading');
-                    const r = await fetch('https://api.bitget.com/api/v2/spot/account/assets', { headers: { 'ACCESS-KEY': creds.ApiKey, 'ACCESS-SIGN': sign, 'ACCESS-TIMESTAMP': ts, 'ACCESS-PASSPHRASE': creds.Passphrase || '' } });
-                    const d = await r.json();
-                    if (!r.ok) throw new Error(d?.msg || `HTTP ${r.status}`);
+                    const [spotRes, fundRes] = await Promise.allSettled([
+                        bitgetFetch('/api/v2/spot/account/assets'),
+                        bitgetFetch('/api/v2/account/funding-assets')
+                    ]);
+
+                    if (spotRes.status === 'rejected' && fundRes.status === 'rejected')
+                        throw new Error(spotRes.reason?.message || fundRes.reason?.message);
+
+                    const coinMap = {};
+                    const addAssets = (list) => {
+                        for (const i of (list || [])) {
+                            const sym = i.coin || i.coinName;
+                            const amt = parseFloat(i.available || 0) + parseFloat(i.frozen || i.lock || 0);
+                            if (amt > 0) coinMap[sym] = (coinMap[sym] || 0) + amt;
+                        }
+                    };
+                    if (spotRes.status === 'fulfilled') addAssets(spotRes.value);
+                    if (fundRes.status === 'fulfilled') addAssets(fundRes.value);
+
                     const bitgetPrices = await getCEXPriceOverrides('BITGET');
-                    await renderExchangeAssets('BITGET', (d.data || []).map(i => ({ symbol: i.coin, amount: (parseFloat(i.available || 0)) + (parseFloat(i.frozen || 0)) })), { overrides: bitgetPrices });
+                    const assets = Object.entries(coinMap).map(([symbol, amount]) => ({ symbol, amount }));
+                    await renderExchangeAssets('BITGET', assets, { overrides: bitgetPrices });
                 } catch (e) {
                     setCEXStatus('BITGET', 'error', e.message);
                     localStorage.setItem('MULTI_BITGETSaldo', '0');

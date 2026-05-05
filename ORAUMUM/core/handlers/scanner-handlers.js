@@ -364,11 +364,16 @@
                 try {
                     const fm = (typeof getFilterCEX === 'function') ? getFilterCEX(currentCEX) : ((typeof getFilterMulti === 'function') ? getFilterMulti() : {});
                     const chainsSel = (fm.chains || []).map(c => String(c).toLowerCase());
+                    const cexSel = (fm.cex || []).map(c => String(c).toUpperCase());
                     const pairSel = (fm.pair || []).map(p => String(p).toUpperCase());
                     const dexSel = (fm.dex || []).map(d => String(d).toLowerCase());
 
                     if (chainsSel.length > 0) {
                         scanTokens = scanTokens.filter(t => chainsSel.includes(String(t.chain || '').toLowerCase()));
+                    }
+                    // ✅ FIX: Apply EXCHANGER filter untuk mode MultiCEX (ALL)
+                    if (currentCEX === 'ALL' && cexSel.length > 0) {
+                        scanTokens = scanTokens.filter(t => cexSel.includes(String(t.cex || '').toUpperCase()));
                     }
                     if (pairSel.length > 0) {
                         scanTokens = scanTokens.filter(t => {
@@ -381,6 +386,28 @@
                     }
                     if (dexSel.length > 0) {
                         scanTokens = scanTokens.filter(t => (t.dexs || []).some(d => dexSel.includes(String(d.dex || '').toLowerCase())));
+                    }
+                    // Apply MULTICHAIN filter (2+ chain) jika toggle ON
+                    // Mode CEX tunggal: gunakan chainCount dari DB (konsisten dengan daftar-koin.html)
+                    // Mode ALL: hitung effective chain count dari scanTokens yang sudah difilter
+                    if (fm.multiChain === true) {
+                        if (currentCEX === 'ALL') {
+                            const symChainMapScan = {};
+                            scanTokens.forEach(t => {
+                                const sym = String(t.symbol_in || '').toUpperCase().trim();
+                                if (sym) {
+                                    if (!symChainMapScan[sym]) symChainMapScan[sym] = new Set();
+                                    symChainMapScan[sym].add(String(t.chain || '').toLowerCase());
+                                }
+                            });
+                            scanTokens = scanTokens.filter(t => {
+                                const sym = String(t.symbol_in || '').toUpperCase().trim();
+                                return (symChainMapScan[sym]?.size || 0) > 1;
+                            });
+                        } else {
+                            // chainCount = jumlah chain yang punya token ini di seluruh database (any CEX)
+                            scanTokens = scanTokens.filter(t => (t.chainCount || 0) > 1);
+                        }
                     }
                 } catch (_) { }
 

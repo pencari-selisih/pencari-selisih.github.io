@@ -77,6 +77,28 @@
 
     // Removed legacy processOrderBookLAMA (unused)
 
+    // ====== Helper: Fetch BITGET Orderbook tanpa Proxy ======
+    /**
+     * Fetch orderbook dari BITGET menggunakan direct fetch (tanpa proxy)
+     * @param {string} url - Target URL
+     * @param {number} timeout - Request timeout (ms)
+     * @returns {Promise<object>} Parsed JSON response
+     */
+    async function fetchBitgetOrderbook(url, timeout = 8000) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        try {
+            const response = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            clearTimeout(timeoutId);
+            console.error(`[fetchBitgetOrderbook] Error fetching ${url.substring(0, 80)}:`, error.message);
+            throw error;
+        }
+    }
+
     // ====== Fungsi Khusus untuk INDODAX ======
     /** Normalize INDODAX orderbook (IDR) to USDT using cached rate. */
     function processIndodaxOrderBook(data, limit = 4) {
@@ -290,8 +312,13 @@
                 if (url) {
                     return (async () => {
                         try {
-                            // ✅ Updated: Use fetchCexOrderbook with proxy support instead of $.ajax
-                            const data = await fetchCexOrderbook(url, 8000);
+                            // ✅ Use specific fetcher based on CEX
+                            let data;
+                            if (key === 'BITGET') {
+                                data = await fetchBitgetOrderbook(url, 8000);
+                            } else {
+                                data = await fetchCexOrderbook(url, 8000);
+                            }
                             const processedData = config.processData(data);
                             // Select best prices: BUY uses best ask (lowest), SELL uses best bid (highest)
                             const priceBuy = processedData?.priceSell?.[0]?.price || 0;

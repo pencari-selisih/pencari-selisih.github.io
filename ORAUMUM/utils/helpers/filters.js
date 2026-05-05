@@ -76,9 +76,10 @@
             cex: f.cex || [],
             dex: (f.dex || []).map(x => String(x).toLowerCase()),
             pair: (f.pair || []).map(x => String(x).toUpperCase()),
+            multiChain: !!f.multiChain,
             slip: (isFinite(parseFloat(f.slip)) && parseFloat(f.slip) >= 0) ? parseFloat(f.slip) : 0.5
         };
-        return { chains: [], cex: [], dex: [], pair: [], slip: 0.5 };
+        return { chains: [], cex: [], dex: [], pair: [], multiChain: false, slip: 0.5 };
     }
 
     function setFilterMulti(val) {
@@ -96,6 +97,9 @@
         }
         if (val && Object.prototype.hasOwnProperty.call(val, 'pair')) {
             next.pair = (val.pair || []).map(x => String(x).toUpperCase());
+        }
+        if (val && Object.prototype.hasOwnProperty.call(val, 'multiChain')) {
+            next.multiChain = !!val.multiChain;
         }
         if (val && Object.prototype.hasOwnProperty.call(val, 'slip')) {
             const s = parseFloat(val.slip);
@@ -158,17 +162,21 @@
         const f = getFromLocalStorage(key, null);
         if (f && typeof f === 'object') return {
             chains: f.chains || [],
+            cex: f.cex || [],
             pair: (f.pair || []).map(x => String(x).toUpperCase()),
             dex: (f.dex || []).map(x => String(x).toLowerCase()),
             sort: f.sort || 'A',
+            multiChain: !!f.multiChain,
             slip: (isFinite(parseFloat(f.slip)) && parseFloat(f.slip) >= 0) ? parseFloat(f.slip) : 0.5
         };
         // Default: tidak ada filter tersimpan → kosong (user harus pilih sendiri)
         return {
             chains: [],
+            cex: [],
             pair: [],
             dex: [],
             sort: 'A',
+            multiChain: false,
             slip: 0.5
         };
     }
@@ -180,6 +188,9 @@
         if (val && Object.prototype.hasOwnProperty.call(val, 'chains')) {
             next.chains = (val.chains || []).map(x => String(x).toLowerCase());
         }
+        if (val && Object.prototype.hasOwnProperty.call(val, 'cex')) {
+            next.cex = (val.cex || []).map(x => String(x).toUpperCase());
+        }
         if (val && Object.prototype.hasOwnProperty.call(val, 'pair')) {
             next.pair = (val.pair || []).map(x => String(x).toUpperCase());
         }
@@ -188,6 +199,9 @@
         }
         if (val && Object.prototype.hasOwnProperty.call(val, 'sort')) {
             next.sort = val.sort;
+        }
+        if (val && Object.prototype.hasOwnProperty.call(val, 'multiChain')) {
+            next.multiChain = !!val.multiChain;
         }
         if (val && Object.prototype.hasOwnProperty.call(val, 'slip')) {
             const s = parseFloat(val.slip);
