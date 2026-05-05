@@ -3862,6 +3862,8 @@ body.cex-mode-active .header-card {
     font-weight: 500;
     color: #4b5563;
     transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 .toolbar-dropdown .uk-nav>li>a:hover {
@@ -3870,9 +3872,9 @@ body.cex-mode-active .header-card {
 }
 
 .toolbar-dropdown .uk-nav>li.uk-active>a {
-    background: #eff6ff;
-    color: #1d4ed8;
-    font-weight: 600;
+    background: var(--item-active-bg, #eff6ff);
+    color: var(--item-active-color, #1d4ed8);
+    font-weight: 700;
 }
 
 .toolbar-dropdown .uk-nav>li>a img {

@@ -169,7 +169,9 @@
                     if (fav) fav.setAttribute('href', cfg.ICON || window.DEFAULT_FAVICON_HREF || fav.getAttribute('href'));
                 } else {
                     document.title = 'MULTICHAIN SCANNER';
-                    if (fav && window.DEFAULT_FAVICON_HREF) fav.setAttribute('href', window.DEFAULT_FAVICON_HREF);
+                    // Selalu gunakan robot.png untuk mode multichain (jangan pakai cache DEFAULT_FAVICON_HREF
+                    // karena bisa terkontaminasi oleh all.png dari sesi CEX mode sebelumnya)
+                    if (fav) fav.setAttribute('href', 'assets/icons/robot.png');
                 }
             } catch (_) { }
 

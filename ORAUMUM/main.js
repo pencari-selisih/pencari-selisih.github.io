@@ -5859,22 +5859,32 @@ $(document).ready(function () {
             const chain = CONFIG_CHAINS[chainKey] || {};
             const isActive = String(activeKey).toLowerCase() === String(chainKey).toLowerCase();
             const icon = chain.ICON || '';
-            const name = chain.Nama_Chain || chainKey.toUpperCase();
+            // Gunakan Nama_Pendek (sudah huruf kapital) atau fallback ke uppercase
+            const name = (chain.Nama_Pendek || chain.Nama_Chain || chainKey).toUpperCase();
             const chainColor = chain.WARNA || '#2563eb';
 
             if (isActive && !isCEXActive) {
                 activeChainFound = true;
                 $('#toolbar-chain-icon').attr('src', icon);
-                $('#toolbar-chain-name').text(name);
-                $('#chain-dropdown-btn').addClass('active').css('--icon-color', chainColor).css('--icon-shadow', chainColor + '40');
+                $('#toolbar-chain-name').text(name).css('color', chainColor);
+                $('#chain-dropdown-btn')
+                    .addClass('active')
+                    .css('--icon-color', chainColor)
+                    .css('--icon-shadow', chainColor + '40')
+                    .css('background', chainColor + '22')
+                    .css('border-color', chainColor);
             }
 
             const href = `${currentPage}?chain=${encodeURIComponent(chainKey.toLowerCase())}`;
             const activeClass = isActive && !isCEXActive ? 'uk-active' : '';
+            // Warna aktif langsung ke elemen <a> dari CONFIG_CHAINS.WARNA
+            const activeAStyle = isActive && !isCEXActive
+                ? `style="background:${chainColor}20; color:${chainColor}; font-weight:700; border-left:3px solid ${chainColor};"`
+                : '';
 
             $wrap.append(`
                 <li class="${activeClass}">
-                    <a href="${href}">
+                    <a href="${href}" ${activeAStyle}>
                         <img src="${icon}" width="20" />
                         <span>${name}</span>
                     </a>
@@ -5884,8 +5894,10 @@ $(document).ready(function () {
 
         if (!activeChainFound || isCEXActive) {
             $('#toolbar-chain-icon').hide();
-            $('#toolbar-chain-name').text('mode chain');
-            $('#chain-dropdown-btn').removeClass('active').css('--icon-color', '').css('--icon-shadow', '');
+            $('#toolbar-chain-name').text('pilih chain').css('color', '');
+            $('#chain-dropdown-btn').removeClass('active')
+                .css('--icon-color', '').css('--icon-shadow', '')
+                .css('background', '').css('border-color', '');
         } else {
             $('#toolbar-chain-icon').show();
         }
