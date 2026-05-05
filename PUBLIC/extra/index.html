@@ -326,12 +326,21 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const files = [
+      // {
+      //   name: 'Portofolio Crypto',
+      //   type: 'html',
+      //   icon: 'bi-currency-dollar',
+      //   desc: 'Aplikasi Pengecekan Portofolio Crypto pada Banyak Exchanger dan Multi Chain.',
+      //   href: 'portfolio.html',
+      //   action: 'open'
+      // },
+
       {
-        name: 'Portofolio Crypto',
+        name: 'Ringkasan Daftar Koin – CEX & Chain',
         type: 'html',
-        icon: 'bi-currency-dollar',
-        desc: 'Aplikasi Pengecekan Portofolio Crypto pada Banyak Exchanger dan Multi Chain.',
-        href: 'portfolio.html',
+        icon: 'bi-table',
+        desc: 'Ringkasan daftar koin dari CEX & Chain, beserta status Deposit & Withdrawal setiap koin.',
+        href: 'daftar-koin.html',
         action: 'open'
       },
       {
@@ -350,7 +359,7 @@
         href: 'multichecker-saldo.html',
         action: 'open'
       },
-      
+
       {
         name: 'AddON-Pencari-Selisih.zip',
         type: 'zip',
@@ -433,7 +442,7 @@
 
       filtered.forEach((file, index) => {
         const card = `
-          <div class="col-12 col-sm-6 col-lg-3">
+          <div class="col-12 col-sm-6 col-lg-4">
             <div class="file-card h-100" style="animation: fadeUp .35s ease ${index * 0.05}s both;">
               <div class="icon-badge file-type-${file.type}">
                 <i class="bi ${file.icon}"></i>
