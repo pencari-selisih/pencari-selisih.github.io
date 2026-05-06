@@ -90,6 +90,12 @@
                 $('#stopSCAN').prop('disabled', false).show();
                 // Sembunyikan START SCAN (bukan hanya disable) agar tidak tampil bersamaan
                 $('#startSCAN').prop('disabled', true).hide();
+                // Disable toggle MULTICHAIN di modal filter scanner saat scan berjalan (CEX/MultiCEX mode)
+                const isCEXRunning = (String(mode.type || '').toLowerCase() === 'cex');
+                if (isCEXRunning) {
+                    $('#modal-filter-multichain').prop('disabled', true).closest('label')
+                        .css({ opacity: 0.45, pointerEvents: 'none', cursor: 'not-allowed' });
+                }
             } else {
                 // Re-enable toolbar
                 $allToolbar.css({ pointerEvents: '', opacity: '' });
@@ -110,6 +116,9 @@
                 $('#BatalEditkoin').show();
                 // Ensure Auto Scroll remains interactive when idle too
                 $('#autoScrollCheckbox').prop('disabled', false).css({ pointerEvents: 'auto', opacity: '' });
+                // Re-enable toggle MULTICHAIN di modal filter scanner
+                $('#modal-filter-multichain').prop('disabled', false).closest('label')
+                    .css({ opacity: '', pointerEvents: '', cursor: '' });
             }
         } catch (_) { /* noop */ }
     }
