@@ -432,6 +432,24 @@ function refreshTokensTable() {
                         filtered = filtered.filter(t => (t.chainCount || 0) > 1);
                     }
                 }
+
+                // Apply MANY CEX Filter: koin yg sc_in-nya sama ada di 2+ CEX berbeda
+                // Patokan: sc_in (smart contract address), bukan symbol/ticker
+                if (fm.manyCex === true) {
+                    const scCexMap = {};
+                    filtered.forEach(t => {
+                        const sc = String(t.sc_in || '').toLowerCase().trim();
+                        const cex = String(t.cex || '').toUpperCase().trim();
+                        if (sc && sc !== '0x' && cex) {
+                            if (!scCexMap[sc]) scCexMap[sc] = new Set();
+                            scCexMap[sc].add(cex);
+                        }
+                    });
+                    filtered = filtered.filter(t => {
+                        const sc = String(t.sc_in || '').toLowerCase().trim();
+                        return sc && (scCexMap[sc]?.size || 0) > 1;
+                    });
+                }
             }
             // chainsSel atau dexSel kosong → filtered tetap [] (tabel kosong)
 
@@ -2009,22 +2027,33 @@ async function deferredInit() {
 
             // Section 0: HEADER ROW (TOTAL + ADVANCED TOGGLE)
             const multiChainChecked = fmNow.multiChain === true;
+            const manyCexChecked = fmNow.manyCex === true;
             // Cek apakah scanner sedang berjalan (untuk disable toggle saat scan aktif)
             const isScanning = !!(window.SCAN_IS_RUNNING || (typeof getAppState === 'function' && getAppState()?.run === 'YES'));
             const toggleDisabled = isCEXMode && isScanning;
+            // MANY CEX toggle hanya tersedia di mode MultiCEX (ALL exchanger)
+            const isMultiCEXMode = isCEXMode && window.CEXModeManager.getSelectedCEX() === 'ALL';
             const toggleLabelStyle = toggleDisabled
                 ? 'cursor: not-allowed; gap: 8px; background: #f3f4f6; padding: 4px 10px; border-radius: 20px; border: 1px solid #ddd; opacity: 0.45; pointer-events: none;'
                 : 'cursor: pointer; gap: 8px; background: #fff; padding: 4px 10px; border-radius: 20px; border: 1px solid #ddd; box-shadow: 0 1px 2px rgba(0,0,0,0.05);';
             const $headerRow = $(`
                 <div class="uk-flex uk-flex-between uk-flex-middle" style="margin-bottom:12px; background:#f8f9fa; padding:6px 10px; border-radius:8px; border:1px solid #e5e7eb;">
                     <div id="modal-sum-container"></div>
-                    <div class="uk-flex uk-flex-middle" style="gap:12px;">
+                    <div class="uk-flex uk-flex-middle" style="gap:8px;">
                         ${isCEXMode ? `
                         <label class="uk-flex uk-flex-middle" style="${toggleLabelStyle}">
-                            <span style="font-size: 10px; font-weight: 700; color: #949698ff;">MULTICHAIN (2+)</span>
+                            <span style="font-size: 10px; font-weight: 700; color: #949698ff;">MANY CHAIN (&gt;1)</span>
                             <div class="cex-toggle-wrapper" style="transform: scale(0.85);">
                                 <input type="checkbox" id="modal-filter-multichain" ${multiChainChecked ? 'checked' : ''} ${toggleDisabled ? 'disabled' : ''}>
                                 <span class="cex-toggle-slider"></span>
+                            </div>
+                        </label>` : ''}
+                        ${isMultiCEXMode ? `
+                        <label class="uk-flex uk-flex-middle" style="${toggleLabelStyle}">
+                            <span style="font-size: 10px; font-weight: 700; color: #eb73a7;">MANY CEX (&gt;1)</span>
+                            <div class="cex-toggle-wrapper" style="transform: scale(0.85);">
+                                <input type="checkbox" id="modal-filter-manycex" ${manyCexChecked ? 'checked' : ''} ${toggleDisabled ? 'disabled' : ''}>
+                                <span class="cex-toggle-slider" style="background-color: ${manyCexChecked ? '#eb73a7' : '#ccc'};"></span>
                             </div>
                         </label>` : ''}
                     </div>
@@ -2272,6 +2301,22 @@ async function deferredInit() {
                         totalFiltered = totalFiltered.filter(t => (t.chainCount || 0) > 1);
                     }
                 }
+                // Apply MANY CEX filter di counter (sc_in sama di 2+ CEX)
+                if (fmNow.manyCex === true) {
+                    const scCexMapCounter = {};
+                    totalFiltered.forEach(t => {
+                        const sc = String(t.sc_in || '').toLowerCase().trim();
+                        const cex = String(t.cex || '').toUpperCase().trim();
+                        if (sc && sc !== '0x' && cex) {
+                            if (!scCexMapCounter[sc]) scCexMapCounter[sc] = new Set();
+                            scCexMapCounter[sc].add(cex);
+                        }
+                    });
+                    totalFiltered = totalFiltered.filter(t => {
+                        const sc = String(t.sc_in || '').toLowerCase().trim();
+                        return sc && (scCexMapCounter[sc]?.size || 0) > 1;
+                    });
+                }
                 // ✅ FIX: Untuk MultiCEX ALL mode, PAIR tidak wajib (kondisi cukup chain + dex)
                 const needPair = (selCEXForCounter !== 'ALL');
                 total = (chainsSel.length > 0 && dexSel.length > 0 && (!needPair || pairSelTotal.length > 0)) ? totalFiltered.length : 0;
@@ -2292,12 +2337,11 @@ async function deferredInit() {
             }
             $sum.text(`TOTAL KOIN: ${total}`);
 
-            // Update summary bar separately (already appended $headerRow to $wrap, but let's ensure it's in sync)
+            // Update summary bar (headerRow dipindah ke sini setelah di-build)
             $('#modal-total-koin-badge').text(`TOTAL KOIN: ${total}`);
             $('#modal-summary-bar').empty().append($headerRow);
 
-            // ✅ FIX: toggle #modal-filter-multichain berada di #modal-summary-bar (setelah $headerRow dipindah)
-            // Sehingga perlu event listener terpisah di #modal-summary-bar agar toggle bisa ditangkap.
+            // Toggle MANY CHAIN
             $('#modal-summary-bar').off('change.multichain-toggle').on('change.multichain-toggle', '#modal-filter-multichain', function () {
                 const multiChain = $(this).is(':checked');
                 if (isCEXModeNow && typeof setFilterCEX === 'function') {
@@ -2306,14 +2350,35 @@ async function deferredInit() {
                 } else {
                     setFilterMulti({ multiChain });
                 }
-                const label = multiChain ? 'ON: hanya koin 2+ chain' : 'OFF: semua koin';
-                try { if (typeof toast !== 'undefined' && toast.info) toast.info(`MULTICHAIN (2+): ${label}`); } catch (_) { }
+                const label = multiChain ? 'ON: koin di 2+ chain' : 'OFF: semua koin';
+                try { if (typeof toast !== 'undefined' && toast.info) toast.info(`MANY CHAIN (>1): ${label}`); } catch (_) { }
                 try { if (typeof window.clearSignalCards === 'function') window.clearSignalCards(); } catch (_) { }
                 refreshTokensTable();
                 try { renderTokenManagementList(); } catch (_) { }
                 renderFilterCard();
                 renderFilterCardToModal();
             });
+
+            // Toggle MANY CEX: bind langsung ke elemen (bukan delegation) agar pasti ter-trigger
+            // Elemen sudah ada di DOM karena $headerRow sudah di-append ke #modal-summary-bar
+            $('#modal-summary-bar').off('change.manycex-toggle').on('change.manycex-toggle', '#modal-filter-manycex', function () {
+                const manyCex = $(this).is(':checked');
+                $(this).next('.cex-toggle-slider').css('background-color', manyCex ? '#eb73a7' : '#ccc');
+                if (isCEXModeNow && typeof setFilterCEX === 'function') {
+                    const activeCEX = window.CEXModeManager.getSelectedCEX();
+                    setFilterCEX(activeCEX, { manyCex });
+                } else {
+                    setFilterMulti({ manyCex });
+                }
+                const label = manyCex ? 'ON: koin SC sama di 2+ CEX' : 'OFF: semua koin';
+                try { if (typeof toast !== 'undefined' && toast.info) toast.info(`MANY CEX (>1): ${label}`); } catch (_) { }
+                try { if (typeof window.clearSignalCards === 'function') window.clearSignalCards(); } catch (_) { }
+                refreshTokensTable();
+                try { renderTokenManagementList(); } catch (_) { }
+                renderFilterCard();
+                renderFilterCardToModal();
+            });
+
 
             $('#modal-filter-sections').off('change.multif').on('change.multif', 'label.fc-chain input, label.fc-cex input, label.fc-pair input, label.fc-dex input', function () {
                 // LIMIT_DEX / LIMIT_METADEX: batasi jumlah DEX sesuai config.
