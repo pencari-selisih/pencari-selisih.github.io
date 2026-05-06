@@ -664,67 +664,82 @@
                 return;
             }
 
-            // Attempt 2: OKU Trade specific DOM selectors (Uniswap v3 style)
-            const tokenSelectors = [
-                '[data-testid*="currency-select"] span',
-                '[data-testid*="open-currency-select"] span',
-                'button[data-testid*="token"] span',
-                '[class*="StyledTokenName"]',
-                '[class*="token-symbol"]',
-                '[class*="CurrencySelect"] span'
-            ];
+            // Attempt 2: OKU Trade specific label-based detection (New & Robust)
+            const findOkuSection = (text) => {
+                const labels = Array.from(document.querySelectorAll('label'));
+                const label = labels.find(l => l.textContent.trim().toLowerCase() === text.toLowerCase());
+                // The label is usually inside a container with bg-surface-base or similar
+                return label ? label.closest('div[class*="bg-surface-base"]') || label.parentElement.parentElement : null;
+            };
 
-            let fromToken = null, toToken = null;
-            for (const sel of tokenSelectors) {
-                const els = document.querySelectorAll(sel);
-                const symbols = Array.from(els)
-                    .map(el => normalizeTokenSymbol(el.textContent))
-                    .filter(Boolean);
-                if (symbols.length >= 2) {
-                    [fromToken, toToken] = symbols;
-                    break;
+            const sellSection = findOkuSection('Sell');
+            const buySection = findOkuSection('Buy');
+
+            let fromToken = null, toToken = null, fromAmount = null, toAmount = null;
+
+            if (sellSection) {
+                const btn = sellSection.querySelector('button');
+                if (btn) {
+                    const text = btn.textContent.trim();
+                    fromToken = normalizeTokenSymbol(text.split(/\s+|>/)[0]);
+                }
+                const inp = sellSection.querySelector('input');
+                if (inp) fromAmount = parseNumeric(inp.value);
+            }
+
+            if (buySection) {
+                const btn = buySection.querySelector('button');
+                if (btn) {
+                    const text = btn.textContent.trim();
+                    toToken = normalizeTokenSymbol(text.split(/\s+|>/)[0]);
+                }
+                const inp = buySection.querySelector('input');
+                if (inp) toAmount = parseNumeric(inp.value);
+            }
+
+            // Fallback for amount from URL if DOM failed
+            if (!fromAmount && inAmountUrl > 0) fromAmount = inAmountUrl;
+
+            // Attempt 3: OKU Trade specific DOM selectors (Legacy Uniswap v3 style)
+            if (!fromToken || !toToken) {
+                const tokenSelectors = [
+                    '[data-testid*="currency-select"] span',
+                    '[data-testid*="open-currency-select"] span',
+                    'button[data-testid*="token"] span',
+                    '[class*="StyledTokenName"]',
+                    '[class*="token-symbol"]',
+                    '[class*="CurrencySelect"] span'
+                ];
+
+                for (const sel of tokenSelectors) {
+                    const els = document.querySelectorAll(sel);
+                    const symbols = Array.from(els)
+                        .map(el => normalizeTokenSymbol(el.textContent))
+                        .filter(Boolean);
+                    if (symbols.length >= 2) {
+                        if (!fromToken) fromToken = symbols[0];
+                        if (!toToken) toToken = symbols[1];
+                        break;
+                    }
                 }
             }
 
-            // Attempt 3: scan all visible short uppercase text as token symbols
+            // Attempt 4: scan all visible short uppercase text as token symbols
             if (!fromToken || !toToken) {
                 const candidates = [];
-                document.querySelectorAll('button span, div[class*="token"] span, div[class*="Token"] span').forEach(el => {
+                document.querySelectorAll('button span, div[class*="token"] span, div[class*="Token"] span, button div').forEach(el => {
                     const text = el.textContent.trim();
                     if (/^[A-Z][A-Z0-9]{1,9}$/.test(text) && !/^(SWAP|FROM|TO|MAX|SELL|BUY)$/.test(text)) {
                         candidates.push(text);
                     }
                 });
-                if (candidates.length >= 2 && !fromToken) fromToken = candidates[0];
-                if (candidates.length >= 2 && !toToken) toToken = candidates[1];
-            }
-
-            // Get input amount from DOM or URL param
-            let fromAmount = null, toAmount = null;
-            const amountInputs = document.querySelectorAll(
-                'input[inputmode="decimal"], input[data-testid*="amount"], input[type="number"]'
-            );
-            amountInputs.forEach((inp, i) => {
-                const val = parseNumeric(inp.value);
-                if (!Number.isFinite(val) || val <= 0) return;
-                if (i === 0 && !fromAmount) fromAmount = val;
-                else if (i === 1 && !toAmount) toAmount = val;
-            });
-            if (!fromAmount && inAmountUrl > 0) fromAmount = inAmountUrl;
-
-            // Output amount might be readonly text, not an input
-            if (!toAmount) {
-                const outputCandidates = document.querySelectorAll(
-                    '[data-testid*="output"] [class*="amount"], [data-testid="swap-output-amount"], ' +
-                    '[class*="OutputPanel"] input, [class*="output"] input[readonly]'
-                );
-                for (const el of outputCandidates) {
-                    const val = parseNumeric(el.value || el.textContent);
-                    if (Number.isFinite(val) && val > 0) { toAmount = val; break; }
+                if (candidates.length >= 2) {
+                    if (!fromToken) fromToken = candidates[0];
+                    if (!toToken) toToken = candidates[1];
                 }
             }
 
-            // Attempt 4: full generic DOM fallback
+            // Attempt 5: Full generic DOM fallback
             if (!fromToken || !toToken || !toAmount) {
                 const domState = tryExtractFromDOM();
                 if (domState) {

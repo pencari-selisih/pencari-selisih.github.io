@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -834,32 +834,32 @@
 
     /* Chain Colors */
     .text-chain-ethereum {
-        color: #627eea !important;
+        color: #8098ee !important;
         font-weight: bold;
     }
 
     .text-chain-bsc {
-        color: #f0b90b !important;
+        color: #f0af18 !important;
         font-weight: bold;
     }
 
     .text-chain-polygon {
-        color: #9c6bf0 !important;
+        color: #cd72f4ff !important;
         font-weight: bold;
     }
 
     .text-chain-base {
-        color: #0052ff !important;
+        color: #1e46f9 !important;
         font-weight: bold;
     }
 
     .text-chain-arbitrum {
-        color: #28a0f0 !important;
+        color: #a6b0c3 !important;
         font-weight: bold;
     }
 
     .text-chain-solana {
-        color: #470498 !important;
+        color: #7508a0ff !important;
         font-weight: bold;
     }
 
@@ -901,6 +901,16 @@
 
     .text-cex-mexc {
         color: #00b897 !important;
+        font-weight: bold;
+    }
+
+    .text-cex-htx {
+        color: #008cd6 !important;
+        font-weight: bold;
+    }
+
+    .text-cex-okx {
+        color: #000000 !important;
         font-weight: bold;
     }
 </style>
@@ -1016,6 +1026,14 @@
                                 <tr data-cex="MEXC">
                                     <td class="uk-text-left cex-label text-cex-mexc">MEXC</td>
                                     <td id="MEXCSaldo" class="uk-text-right">xxx {USDT}</td>
+                                </tr>
+                                <tr data-cex="HTX">
+                                    <td class="uk-text-left cex-label text-cex-htx">HTX</td>
+                                    <td id="HTXSaldo" class="uk-text-right">xxx {USDT}</td>
+                                </tr>
+                                <tr data-cex="OKX">
+                                    <td class="uk-text-left cex-label text-cex-okx">OKX</td>
+                                    <td id="OKXSaldo" class="uk-text-right">xxx {USDT}</td>
                                 </tr>
                             </tbody>
                             <tbody id="output_cex"></tbody>
@@ -1133,6 +1151,32 @@
                                     placeholder="API KEY MEXC" value="" required />
                                 <input type="text" class="form-control uk-input uk-form-small" id="secretkeyMEXC"
                                     placeholder="SECRET KEY MEXC" value="" required />
+                            </div>
+                            <div class="input-group uk-margin-small">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <input type="checkbox" class="uk-checkbox" id="HTX" />&nbsp;
+                                        <label class="form-check-label text-cex-htx" for="HTX">HTX</label>
+                                    </div>
+                                </div>
+                                <input type="text" class="form-control uk-input uk-form-small" id="apikeyHTX"
+                                    placeholder="API KEY HTX" value="" required />
+                                <input type="text" class="form-control uk-input uk-form-small" id="secretkeyHTX"
+                                    placeholder="SECRET KEY HTX" value="" required />
+                            </div>
+                            <div class="input-group uk-margin-small">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <input type="checkbox" class="uk-checkbox" id="OKX" />&nbsp;
+                                        <label class="form-check-label text-cex-okx" for="OKX">OKX</label>
+                                    </div>
+                                </div>
+                                <input type="text" class="form-control uk-input uk-form-small" id="apikeyOKX"
+                                    placeholder="API KEY OKX" value="" required />
+                                <input type="text" class="form-control uk-input uk-form-small" id="secretkeyOKX"
+                                    placeholder="SECRET KEY OKX" value="" required />
+                                <input type="text" class="form-control uk-input uk-form-small" id="passphraseOKX"
+                                    placeholder="PASSPHRASE KEY OKX" value="" required />
                             </div>
 
 
@@ -1252,18 +1296,19 @@
                     <table class="uk-table uk-table-striped uk-table-hover uk-margin-top table-glass"
                         id="assetTableWallet" style="display:none;">
                         <thead>
-                            <tr>
-                                <th>Chain</th>
-                                <th>Asset</th>
-                                <th>Fee Gas [USDT]</th>
-                                <th>Total</th>
+                            <tr class="table-header-row">
+                                <th class="uk-text-nowrap">Chain</th>
+                                <th class="uk-text-nowrap">Wallet</th>
+                                <th class="uk-text-nowrap">Asset</th>
+                                <th class="uk-text-nowrap">Fee Gas [USDT]</th>
+                                <th class="uk-text-nowrap">Total</th>
                             </tr>
                         </thead>
                         <tbody id="output_chain"></tbody>
                         <tfoot>
                             <tr class="table-total-row">
-                                <th colspan="2" id="LTotalSaldoWallets">Total</th>
-                                <th colspan="2" id="TotalSaldoWallets">...</th>
+                                <th colspan="4" id="LTotalSaldoWallets">Total</th>
+                                <th id="TotalSaldoWallets">...</th>
                             </tr>
                         </tfoot>
                     </table>
@@ -1278,76 +1323,36 @@
                                     uk-icon="icon: credit-card"></span> Setting Blockchain Wallets</span></h5>
 
                         <p class="uk-text-small uk-text-muted uk-margin-small-bottom"><span uk-icon="icon: info"></span>
-                            Centang chain yang aktif dan masukkan wallet
-                            address</p>
-                        <div class="input-group uk-margin-small">
-                            <div class="input-group-prepend">
-                                <div class="input-group-text">
-                                    <input type="checkbox" id="ETHEREUM" />&nbsp;
-                                    <label class="form-check-label text-chain-ethereum" for="ethWallet">ETHEREUM</label>
-                                </div>
+                            Pilih chain yang ingin dicek dan masukkan daftar wallet address (satu per baris)</p>
+                        
+                        <div class="uk-grid-small uk-child-width-1-2 uk-child-width-1-4@m uk-margin-small-bottom" uk-grid>
+                            <div>
+                                <label class="text-chain-ethereum"><input class="uk-checkbox" type="checkbox" id="ETHEREUM"> ETHEREUM</label>
                             </div>
-                            <input class="form-control uk-input uk-form-small" type="text" id="ethWallet"
-                                placeholder="Enter Ethereum Wallet Address">
+                            <div>
+                                <label class="text-chain-bsc"><input class="uk-checkbox" type="checkbox" id="BSC"> BSC</label>
+                            </div>
+                            <div>
+                                <label class="text-chain-polygon"><input class="uk-checkbox" type="checkbox" id="POLYGON"> POLYGON</label>
+                            </div>
+                            <div>
+                                <label class="text-chain-base"><input class="uk-checkbox" type="checkbox" id="BASE"> BASE</label>
+                            </div>
+                            <div>
+                                <label class="text-chain-arbitrum"><input class="uk-checkbox" type="checkbox" id="ARBITRUM"> ARBITRUM</label>
+                            </div>
+                            <div>
+                                <label class="text-chain-avax"><input class="uk-checkbox" type="checkbox" id="AVAX"> AVAX</label>
+                            </div>
+                            <div>
+                                <label class="text-chain-solana"><input class="uk-checkbox" type="checkbox" id="SOLANA"> SOLANA</label>
+                            </div>
                         </div>
 
-                        <div class="input-group uk-margin-small">
-                            <div class="input-group-prepend">
-                                <div class="input-group-text">
-                                    <input type="checkbox" id="BSC" />&nbsp;
-                                    <label class="form-check-label text-chain-bsc" for="bscWallet">BSC</label>
-                                </div>
-                            </div>
-                            <input class="form-control uk-input uk-form-small" type="text" id="bscWallet"
-                                placeholder="Enter BSC Wallet Address">
+                        <div class="uk-margin-small">
+                            <label class="uk-form-label uk-text-bold">Multi Wallet Addresses</label>
+                            <textarea id="multiWallets" class="uk-textarea uk-form-small" rows="5" placeholder="Enter wallet addresses, one per line..."></textarea>
                         </div>
-
-                        <div class="input-group uk-margin-small">
-                            <div class="input-group-prepend">
-                                <div class="input-group-text">
-                                    <input type="checkbox" id="POLYGON" />&nbsp;
-                                    <label class="form-check-label text-chain-polygon"
-                                        for="polygonWallet">POLYGON</label>
-                                </div>
-                            </div>
-                            <input class="form-control uk-input uk-form-small" type="text" id="polygonWallet"
-                                placeholder="Enter Polygon Wallet Address">
-                        </div>
-
-                        <div class="input-group uk-margin-small">
-                            <div class="input-group-prepend">
-                                <div class="input-group-text">
-                                    <input type="checkbox" id="BASE" />&nbsp;
-                                    <label class="form-check-label text-chain-base" for="baseWallet">BASE</label>
-                                </div>
-                            </div>
-                            <input class="form-control uk-input uk-form-small" type="text" id="baseWallet"
-                                placeholder="Enter Base Wallet Address">
-                        </div>
-
-                        <div class="input-group uk-margin-small">
-                            <div class="input-group-prepend">
-                                <div class="input-group-text">
-                                    <input type="checkbox" id="ARBITRUM" />&nbsp;
-                                    <label class="form-check-label text-chain-arbitrum"
-                                        for="arbitrumWallet">ARBITRUM</label>
-                                </div>
-                            </div>
-                            <input class="form-control uk-input uk-form-small" type="text" id="arbitrumWallet"
-                                placeholder="Enter Arbitrum Wallet Address">
-                        </div>
-                        <div class="input-group uk-margin-small">
-                            <div class="input-group-prepend">
-                                <div class="input-group-text">
-                                    <input type="checkbox" id="SOLANA" />&nbsp;
-                                    <label class="form-check-label text-chain-solana" for="solanaWallet">SOLANA</label>
-                                </div>
-                            </div>
-                            <input class="form-control uk-input uk-form-small" type="text" id="solanaWallet"
-                                placeholder="Enter Solana Wallet Address">
-                        </div>
-
-
                     </li>
 
                     <!-- Modal Kalkulator -->
@@ -1615,6 +1620,106 @@
                 return rowsCount >= expected && expected > 0 && totalReady;
             }
 
+            // ============================================
+            // PROXY & CREDENTIAL HELPERS
+            // ============================================
+            const PROXY_BASE = "https://cors-proxy-rosy.vercel.app/api/proxy?url=";
+            const PROXY_BASE_KUCOIN = "https://cors-proxy-rosy.vercel.app/api/proxy"; // compatibility with saldo.html logic
+            const CEX_LIST = ['BINANCE', 'GATE', 'BITGET', 'KUCOIN', 'BYBIT', 'INDODAX', 'MEXC', 'HTX', 'OKX'];
+
+            let _cexKeysCache = null;
+            async function warmCEXCredentials() {
+                try {
+                    const saved = localStorage.getItem('CEX_API_KEYS');
+                    if (saved) {
+                        _cexKeysCache = JSON.parse(saved);
+                    } else if (window.CEX_API) {
+                        _cexKeysCache = window.CEX_API;
+                    }
+                } catch (e) { console.warn('[CEX] Failed to warm credentials:', e); }
+            }
+
+            function restoreCEXCredentialInputs() {
+                let savedCredentialMap = {};
+                try {
+                    savedCredentialMap = JSON.parse(localStorage.getItem('CEX_API_KEYS') || '{}');
+                } catch (e) {
+                    console.warn('[CEX] Failed to parse saved credential map:', e);
+                }
+
+                CEX_LIST.forEach(cexName => {
+                    const saved = savedCredentialMap[cexName] || {};
+                    const apiKey = localStorage.getItem(`MULTI_apikey${cexName}`) || saved.ApiKey || '';
+                    const apiSecret = localStorage.getItem(`MULTI_secretkey${cexName}`) || saved.ApiSecret || '';
+                    const passphrase = localStorage.getItem(`MULTI_passphrase${cexName}`) || saved.Passphrase || '';
+
+                    $(`#apikey${cexName}`).val(apiKey);
+                    $(`#secretkey${cexName}`).val(apiSecret);
+                    $(`#passphrase${cexName}`).val(passphrase);
+                });
+            }
+
+            async function persistCEXCredentialInputs() {
+                const credentialMap = {};
+
+                CEX_LIST.forEach(cexName => {
+                    const apiKey = ($(`#apikey${cexName}`).val() || '').trim();
+                    const apiSecret = ($(`#secretkey${cexName}`).val() || '').trim();
+                    const passphrase = ($(`#passphrase${cexName}`).val() || '').trim();
+
+                    if (!apiKey && !apiSecret && !passphrase) return;
+
+                    localStorage.setItem(`MULTI_apikey${cexName}`, apiKey);
+                    localStorage.setItem(`MULTI_secretkey${cexName}`, apiSecret);
+                    localStorage.setItem(`MULTI_passphrase${cexName}`, passphrase);
+                    credentialMap[cexName] = { ApiKey: apiKey, ApiSecret: apiSecret, Passphrase: passphrase };
+                });
+
+                localStorage.setItem('CEX_API_KEYS', JSON.stringify(credentialMap));
+                _cexKeysCache = credentialMap;
+
+                if (window.__IDB_FLUSH_PENDING__) {
+                    try {
+                        await window.__IDB_FLUSH_PENDING__();
+                    } catch (e) {
+                        console.warn('[CEX] Failed to flush credential writes:', e);
+                    }
+                }
+            }
+
+            window.getCEXCredentials = function (cexName) {
+                // 1. Try local UI inputs first
+                const localKey = $(`#apikey${cexName}`).val();
+                const localSecret = $(`#secretkey${cexName}`).val();
+                const localPass = $(`#passphrase${cexName}`).val();
+
+                if (localKey && localSecret) {
+                    return { ApiKey: localKey, ApiSecret: localSecret, Passphrase: localPass };
+                }
+
+                // 2. Fallback to global cache
+                if (_cexKeysCache && _cexKeysCache[cexName]) return _cexKeysCache[cexName];
+                
+                // 3. Fallback to window.CEX_API if available
+                if (window.CEX_API && window.CEX_API[cexName]) return window.CEX_API[cexName];
+
+                return null;
+            };
+
+            function setCEXStatus(exchange, status, message = '') {
+                const $el = $(`#${exchange}Saldo`);
+                if (!$el.length) return;
+                
+                if (status === 'loading') {
+                    $el.text('Loading...').addClass('loading').removeClass('error');
+                } else if (status === 'error') {
+                    $el.text('ERROR').addClass('error').removeClass('loading');
+                    if (message) console.error(`[${exchange}] Error:`, message);
+                } else if (status === 'nokey') {
+                    $el.text('No API Key').addClass('uk-text-muted').removeClass('loading error');
+                }
+            }
+
             // KALKULATOR 
             var ratePrice = {
                 usdt: 1,
@@ -1812,9 +1917,15 @@
                 if (priceTickerCache.tickers.size && (Date.now() - priceTickerCache.lastFetch) < 60000) {
                     return priceTickerCache.tickers;
                 }
+                const url = "https://api-gcp.binance.com/api/v3/ticker/price";
                 try {
-                    const response = await fetch("https://data-api.binance.vision/api/v3/ticker/price");
+                    let response = await fetch(url);
+                    if (!response.ok) {
+                        console.warn(`[Ticker] Direct fetch failed (HTTP ${response.status}), trying proxy...`);
+                        response = await fetch(PROXY_BASE + encodeURIComponent(url));
+                    }
                     if (!response.ok) throw new Error(`Ticker request failed: ${response.status}`);
+                    
                     const data = await response.json();
                     const map = new Map();
                     data.forEach(item => {
@@ -1826,10 +1937,8 @@
                     priceTickerCache.lastFetch = Date.now();
                     priceTickerCache.assetRates.clear();
                 } catch (error) {
-                    console.warn("âŒ Failed to refresh Binance ticker cache", error);
-                    if (!priceTickerCache.tickers.size) {
-                        throw error;
-                    }
+                    console.warn("❌ Failed to refresh Binance ticker cache", error);
+                    if (!priceTickerCache.tickers.size) throw error;
                 }
                 return priceTickerCache.tickers;
             }
@@ -2314,7 +2423,7 @@
                 polygon: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', // USDT Polygon
                 base: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC Base
                 arbitrum: '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
-                avax: '0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7', // USDT Arbitrum
+                avax: '0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7', // USDT Avalanche
                 solana: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB' // USDT SPL Token Solana (Note: Solana tidak mendukung ERC20, hanya untuk referensi)
             };
 
@@ -2364,14 +2473,14 @@
             });
 
             // Simpan nilai input ketika ada perubahan
-            $('input[type="text"], input[type="number"]').on('input', function () {
+            $('input[type="text"], input[type="number"], textarea').on('input', function () {
                 const input = $(this);
                 const inputId = input.attr('id');
+                if (!inputId) return;
                 const value = input.val();
 
                 // Simpan nilai input ke localStorage
                 localStorage.setItem(`MULTI_${inputId}`, value);
-
             });
 
             $('#SaveConfigCEXS').on('click', async function () {
@@ -2380,24 +2489,23 @@
                 // Hapus class 'input-error' sebelumnya
                 $('.input-error').removeClass('input-error');
 
-                // Periksa semua checkbox yang dicentang dan cari input yang terkait
+                // Simpan credential CEX sebelum validasi agar tetap ada setelah refresh
+                await persistCEXCredentialInputs();
+
+                // Periksa semua checkbox yang dicentang
                 $('input.uk-checkbox:checked').each(function () {
                     const exchangeId = $(this).attr('id');
+                    
+                    // Blockchain networks are also checkboxes, skip them here if needed
+                    // or just check if it's one of our CEXs
+                    if (!CEX_LIST.includes(exchangeId)) return;
 
-                    // Temukan input yang terkait dengan checkbox ini
-                    const relatedInputs = $(`#apikey${exchangeId}, #secretkey${exchangeId}, #passphrase${exchangeId}`);
-                    relatedInputs.each(function () {
-                        if ($(this).val().trim() === '') {
-                            inputKosong = true;
-                            $(this).addClass('input-error'); // Tambahkan class untuk menyorot input yang kosong
-                            if (typeof toast !== 'undefined' && toast.error) toast.error(`Inputan ${exchangeId} Masih Kosong.`);
-                            return false; // Keluar dari loop input jika ditemukan input kosong
-                        }
-                    });
-
-                    // Hentikan pemeriksaan jika ada input kosong
-                    if (inputKosong) {
-                        return false; // Keluar dari loop checkbox jika ada input kosong
+                    const creds = getCEXCredentials(exchangeId);
+                    if (!creds || !creds.ApiKey || !creds.ApiSecret) {
+                        inputKosong = true;
+                        $(`#apikey${exchangeId}, #secretkey${exchangeId}`).addClass('input-error');
+                        if (typeof toast !== 'undefined' && toast.error) toast.error(`API Key/Secret ${exchangeId} Masih Kosong.`);
+                        return false;
                     }
 
                     // Tambahkan baris ke tabel berdasarkan checkbox yang dicentang
@@ -2405,15 +2513,13 @@
                 });
 
                 // Jika ada input kosong, jangan lanjutkan proses
-                if (inputKosong) {
-                    return; // Keluar dari fungsi jika ada input yang kosong
-                }
+                if (inputKosong) return;
 
                 // Ambil semua exchange yang dicentang
                 const checkedExchanges = [];
                 $('input[type="checkbox"]:checked').each(function () {
                     const id = $(this).attr('id');
-                    checkedExchanges.push(id);
+                    if (CEX_LIST.includes(id)) checkedExchanges.push(id);
                 });
 
                 // Show loading overlay only if not already active
@@ -2426,52 +2532,34 @@
                     window.BalanceCheckOverlay.updateProgress(10, `Memproses ${checkedExchanges.length} exchanger(s)...`);
                 }
 
-                let allChecksPassed = true; // Flag untuk memastikan semua pengecekan berhasil
-
-                // Jalankan fungsi pengecekan untuk setiap exchange yang dicentang
-                // Tunggu sampai semua pengecekan selesai dengan async/await
+                let allChecksPassed = true; 
                 const totalExchanges = checkedExchanges.length;
                 let processedCount = 0;
 
-                await Promise.all(checkedExchanges.map(async function (exchange) {
+                // Execute sequentially to avoid rate limits or too many parallel proxy requests
+                for (const exchange of checkedExchanges) {
                     try {
                         const progressPercent = 20 + (processedCount / totalExchanges) * 70;
                         window.BalanceCheckOverlay.updateProgress(progressPercent, `Memproses ${exchange}...`);
 
                         switch (exchange) {
-                            case 'BINANCE':
-                                await cekAssetBinance(); // Tunggu hingga selesai
-                                break;
-                            case 'GATE':
-                                await cekAssetGate(); // Tunggu hingga selesai
-                                break;
-                            case 'BITGET':
-                                await cekAssetBitget(); // Tunggu hingga selesai
-                                break;
-                            case 'KUCOIN':
-                                await cekAssetKucoin(); // Tunggu hingga selesai
-                                break;
-                            case 'MEXC':
-                                await cekAssetMexc(); // Tunggu hingga selesai
-                                break;
-                            case 'BYBIT':
-                                await cekAssetBybit(); // Tunggu hingga selesai
-                                break;
-                            case 'INDODAX':
-                                await cekAssetIndodax(); // Tunggu hingga selesai
-                                break;
-                            default:
-                                break;
+                            case 'BINANCE': await cekAssetBinance(); break;
+                            case 'GATE': await cekAssetGate(); break;
+                            case 'BITGET': await cekAssetBitget(); break;
+                            case 'KUCOIN': await cekAssetKucoin(); break;
+                            case 'MEXC': await cekAssetMexc(); break;
+                            case 'BYBIT': await cekAssetBybit(); break;
+                            case 'INDODAX': await cekAssetIndodax(); break;
+                            case 'HTX': await cekAssetHTX(); break;
+                            case 'OKX': await cekAssetOKX(); break;
                         }
                         processedCount++;
                     } catch (error) {
-                        // Jika pengecekan gagal, tampilkan pesan error
-
-                        allChecksPassed = false; // Tandai bahwa ada pengecekan yang gagal
-                        $('#TotalSaldoCEX').text(`???`);
+                        console.error(`[${exchange}] Check failed:`, error);
+                        allChecksPassed = false;
                         processedCount++;
                     }
-                }));
+                }
 
                 // Jika ada pengecekan yang gagal, beri tahu pengguna dan berhenti
                 if (!allChecksPassed) {
@@ -2518,6 +2606,8 @@
                 // Menjumlahkan saldo dari setiap exchange yang diaktifkan
                 $('input[type="checkbox"]:checked').each(function () {
                     const id = $(this).attr('id');
+                    if (!CEX_LIST.includes(id)) return;
+                    
                     const saldoKey = `MULTI_${id}Saldo`;
                     const saldo = parseFloat(localStorage.getItem(saldoKey)) || 0;
                     totalSaldo += saldo;
@@ -2580,69 +2670,50 @@
             }
 
             $('#SaveWalletChains').on('click', async function () {
-                $(this).prop('disabled', true);  // Menonaktifkan tombol selama proses
+                $(this).prop('disabled', true);
 
-                // Bersihkan cache saldo chain supaya tampilan selalu memakai hasil fetch terbaru
-                localStorage.removeItem('MULTI_assetDataCEX');
-                localStorage.removeItem('MULTI_TotalSaldoChain');
-                localStorage.removeItem('MULTI_lastUpdateChain');
+                const walletInput = $('#multiWallets').val() || '';
+                const wallets = walletInput.split(/[\n,]+/).map(w => w.trim()).filter(w => w.length > 0);
+                
+                const checkedChains = [];
+                const CHAINS_LIST = ['ETHEREUM', 'BSC', 'POLYGON', 'BASE', 'ARBITRUM', 'AVAX', 'SOLANA'];
+                CHAINS_LIST.forEach(c => {
+                    if ($(`#${c}`).is(':checked')) checkedChains.push(c.toLowerCase());
+                });
 
                 // Show loading overlay only if not already active
                 const isStandaloneCall = !window.BalanceCheckOverlay.isActive;
                 if (isStandaloneCall) {
                     window.BalanceCheckOverlay.show(
                         'Cek Saldo Wallet',
-                        'Mengambil data saldo dari wallet chains...'
+                        'Mengambil data saldo dari multi-wallet chains...'
                     );
                     window.BalanceCheckOverlay.updateProgress(10, 'Memvalidasi input...');
                 }
 
-                $('#LTotalSaldoWallets').text('');
-                $('#TotalSaldoWallets').text('');
-
-                const selectedChains = {
-                    ethereum: $('#ETHEREUM').is(':checked') ? $('#ethWallet').val() : null,
-                    bsc: $('#BSC').is(':checked') ? $('#bscWallet').val() : null,
-                    polygon: $('#POLYGON').is(':checked') ? $('#polygonWallet').val() : null,
-                    base: $('#BASE').is(':checked') ? $('#baseWallet').val() : null,
-                    arbitrum: $('#ARBITRUM').is(':checked') ? $('#arbitrumWallet').val() : null,
-                    avax: $('#AVAX').is(':checked') ? $('#avaxWallet').val() : null,
-                    solana: $('#SOLANA').is(':checked') ? $('#solanaWallet').val() : null
-                };
-
-                const invalidChains = Object.keys(selectedChains).filter(chain =>
-                    $(`#${chain.toUpperCase()}`).is(':checked') &&
-                    (selectedChains[chain] === null || selectedChains[chain].trim() === '')
-                );
-
-                if (invalidChains.length > 0) {
-                    $('#output_chain').html(
-                        `<tr><td colspan="4" class="uk-text-danger">Wallet Chain ${invalidChains.join(', ')} harus diisi!</td></tr>`
-                    );
-                    $('#assetTableWallet').show();
-                    $(this).prop('disabled', false);  // Mengaktifkan kembali tombol jika ada error
-                    // Emit completion on error/invalid so combined flow can continue
-                    $(document).trigger('WalletCheckCompleted');
-                    if (isStandaloneCall) window.BalanceCheckOverlay.hide(); // Hide overlay on error only if standalone
-                    return;
-                }
-
-                const validChains = Object.keys(selectedChains).filter(chain => selectedChains[chain]);
-
-                if (validChains.length === 0) {
-                    $('#output_chain').html('<tr><td colspan="4">Pilih Min 1 Chain!!</td></tr>');
+                if (wallets.length === 0) {
+                    $('#output_chain').html('<tr><td colspan="5" class="uk-text-danger">Masukkan minimal satu wallet address!</td></tr>');
                     $('#assetTableWallet').show();
                     $(this).prop('disabled', false);
-                    // Emit completion on error/invalid so combined flow can continue
                     $(document).trigger('WalletCheckCompleted');
-                    if (isStandaloneCall) window.BalanceCheckOverlay.hide(); // Hide overlay on error only if standalone
+                    if (isStandaloneCall) window.BalanceCheckOverlay.hide();
                     return;
                 }
 
+                if (checkedChains.length === 0) {
+                    $('#output_chain').html('<tr><td colspan="5" class="uk-text-danger">Pilih minimal satu chain!</td></tr>');
+                    $('#assetTableWallet').show();
+                    $(this).prop('disabled', false);
+                    $(document).trigger('WalletCheckCompleted');
+                    if (isStandaloneCall) window.BalanceCheckOverlay.hide();
+                    return;
+                }
 
-                $('#output_chain').html('<tr><td colspan="4">Loading...</td></tr>');
+                $('#output_chain').html('<tr><td colspan="5">Loading...</td></tr>');
                 $('#assetTableWallet').show();
-                window.BalanceCheckOverlay.updateProgress(30, `Memproses ${validChains.length} chain(s)...`);
+                
+                const totalOperations = wallets.length * checkedChains.length;
+                window.BalanceCheckOverlay.updateProgress(30, `Memproses ${totalOperations} kombinasi wallet & chain...`);
 
                 try {
                     window.BalanceCheckOverlay.updateProgress(40, 'Mengambil rate token...');
@@ -2652,46 +2723,64 @@
                         throw new Error('Tidak dapat mengambil data rate token.');
                     }
 
-                    window.BalanceCheckOverlay.updateProgress(60, 'Mengambil saldo dari wallet chains...');
+                    window.BalanceCheckOverlay.updateProgress(50, 'Mengambil saldo wallet...');
 
-                    const results = await Promise.all(validChains.map((chain, index) => {
-                        // Update progress for each chain
-                        const progressPercent = 60 + (index / validChains.length) * 30;
-                        window.BalanceCheckOverlay.updateProgress(progressPercent, `Memproses ${chain.toUpperCase()}...`);
+                    const results = [];
+                    let processed = 0;
 
-                        return chain === 'solana' ?
-                            getSolanaBalance(selectedChains[chain], tokenRates) :
-                            getAssetBalancesEVM(chains[chain], erc20Contracts[chain], selectedChains[chain], chain, tokenRates);
-                    }));
+                    // Execute sequentially to avoid RPC rate limits
+                    for (const wallet of wallets) {
+                        for (const chain of checkedChains) {
+                            try {
+                                processed++;
+                                const progress = 50 + (processed / totalOperations) * 40;
+                                window.BalanceCheckOverlay.updateProgress(progress, `Checking ${chain.toUpperCase()} for ${wallet.substring(0, 6)}...`);
+                                
+                                let result;
+                                if (chain === 'solana') {
+                                    result = await getSolanaBalance(wallet, tokenRates);
+                                } else {
+                                    result = await getAssetBalancesEVM(chains[chain], erc20Contracts[chain], wallet, chain, tokenRates);
+                                }
+                                result.walletAddress = wallet;
+                                results.push(result);
+                            } catch (e) {
+                                console.error(`Error checking ${chain} for ${wallet}:`, e);
+                                results.push({ chain, walletAddress: wallet, error: e.message });
+                            }
+                        }
+                    }
 
                     window.BalanceCheckOverlay.updateProgress(90, 'Menampilkan hasil ke tabel...');
 
                     $('#output_chain').html(results.map(result => {
                         if (result.error) {
-                            return `<tr><td colspan="4">ERROR : ${result.error}</td></tr>`;
+                            return `<tr><td colspan="5" class="uk-text-small"><b>${result.chain.toUpperCase()}</b> (${result.walletAddress.substring(0, 6)}): <span class="uk-text-danger">${result.error}</span></td></tr>`;
                         } else {
+                            const shortWallet = result.walletAddress.substring(0, 6) + '...' + result.walletAddress.substring(result.walletAddress.length - 4);
                             return `
                             <tr data-chain="${result.chain.toUpperCase()}">
                                 <td class="chain-label">
-                                    <a class="uk-link-muted text-chain-${result.chain.toLowerCase()}" href="${result.walletLink}" target="_blank">
-                                        ${result.chain.toUpperCase()}
-                                    </a>
+                                    <span class="uk-text-bold text-chain-${result.chain.toLowerCase()}">${result.chain.toUpperCase()}</span>
+                                </td>
+                                <td class="uk-text-truncate" title="${result.walletAddress}">
+                                    <a class="uk-link-muted" href="${result.walletLink}" target="_blank">${shortWallet}</a>
                                 </td>
                                 <td class="uk-text-center">${result.assetBalance} ${result.assetSymbol}</td>
                                 <td class="uk-text-center">${result.gasBalance} ${result.gasSymbol} [${result.gasBalanceInUSD}]</td>
-                                <td class="uk-text-right">${result.totalBalanceInUSD} USDT</td>
+                                <td class="uk-text-right uk-text-bold">${result.totalBalanceInUSD} USDT</td>
                             </tr>
                         `;
                         }
                     }).join(''));
 
-                    // Wait for DOM to update the table
                     await new Promise(resolve => setTimeout(resolve, 100));
 
                     // Simpan data ke localStorage setelah semua selesai
                     const assetData = results.filter(result => !result.error).map(result => {
                         return {
                             chain: result.chain,
+                            walletAddress: result.walletAddress,
                             assetBalance: parseFloat(result.assetBalance),
                             assetSymbol: result.assetSymbol,
                             gasBalance: parseFloat(result.gasBalance),
@@ -2700,7 +2789,7 @@
                             total: parseFloat(result.totalBalanceInUSD),
                             walletLink: result.walletLink,
                         };
-                    }).filter(item => item !== null);
+                    });
 
                     if (assetData.length > 0) {
                         window.BalanceCheckOverlay.updateProgress(95, 'Menyimpan data...');
@@ -2711,7 +2800,7 @@
                         localStorage.setItem('MULTI_lastUpdateChain', formattedTime);
 
                         const totalUSDT = assetData.reduce((sum, data) => sum + data.total, 0);
-                        $('#LTotalSaldoWallets').text("Total");
+                        $('#LTotalSaldoWallets').text("Total Portfolio Wallet");
                         $('#TotalSaldoWallets').text(totalUSDT.toFixed(2) + " $");
                         localStorage.setItem('MULTI_TotalSaldoChain', totalUSDT.toFixed(2));
 
@@ -2721,37 +2810,25 @@
                         // Tunggu hingga tabel wallet benar-benar terisi dan total siap
                         await waitFor(() => isWalletTableReady(results), 15000, 100);
 
-                        window.BalanceCheckOverlay.updateProgress(100, 'Memeriksa Ulang Data...');
+                        window.BalanceCheckOverlay.updateProgress(100, 'Selesai!');
                     } else {
-                        throw new Error('Tidak ada data valid untuk disimpan.');
+                        throw new Error('Tidak ada saldo ditemukan pada wallet/chain terpilih.');
                     }
                 } catch (error) {
+                    console.error('Wallet check error:', error);
                     localStorage.setItem('MULTI_TotalSaldoChain', '0');
                     localStorage.removeItem('MULTI_assetDataCEX');
                     $('#output_chain').html(
-                        `<tr><td colspan="4">ERROR : ${error.message}</td></tr>`
+                        `<tr><td colspan="5" class="uk-text-danger">ERROR : ${error.message}</td></tr>`
                     );
-                    // Emit completion on error so combined flow can continue
+                } finally {
+                    $(this).prop('disabled', false);
                     $(document).trigger('WalletCheckCompleted');
                     if (isStandaloneCall) {
-                        setTimeout(() => window.BalanceCheckOverlay.hide(), 200);
+                        setTimeout(() => window.BalanceCheckOverlay.hide(), 500);
                     }
+                    ShowLabelModal("load");
                 }
-
-                ShowLabelModal("load");
-                updateSummaryCards();
-
-                // Emit completion event for combined flow listeners (success path)
-                $(document).trigger('WalletCheckCompleted');
-
-                // Hide overlay after completion only if standalone call
-                if (isStandaloneCall) {
-                    setTimeout(() => {
-                        window.BalanceCheckOverlay.hide();
-                    }, 200);
-                }
-
-                $(this).prop('disabled', false);  // Mengaktifkan kembali tombol setelah selesai
             });
 
             // update tabel cex
@@ -2763,7 +2840,7 @@
                     const id = checkbox.attr('id');
                     const isChecked = checkbox.prop('checked');
                     const saldoKey = `MULTI_${id}Saldo`;
-                    const tableRow = $(`#assetTableCexs tr:contains(${id})`);
+                    const tableRow = $(`#assetTableCexs tr[data-cex="${id}"]`);
 
                     if (isChecked) {
                         tableRow.show(); // Tampilkan baris jika checkbox diaktifkan
@@ -2789,396 +2866,246 @@
                 $('#TotalSaldoCEX').text(`${totalSaldo.toFixed(2)} $`);
             }
 
-            async function cekAssetBitget() {
-                const apiKey = $("#apikeyBITGET").val();
-                const apiSecret = $("#secretkeyBITGET").val();
-                const passphrase = $("#passphraseBITGET").val();
-                if (!apiKey || !apiSecret || !passphrase) return;
-
-                const apiUrl = "https://cors-anywhere.com/https://api.bitget.com/api/v2/spot/account/assets";
-                const timestamp = Date.now().toString();
-                const preSignature = timestamp + "GET" + "/api/v2/spot/account/assets";
-                const signature = CryptoJS.HmacSHA256(preSignature, apiSecret).toString(CryptoJS.enc.Base64);
-
-                const headers = {
-                    "ACCESS-KEY": apiKey,
-                    "ACCESS-SIGN": signature,
-                    "ACCESS-TIMESTAMP": timestamp,
-                    "ACCESS-PASSPHRASE": passphrase,
-                };
-
-                try {
-                    $("#BITGETSaldo").text("Loading...");
-                    const response = await fetch(apiUrl, { method: "GET", headers });
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    const data = await response.json();
-
-                    const assets = Array.isArray(data?.data)
-                        ? data.data.map(item => ({
-                            symbol: item.coin,
-                            amount:
-                                (parseFloat(item.available || 0) || 0) +
-                                (parseFloat(item.frozen || 0) || 0)
-                        }))
-                        : [];
-
-                    await renderExchangeAssets("BITGET", assets);
-                    console.log("Cek Asset Bitget:", assets);
-                } catch (error) {
-                    $("#BITGETSaldo").text("ERROR").addClass("error");
-                    localStorage.setItem('MULTI_BITGETSaldo', "0");
-                    localStorage.removeItem('MULTI_BITGET_DETAIL');
-                    if (typeof toast !== 'undefined' && toast.error) toast.error("Error Pengecekan Market Bitget: " + error);
-                    console.error(error);
-                }
-            }
-
-            async function cekAssetKucoin() {
-                const apiKey = $("#apikeyKUCOIN").val();
-                const apiSecret = $("#secretkeyKUCOIN").val();
-                const passphrase = $("#passphraseKUCOIN").val();
-                if (!apiKey || !apiSecret || !passphrase) return;
-
-                const apiUrl = "https://api.kucoin.com/api/v1/accounts";
-                const timestamp = Date.now().toString();
-                const preSignature = timestamp + "GET" + "/api/v1/accounts";
-                const signature = CryptoJS.HmacSHA256(preSignature, apiSecret).toString(CryptoJS.enc.Base64);
-                const passphraseENC = CryptoJS.HmacSHA256(passphrase, apiSecret).toString(CryptoJS.enc.Base64);
-
-                const headers = {
-                    "KC-API-KEY": apiKey,
-                    "KC-API-SIGN": signature,
-                    "KC-API-TIMESTAMP": timestamp,
-                    "KC-API-PASSPHRASE": passphraseENC,
-                    "KC-API-KEY-VERSION": "3",
-                    "Content-Type": "application/json"
-                };
-
-                try {
-                    $("#KUCOINSaldo").text("Loading...");
-                    const response = await fetch(apiUrl, { method: "GET", headers });
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    const data = await response.json();
-
-                    const assets = Array.isArray(data?.data)
-                        ? data.data.map(item => ({
-                            symbol: item.currency,
-                            amount: parseFloat(item.balance || item.available || 0) || 0
-                        }))
-                        : [];
-
-                    await renderExchangeAssets("KUCOIN", assets);
-                    console.log("Cek Asset Kucoin:", assets);
-                } catch (error) {
-                    $("#KUCOINSaldo").text("ERROR").addClass("error");
-                    localStorage.setItem('MULTI_KUCOINSaldo', "0");
-                    localStorage.removeItem('MULTI_KUCOIN_DETAIL');
-                    if (typeof toast !== 'undefined' && toast.error) toast.error("Error Pengecekan Market Kucoin: " + error);
-                    console.error(error);
-                }
-            }
-
-            async function cekAssetBybit() {
-                const apiKey = $("#apikeyBYBIT").val();
-                const apiSecret = $("#secretkeyBYBIT").val();
-                if (!apiKey || !apiSecret) return;
-
-                const recvWindow = 5000;
-                const timestamp = Date.now().toString();
-                const host = "https://api.bybit.com";
-                const method = "GET";
-                const url = "/v5/account/wallet-balance";
-                const queryString = "accountType=UNIFIED";
-
-                function calculateSignature(secret, timestamp, recvWindow, queryString) {
-                    const dataToSign = `${timestamp}${apiKey}${recvWindow}${queryString}`;
-                    return CryptoJS.HmacSHA256(dataToSign, secret).toString(CryptoJS.enc.Hex);
-                }
-
-                const sign = calculateSignature(apiSecret, timestamp, recvWindow, queryString);
-                const fullUrl = `${host}${url}?${queryString}`;
-
-                try {
-                    $("#BYBITSaldo").text("Loading...");
-                    const response = await fetch(fullUrl, {
-                        method,
-                        headers: {
-                            Accept: "application/json",
-                            "Content-Type": "application/json",
-                            "X-BAPI-API-KEY": apiKey,
-                            "X-BAPI-TIMESTAMP": timestamp,
-                            "X-BAPI-RECV-WINDOW": recvWindow.toString(),
-                            "X-BAPI-SIGN": sign,
-                        }
-                    });
-
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    const data = await response.json();
-
-                    const coinList = data?.result?.list?.[0]?.coin;
-                    const assets = Array.isArray(coinList)
-                        ? coinList.map(item => ({
-                            symbol: item.coin,
-                            amount: parseFloat(item.equity || item.walletBalance || 0) || 0
-                        }))
-                        : [];
-
-                    await renderExchangeAssets("BYBIT", assets);
-                    console.log("Cek Asset Bybit:", assets);
-                } catch (error) {
-                    $("#BYBITSaldo").text("ERROR").addClass("error");
-                    localStorage.setItem('MULTI_BYBITSaldo', "0");
-                    localStorage.removeItem('MULTI_BYBIT_DETAIL');
-                    if (typeof toast !== 'undefined' && toast.error) toast.error("Error Pengecekan Market Bybit: " + error);
-                    console.error(error);
-                }
-            }
-
-            async function cekAssetIndodax() {
-                const apiKey = $("#apikeyINDODAX").val();
-                const secretKey = $("#secretkeyINDODAX").val();
-                if (!apiKey || !secretKey) return;
-                const timestamp = Date.now();
-                const recvWindow = 5000;
-                const method = "getInfo";
-                const requestBody = `method=${method}&timestamp=${timestamp}&recvWindow=${recvWindow}`;
-                const signature = CryptoJS.HmacSHA512(requestBody, secretKey).toString();
-
-                try {
-                    $("#INDODAXSaldo").text("Loading...");
-
-                    const response = await $.ajax({
-                        url: "https://proxykiri.awokawok.workers.dev/?https://indodax.com/tapi",
-                        type: "POST",
-                        headers: {
-                            "Key": apiKey,
-                            "Sign": signature
-                        },
-                        data: requestBody
-                    });
-
-                    if (response.success) {
-                        // Indodax API returns both "balance" (available) and "balance_hold" (in orders)
-                        const balance = response.return.balance || {};
-                        const balanceHold = response.return.balance_hold || {};
-
-                        console.log("[INDODAX] Raw balance:", balance);
-                        console.log("[INDODAX] Raw balance_hold:", balanceHold);
-
-                        // Combine balance + balance_hold for total assets
-                        const combinedBalance = {};
-
-                        // Add available balance
-                        Object.entries(balance).forEach(([symbol, value]) => {
-                            const amount = parseFloat(value || 0) || 0;
-                            if (amount > 0) {
-                                combinedBalance[symbol] = amount;
-                            }
-                        });
-
-                        // Add held balance (in orders)
-                        Object.entries(balanceHold).forEach(([symbol, value]) => {
-                            const amount = parseFloat(value || 0) || 0;
-                            if (amount > 0) {
-                                combinedBalance[symbol] = (combinedBalance[symbol] || 0) + amount;
-                            }
-                        });
-
-                        // Convert to assets array
-                        const assets = Object.entries(combinedBalance).map(([symbol, amount]) => ({
-                            symbol: symbol.toUpperCase(),
-                            amount: amount
-                        }));
-
-                        console.log("[INDODAX] Combined assets:", assets);
-
-                        const rateIDR = await USDTIDR(1);
-                        const overrides = {};
-                        if (rateIDR && isFinite(rateIDR) && rateIDR > 0) {
-                            overrides.IDR = 1 / rateIDR;
-                        }
-
-                        await renderExchangeAssets("INDODAX", assets, { overrides });
-                        console.log("[INDODAX] Final displayed assets:", assets.length, "items");
-                    } else {
-                        $("#INDODAXSaldo").text("NO DATA").addClass("error");
-                        localStorage.setItem("MULTI_INDODAXSaldo", "0");
-                        localStorage.removeItem("MULTI_INDODAX_DETAIL");
-                    }
-                } catch (error) {
-                    $("#INDODAXSaldo").text("ERROR").addClass("error");
-                    localStorage.setItem("MULTI_INDODAXSaldo", "0");
-                    localStorage.removeItem("MULTI_INDODAX_DETAIL");
-                    if (typeof toast !== 'undefined' && toast.error) toast.error("Error Pengecekan Asset Indodax: " + error);
-                    console.error(error);
-                }
-            }
-
-            async function cekAssetMexc() {
-                const PROXY_BASE = "https://cors-proxy-rosy.vercel.app/api/proxy"; // ganti jika perlu
-                const container = document.querySelector("#MEXCSaldo");
-                const apiKey = (document.querySelector("#apikeyMEXC")?.value || "").trim();
-                const apiSecret = (document.querySelector("#secretkeyMEXC")?.value || "").trim();
-                const recvWindow = 5000;
-
-                const setOut = (html) => { if (container) container.innerHTML = html; };
-
-                try {
-                    setOut("Loading...");
-                    if (!apiKey || !apiSecret) throw new Error("API Key & Secret wajib diisi");
-
-                    // 1) ambil server time MEXC via proxy (untuk kurangi clock-skew)
-                    let serverTime = Date.now();
-                    try {
-                        const timeUrl = `${PROXY_BASE}?url=${encodeURIComponent("https://api.mexc.com/api/v3/time")}`;
-                        const rTime = await fetch(timeUrl);
-                        const jTime = await rTime.json().catch(() => ({}));
-                        if (typeof jTime?.serverTime === "number") serverTime = jTime.serverTime;
-                    } catch {
-                        /* abaikan, lanjut pakai Date.now() */
-                    }
-
-                    // 2) siapkan query & signature (HMAC-SHA256 hex)
-                    const params = { recvWindow, timestamp: String(serverTime) };
-                    const usp = new URLSearchParams();
-                    for (const k of Object.keys(params)) usp.append(k, String(params[k]));
-                    const queryString = usp.toString(); // recvWindow=5000&timestamp=...
-                    const signature = CryptoJS.HmacSHA256(queryString, apiSecret).toString(CryptoJS.enc.Hex);
-
-                    // 3) rakit target URL MEXC + signature, lalu bungkus ke proxy (HARUS encode)
-                    const targetUrl = `https://api.mexc.com/api/v3/account?${queryString}&signature=${signature}`;
-                    const proxiedUrl = `${PROXY_BASE}?url=${encodeURIComponent(targetUrl)}`;
-
-                    // 4) panggil API lewat proxy
-                    const headers = { "X-MEXC-APIKEY": apiKey, "Content-Type": "application/json" };
-                    const resp = await fetch(proxiedUrl, { method: "GET", headers });
-
-                    // kadang non-200 tapi berisi JSON error {code,msg}
-                    const rawText = await resp.text();
-                    let data; try { data = JSON.parse(rawText); } catch { data = rawText; }
-
-                    if (!resp.ok || (data && typeof data === "object" && data.code && data.msg)) {
-                        const code = data?.code ?? resp.status;
-                        const msg = data?.msg ?? resp.statusText ?? "Unknown error";
-                        throw new Error(`MEXC error (${code}): ${msg}`);
-                    }
-
-                    // 5) olah saldo
-                    const balances = Array.isArray(data?.balances) ? data.balances : null;
-                    if (!balances) throw new Error("Tidak ada data balances dari MEXC");
-
-                    const assets = balances.map(item => ({
-                        symbol: item.asset,
-                        amount:
-                            (parseFloat(item.free || 0) || 0) +
-                            (parseFloat(item.locked || 0) || 0)
-                    }));
-
-                    await renderExchangeAssets("MEXC", assets);
-                    console.log("Cek Asset MEXC:", assets);
-
-                } catch (error) {
-                    try {
-                        localStorage.setItem('MULTI_MEXCSaldo', "0");
-                        localStorage.removeItem('MULTI_MEXC_DETAIL');
-                    } catch { }
-                    setOut(`<span class="uk-text-danger">ERROR</span><br/><small>${escapeHtml(error.message || String(error))}</small>`);
-                    if (typeof toast !== 'undefined' && toast.error) toast.error("Error Pengecekan MEXC: " + (error.message || error));
-                    console.error(error);
-                }
-            }
-
             async function cekAssetBinance() {
-                const apiKey = $("#apikeyBINANCE").val();
-                const apiSecret = $("#secretkeyBINANCE").val();
-                if (!apiKey || !apiSecret) return;
-
-                const apiUrl = "https://api-gcp.binance.com/api/v3/account";
-                const timestamp = Date.now();
-                const queryString = `timestamp=${timestamp}`;
-                const signature = CryptoJS.HmacSHA256(queryString, apiSecret).toString(CryptoJS.enc.Hex);
-                const fullUrl = `${apiUrl}?${queryString}&signature=${signature}`;
-
-                const headers = { "X-MBX-APIKEY": apiKey };
-
+                const creds = getCEXCredentials('BINANCE');
+                if (!creds?.ApiKey || !creds?.ApiSecret) { setCEXStatus('BINANCE', 'nokey'); return; }
+                const ts = Date.now().toString();
+                const qs = `timestamp=${ts}`;
+                const sign = CryptoJS.HmacSHA256(qs, creds.ApiSecret).toString(CryptoJS.enc.Hex);
+                const url = `https://api-gcp.binance.com/api/v3/account?${qs}&signature=${sign}`;
                 try {
-                    $("#BINANCESaldo").text("Loading...");
-
-                    const response = await fetch(fullUrl, { method: "GET", headers });
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    const data = await response.json();
-
-                    if (!data || !Array.isArray(data.balances)) throw new Error("Tidak ada data balance");
-
-                    const assets = data.balances.map(item => ({
-                        symbol: item.asset,
-                        amount:
-                            (parseFloat(item.free || 0) || 0) +
-                            (parseFloat(item.locked || 0) || 0)
-                    }));
-
-                    await renderExchangeAssets("BINANCE", assets);
-                    console.log("Cek Asset Binance:", assets);
-                } catch (error) {
-                    $("#BINANCESaldo").text("ERROR").addClass("error");
-                    localStorage.setItem('MULTI_BINANCESaldo', "0");
+                    setCEXStatus('BINANCE', 'loading');
+                    const r = await fetch(url, { headers: { 'X-MBX-APIKEY': creds.ApiKey } });
+                    const d = await r.json();
+                    if (!r.ok) throw new Error(d?.msg || `HTTP ${r.status}`);
+                    const assets = (d.balances || []).map(i => ({ symbol: i.asset, amount: parseFloat(i.free || 0) + parseFloat(i.locked || 0) }));
+                    await renderExchangeAssets('BINANCE', assets);
+                } catch (e) {
+                    setCEXStatus('BINANCE', 'error', e.message);
+                    localStorage.setItem('MULTI_BINANCESaldo', '0');
                     localStorage.removeItem('MULTI_BINANCE_DETAIL');
-                    if (typeof toast !== 'undefined' && toast.error) toast.error("Error Pengecekan Market Binance: " + error.message);
-                    console.error(error);
                 }
             }
 
             async function cekAssetGate() {
-                const apiKey = $("#apikeyGATE").val();
-                const apiSecret = $("#secretkeyGATE").val();
-                if (!apiKey || !apiSecret) return;
-
-                const host = "https://cors-proxy-rosy.vercel.app/api/proxy?url=https://api.gateio.ws";
-                const prefix = "/api/v4";
-                const method = "GET";
-                const url = "/spot/accounts";
-
-                const query_param = "";
-                const body_param = '';
-                const timestamp = Math.floor(Date.now() / 1000);
-                const body_hash = CryptoJS.SHA512(body_param).toString();
-                const sign_string = `${method}\n${prefix}${url}\n${query_param}\n${body_hash}\n${timestamp}`;
-                const sign = CryptoJS.HmacSHA512(sign_string, apiSecret).toString();
-                const full_url = host + prefix + url;
-
+                const creds = getCEXCredentials('GATE');
+                if (!creds?.ApiKey || !creds?.ApiSecret) { setCEXStatus('GATE', 'nokey'); return; }
+                const method = 'GET', path = '/api/v4/spot/accounts', ts = Math.floor(Date.now() / 1000);
+                const hash = CryptoJS.SHA512('').toString();
+                const sign = CryptoJS.HmacSHA512(`${method}\n${path}\n\n${hash}\n${ts}`, creds.ApiSecret).toString();
+                const url = `${PROXY_BASE}${encodeURIComponent('https://api.gateio.ws' + path)}`;
                 try {
-                    $("#GATESaldo").text("Loading...");
-                    const response = await fetch(full_url, {
-                        method,
+                    setCEXStatus('GATE', 'loading');
+                    const r = await fetch(url, { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'KEY': creds.ApiKey, 'Timestamp': ts, 'SIGN': sign } });
+                    const d = await r.json();
+                    if (!r.ok) throw new Error(d?.label || d?.message || `HTTP ${r.status}`);
+                    const assets = (d || []).map(i => ({ symbol: i.currency, amount: parseFloat(i.available || 0) + parseFloat(i.locked || 0) }));
+                    await renderExchangeAssets('GATE', assets);
+                } catch (e) {
+                    setCEXStatus('GATE', 'error', e.message);
+                    localStorage.setItem('MULTI_GATESaldo', '0');
+                    localStorage.removeItem('MULTI_GATE_DETAIL');
+                }
+            }
+
+            async function cekAssetBitget() {
+                const creds = getCEXCredentials('BITGET');
+                if (!creds?.ApiKey || !creds?.ApiSecret) { setCEXStatus('BITGET', 'nokey'); return; }
+
+                function bitgetSign(path) {
+                    const ts = Date.now().toString();
+                    const sign = CryptoJS.HmacSHA256(`${ts}GET${path}`, creds.ApiSecret).toString(CryptoJS.enc.Base64);
+                    return { ts, sign };
+                }
+
+                async function bitgetFetch(path) {
+                    const { ts, sign } = bitgetSign(path);
+                    const url = `${PROXY_BASE_KUCOIN}?url=${encodeURIComponent('https://api.bitget.com' + path)}`;
+                    const r = await fetch(url, {
+                        method: 'GET',
                         headers: {
-                            'Accept': 'application/json',
+                            'ACCESS-KEY': creds.ApiKey,
+                            'ACCESS-SIGN': sign,
+                            'ACCESS-TIMESTAMP': ts,
+                            'ACCESS-PASSPHRASE': creds.Passphrase || '',
                             'Content-Type': 'application/json',
-                            'Timestamp': timestamp,
-                            'KEY': apiKey,
-                            'SIGN': sign
+                            'locale': 'en-US'
                         }
                     });
+                    const d = await r.json();
+                    if (d.code && d.code !== '00000') throw new Error(d.msg || `Error ${d.code}`);
+                    return d.data || [];
+                }
 
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    const data = await response.json();
+                try {
+                    setCEXStatus('BITGET', 'loading');
+                    const [spotRes, fundRes] = await Promise.allSettled([
+                        bitgetFetch('/api/v2/spot/account/assets'),
+                        bitgetFetch('/api/v2/account/funding-assets')
+                    ]);
 
-                    const assets = Array.isArray(data)
-                        ? data.map(item => ({
-                            symbol: item.currency,
-                            amount:
-                                (parseFloat(item.available || 0) || 0) +
-                                (parseFloat(item.locked || 0) || 0)
-                        }))
-                        : [];
+                    if (spotRes.status === 'rejected' && fundRes.status === 'rejected')
+                        throw new Error(spotRes.reason?.message || fundRes.reason?.message);
 
-                    await renderExchangeAssets("GATE", assets);
-                    console.log("Cek Asset Gate:", assets);
-                } catch (error) {
-                    $("#GATESaldo").text("ERROR").addClass("error");
-                    localStorage.setItem('MULTI_GATESaldo', "0");
-                    localStorage.removeItem('MULTI_GATE_DETAIL');
-                    if (typeof toast !== 'undefined' && toast.error) toast.error("Error Pengecekan Market Gate: " + error);
-                    console.error(error);
+                    const coinMap = {};
+                    const addAssets = (list) => {
+                        for (const i of (list || [])) {
+                            const sym = i.coin || i.coinName;
+                            const amt = parseFloat(i.available || 0) + parseFloat(i.frozen || i.lock || 0);
+                            if (amt > 0) coinMap[sym] = (coinMap[sym] || 0) + amt;
+                        }
+                    };
+                    if (spotRes.status === 'fulfilled') addAssets(spotRes.value);
+                    if (fundRes.status === 'fulfilled') addAssets(fundRes.value);
+
+                    const assets = Object.entries(coinMap).map(([symbol, amount]) => ({ symbol, amount }));
+                    await renderExchangeAssets('BITGET', assets);
+                } catch (e) {
+                    setCEXStatus('BITGET', 'error', e.message);
+                    localStorage.setItem('MULTI_BITGETSaldo', '0');
+                    localStorage.removeItem('MULTI_BITGET_DETAIL');
+                }
+            }
+
+            async function cekAssetKucoin() {
+                const creds = getCEXCredentials('KUCOIN');
+                if (!creds?.ApiKey || !creds?.ApiSecret || !creds?.Passphrase) { setCEXStatus('KUCOIN', 'nokey'); return; }
+                const ts = Date.now().toString();
+                const sign = CryptoJS.HmacSHA256(ts + 'GET' + '/api/v1/accounts', creds.ApiSecret).toString(CryptoJS.enc.Base64);
+                const pp = CryptoJS.HmacSHA256(creds.Passphrase, creds.ApiSecret).toString(CryptoJS.enc.Base64);
+                const url = `${PROXY_BASE_KUCOIN}?url=${encodeURIComponent('https://api.kucoin.com/api/v1/accounts')}`;
+                try {
+                    setCEXStatus('KUCOIN', 'loading');
+                    const r = await fetch(url, { headers: { 'KC-API-KEY': creds.ApiKey, 'KC-API-SIGN': sign, 'KC-API-TIMESTAMP': ts, 'KC-API-PASSPHRASE': pp, 'KC-API-KEY-VERSION': '3', 'Content-Type': 'application/json' } });
+                    const d = await r.json();
+                    if (!r.ok) throw new Error(d?.msg || `HTTP ${r.status}`);
+                    await renderExchangeAssets('KUCOIN', (d.data || []).map(i => ({ symbol: i.currency, amount: parseFloat(i.balance || i.available || 0) || 0 })));
+                } catch (e) {
+                    setCEXStatus('KUCOIN', 'error', e.message);
+                    localStorage.setItem('MULTI_KUCOINSaldo', '0');
+                    localStorage.removeItem('MULTI_KUCOIN_DETAIL');
+                }
+            }
+
+            async function cekAssetBybit() {
+                const creds = getCEXCredentials('BYBIT');
+                if (!creds?.ApiKey || !creds?.ApiSecret) { setCEXStatus('BYBIT', 'nokey'); return; }
+                const ts = Date.now().toString();
+                const qs = 'accountType=UNIFIED';
+                const sign = CryptoJS.HmacSHA256(`${ts}${creds.ApiKey}5000${qs}`, creds.ApiSecret).toString(CryptoJS.enc.Hex);
+                const url = `https://api.bybit.com/v5/account/wallet-balance?${qs}`;
+                try {
+                    setCEXStatus('BYBIT', 'loading');
+                    const r = await fetch(url, { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-BAPI-API-KEY': creds.ApiKey, 'X-BAPI-TIMESTAMP': ts, 'X-BAPI-RECV-WINDOW': '5000', 'X-BAPI-SIGN': sign } });
+                    const d = await r.json();
+                    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                    const coins = d?.result?.list?.[0]?.coin || [];
+                    await renderExchangeAssets('BYBIT', coins.map(i => ({ symbol: i.coin, amount: parseFloat(i.equity || i.walletBalance || 0) || 0 })));
+                } catch (e) {
+                    setCEXStatus('BYBIT', 'error', e.message);
+                    localStorage.setItem('MULTI_BYBITSaldo', '0');
+                    localStorage.removeItem('MULTI_BYBIT_DETAIL');
+                }
+            }
+
+            async function cekAssetMexc() {
+                const creds = getCEXCredentials('MEXC');
+                if (!creds?.ApiKey || !creds?.ApiSecret) { setCEXStatus('MEXC', 'nokey'); return; }
+                const serverTime = Date.now();
+                const qs = `recvWindow=5000&timestamp=${serverTime}`;
+                const sign = CryptoJS.HmacSHA256(qs, creds.ApiSecret).toString(CryptoJS.enc.Hex);
+                const url = `https://api.mexc.com/api/v3/account?${qs}&signature=${sign}`;
+                try {
+                    setCEXStatus('MEXC', 'loading');
+                    const proxiedUrl = `${PROXY_BASE}${encodeURIComponent(url)}`;
+                    const r = await fetch(proxiedUrl, { headers: { 'X-MEXC-APIKEY': creds.ApiKey, 'Content-Type': 'application/json' } });
+                    const d = await r.json();
+                    if (d?.code) throw new Error(d?.msg || `MEXC Error ${d.code}`);
+                    await renderExchangeAssets('MEXC', (d.balances || []).map(i => ({ symbol: i.asset, amount: (parseFloat(i.free || 0)) + (parseFloat(i.locked || 0)) })));
+                } catch (e) {
+                    setCEXStatus('MEXC', 'error', e.message);
+                    localStorage.setItem('MULTI_MEXCSaldo', '0');
+                    localStorage.removeItem('MULTI_MEXC_DETAIL');
+                }
+            }
+
+            async function cekAssetIndodax() {
+                const creds = getCEXCredentials('INDODAX');
+                if (!creds?.ApiKey || !creds?.ApiSecret) { setCEXStatus('INDODAX', 'nokey'); return; }
+                const ts = Date.now();
+                const body = `method=getInfo&timestamp=${ts}&recvWindow=5000`;
+                const sign = CryptoJS.HmacSHA512(body, creds.ApiSecret).toString();
+                try {
+                    setCEXStatus('INDODAX', 'loading');
+                    const r = await $.ajax({ url: 'https://proxykiri.awokawok.workers.dev/?https://indodax.com/tapi', type: 'POST', headers: { 'Key': creds.ApiKey, 'Sign': sign }, data: body });
+                    if (!r.success) throw new Error('Indodax API error');
+                    const bal = r.return?.balance || {}, hold = r.return?.balance_hold || {};
+                    const combined = {};
+                    Object.entries(bal).forEach(([s, v]) => { const a = parseFloat(v || 0); if (a > 0) combined[s] = a; });
+                    Object.entries(hold).forEach(([s, v]) => { const a = parseFloat(v || 0); if (a > 0) combined[s] = (combined[s] || 0) + a; });
+                    const rateIDR = await USDTIDR(1);
+                    const overrides = rateIDR > 0 ? { IDR: 1 / rateIDR } : {};
+                    await renderExchangeAssets('INDODAX', Object.entries(combined).map(([s, a]) => ({ symbol: s.toUpperCase(), amount: a })), { overrides });
+                } catch (e) {
+                    setCEXStatus('INDODAX', 'error', e.message || String(e));
+                    localStorage.setItem('MULTI_INDODAXSaldo', '0');
+                    localStorage.removeItem('MULTI_INDODAX_DETAIL');
+                }
+            }
+
+            async function cekAssetHTX() {
+                const creds = getCEXCredentials('HTX');
+                if (!creds?.ApiKey || !creds?.ApiSecret) { setCEXStatus('HTX', 'nokey'); return; }
+                function htxSign(method, host, path, params, secret) {
+                    const sorted = Object.keys(params).sort().map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`).join('&');
+                    return CryptoJS.HmacSHA256(`${method}\n${host}\n${path}\n${sorted}`, secret).toString(CryptoJS.enc.Base64);
+                }
+                try {
+                    setCEXStatus('HTX', 'loading');
+                    const host = 'api.huobi.pro';
+                    const ts = new Date().toISOString().slice(0, 19);
+                    const aPath = '/v1/account/accounts';
+                    const aParams = { AccessKeyId: creds.ApiKey, SignatureMethod: 'HmacSHA256', SignatureVersion: '2', Timestamp: ts };
+                    aParams.Signature = htxSign('GET', host, aPath, aParams, creds.ApiSecret);
+                    const aUrl = `${PROXY_BASE_KUCOIN}?url=${encodeURIComponent(`https://${host}${aPath}?` + Object.keys(aParams).map(k => `${encodeURIComponent(k)}=${encodeURIComponent(aParams[k])}`).join('&'))}`;
+                    const aResp = await (await fetch(aUrl)).json();
+                    if (aResp.status !== 'ok' || !aResp.data?.length) throw new Error(aResp['err-msg'] || 'HTX accounts failed');
+                    const accountId = (aResp.data.find(a => a.type === 'spot') || aResp.data[0]).id;
+                    const bPath = `/v1/account/accounts/${accountId}/balance`;
+                    const bTs = new Date().toISOString().slice(0, 19);
+                    const bParams = { AccessKeyId: creds.ApiKey, SignatureMethod: 'HmacSHA256', SignatureVersion: '2', Timestamp: bTs };
+                    bParams.Signature = htxSign('GET', host, bPath, bParams, creds.ApiSecret);
+                    const bUrl = `${PROXY_BASE_KUCOIN}?url=${encodeURIComponent(`https://${host}${bPath}?` + Object.keys(bParams).map(k => `${encodeURIComponent(k)}=${encodeURIComponent(bParams[k])}`).join('&'))}`;
+                    const bResp = await (await fetch(bUrl)).json();
+                    if (bResp.status !== 'ok' || !bResp.data?.list) throw new Error(bResp['err-msg'] || 'HTX balance failed');
+                    const balMap = new Map();
+                    bResp.data.list.forEach(i => { const c = String(i.currency || '').toUpperCase(); const b = parseFloat(i.balance || 0) || 0; balMap.set(c, (balMap.get(c) || 0) + b); });
+                    await renderExchangeAssets('HTX', Array.from(balMap.entries()).map(([s, a]) => ({ symbol: s, amount: a })));
+                } catch (e) {
+                    setCEXStatus('HTX', 'error', e.message);
+                    localStorage.setItem('MULTI_HTXSaldo', '0');
+                    localStorage.removeItem('MULTI_HTX_DETAIL');
+                }
+            }
+
+            async function cekAssetOKX() {
+                const creds = getCEXCredentials('OKX');
+                if (!creds?.ApiKey || !creds?.ApiSecret || !creds?.Passphrase) { setCEXStatus('OKX', 'nokey'); return; }
+                const ts = new Date().toISOString();
+                const path = '/api/v5/account/balance';
+                const sign = CryptoJS.HmacSHA256(ts + 'GET' + path, creds.ApiSecret).toString(CryptoJS.enc.Base64);
+                const url = `${PROXY_BASE}${encodeURIComponent('https://www.okx.com' + path)}`;
+                try {
+                    setCEXStatus('OKX', 'loading');
+                    const r = await fetch(url, { headers: { 'OK-ACCESS-KEY': creds.ApiKey, 'OK-ACCESS-SIGN': sign, 'OK-ACCESS-TIMESTAMP': ts, 'OK-ACCESS-PASSPHRASE': creds.Passphrase } });
+                    const d = await r.json();
+                    if (d?.code !== '0') throw new Error(d?.msg || 'OKX failed');
+                    const details = d.data?.[0]?.details || [];
+                    await renderExchangeAssets('OKX', details.map(i => ({ symbol: String(i.ccy || '').toUpperCase(), amount: parseFloat(i.cashBal || i.availBal || 0) + parseFloat(i.frozenBal || 0) })));
+                } catch (e) {
+                    setCEXStatus('OKX', 'error', e.message);
+                    localStorage.setItem('MULTI_OKXSaldo', '0');
+                    localStorage.removeItem('MULTI_OKX_DETAIL');
                 }
             }
 
@@ -3470,19 +3397,18 @@
                 }
 
                 $('#lastUpdate').text(localStorage.getItem('MULTI_lastCheck'));
-                USDTIDR(modalAwal).then((idrusdt) => {
-                    const idrModalAwal = parseFloat(idrusdt).toLocaleString("id-ID"); // Format Modal Awal ke IDR
-                    const usdtModalAwal = modalAwal.toFixed(2); // Format Modal Awal ke USDT
+                const renderIdrSummary = (rate) => {
+                    const safeRate = Number.isFinite(rate) && rate > 0 ? rate : 0;
+                    const idrSaldoAkhir = (saldoAkhir * safeRate).toLocaleString("id-ID");
+                    const idrPNL = (pnl * safeRate).toLocaleString("id-ID");
 
-                    // Kalkulasi IDR untuk saldo akhir dan PNL
-                    const idrSaldoAkhir = (saldoAkhir * idrusdt / modalAwal).toLocaleString("id-ID");
-                    const idrPNL = (pnl * idrusdt / modalAwal).toLocaleString("id-ID");
-
-                    // Tampilkan nilai Saldo Akhir
                     $('#m_akhirs').text(`${saldoAkhir.toFixed(2)} $ (RP. ${idrSaldoAkhir})`);
-
-                    // Tampilkan nilai PNL
                     $('#m_pnls').text(`${pnl.toFixed(2)} $ (RP. ${idrPNL})`);
+                };
+
+                renderIdrSummary(parseFloat(localStorage.getItem('MULTI_USDTRate')));
+                USDTIDR(1).then((usdtRateIdr) => {
+                    renderIdrSummary(parseFloat(usdtRateIdr));
                 }).catch((error) => {
                     console.log("-----------------------");
                     console.log("Terjadi kesalahan saat konversi:", error);
@@ -3608,31 +3534,22 @@
                     console.log("Terjadi kesalahan saat konversi Modal Awal :", error);
                 });
 
+                // Load multiWallets
+                const savedMultiWallets = localStorage.getItem('MULTI_multiWallets');
+                if (savedMultiWallets) $('#multiWallets').val(savedMultiWallets);
+                restoreCEXCredentialInputs();
+
                 // Mengatur status checkbox dan nilai input berdasarkan data di localStorage
                 $('input[type="checkbox"]').each(function () {
                     const checkbox = $(this);
                     const id = checkbox.attr('id');
 
-                    // Ambil status checkbox dari localStorage, default unchecked jika tidak ada data
+                    // Ambil status checkbox dari localStorage, default checked untuk chain jika baru
                     const isChecked = localStorage.getItem(`MULTI_${id}`) === 'true';
                     checkbox.prop('checked', isChecked);
 
-                    // Aktifkan atau nonaktifkan input sesuai dengan status checkbox
-                    const relatedInputs = checkbox.closest('.input-group').find('input[type="text"], input[type="number"]');
-                    relatedInputs.prop('disabled', !isChecked);
-
-                    // Set nilai input dari localStorage jika ada
-                    relatedInputs.each(function () {
-                        const input = $(this);
-                        const inputId = input.attr('id');
-                        const savedValue = localStorage.getItem(`MULTI_${inputId}`);
-                        if (savedValue !== null) {
-                            input.val(savedValue);
-                        }
-                    });
-
                     // Menampilkan atau menyembunyikan baris tabel sesuai dengan status checkbox
-                    const tableRow = $(`#assetTableCexs tr:contains(${id})`);
+                    const tableRow = $(`#assetTableCexs tr[data-cex="${id}"]`);
                     if (isChecked) {
                         tableRow.show(); // Tampilkan baris jika checkbox dicentang
                         restoreExchangeRow(id);
@@ -3649,35 +3566,25 @@
                 // Memuat data hasil pengecekan aset wallet dari localStorage dan menampilkannya di tabel
                 const assetData = JSON.parse(localStorage.getItem('MULTI_assetDataCEX')) || [];
                 if (assetData.length > 0) {
+                    $('#assetTableWallet').show();
                     // Render data tabel
                     $('#output_chain').html(
                         assetData.map(row => {
-                            // Tentukan simbol token berdasarkan chain
-                            const tokenSymbol = row.chain === 'base' ? 'USDC' : 'USDT';  // Base menggunakan USDC, lainnya menggunakan USDT
-
+                            const shortWallet = row.walletAddress ? (row.walletAddress.substring(0, 6) + '...' + row.walletAddress.substring(row.walletAddress.length - 4)) : 'Unknown';
                             return `
-                            <tr>
-                                <td><a href="${row.walletLink}" target="_blank" class="text-chain-${row.chain.toLowerCase()}">${row.chain.toUpperCase()}</a></td>
+                            <tr data-chain="${row.chain.toUpperCase()}">
+                                <td><span class="uk-text-bold text-chain-${row.chain.toLowerCase()}">${row.chain.toUpperCase()}</span></td>
+                                <td title="${row.walletAddress || ''}"><a href="${row.walletLink}" target="_blank" class="uk-link-muted">${shortWallet}</a></td>
                                 <td>${row.assetBalance} ${row.assetSymbol}</td>
                                 <td>${row.gasBalance} ${row.gasSymbol} [${row.usdtGas}]</td>
-                                <td>${row.total} USDT</td>
+                                <td class="uk-text-right uk-text-bold">${row.total} USDT</td>
                             </tr>
-                        `;
+                            `;
                         }).join('')
                     );
-
-                    // Tampilkan tabel jika ada data
-                    $('#assetTableWallet').show();
-
-                    // Hitung total saldo USDT dari semua chain
-                    const totalUSDT = assetData.reduce((sum, data) => sum + parseFloat(data.total || 0), 0);
-                    $('#TotalSaldoWallets').text(totalUSDT.toFixed(2) + " $");
-
-                    // Menampilkan waktu terakhir diperbarui
-                    const lastUpdate = localStorage.getItem('MULTI_lastUpdateChain');
-                    if (lastUpdate) {
-                        $('#updatechain').text(lastUpdate);
-                    }
+                    const storedTotalChain = parseFloat(localStorage.getItem('MULTI_TotalSaldoChain')) || 0;
+                    $('#LTotalSaldoWallets').text("Total Portfolio Wallet");
+                    $('#TotalSaldoWallets').text(storedTotalChain.toFixed(2) + " $");
                 }
 
                 // Memuat saldo excanger dari localStorage dan menampilkannya di tabel
@@ -3903,17 +3810,28 @@
                     $.ajax({
                         url: "https://cors-proxy-rosy.vercel.app/api/proxy?url=https://indodax.com/api/ticker/usdtidr", // Endpoint Indodax untuk USDT ke IDR
                         success: function (response) {
-                            // Mendapatkan harga terkini dari Indodax API
-                            var USDTRate = parseFloat(response.ticker.last);
-                            localStorage.setItem('MULTI_USDTRate', USDTRate); // Menyimpan harga terkini ke localStorage
-                            console.log("-----------------------");
-                            console.log("Latest Rate Price USDTRate:", USDTRate);
+                            try {
+                                if (typeof response === 'string') {
+                                    response = JSON.parse(response);
+                                }
 
-                            // Konversi dari USDT ke IDR
-                            var idrusdt = usdt * USDTRate;
-                            console.log("USDT TO IDR : " + idrusdt);
+                                // Mendapatkan harga terkini dari Indodax API
+                                var USDTRate = parseFloat(response?.ticker?.last);
+                                if (!Number.isFinite(USDTRate) || USDTRate <= 0) {
+                                    throw new Error('Rate USDT/IDR tidak valid');
+                                }
+                                localStorage.setItem('MULTI_USDTRate', USDTRate); // Menyimpan harga terkini ke localStorage
+                                console.log("-----------------------");
+                                console.log("Latest Rate Price USDTRate:", USDTRate);
 
-                            resolve(idrusdt); // Mengembalikan nilai IDR
+                                // Konversi dari USDT ke IDR
+                                var idrusdt = usdt * USDTRate;
+                                console.log("USDT TO IDR : " + idrusdt);
+
+                                resolve(idrusdt); // Mengembalikan nilai IDR
+                            } catch (error) {
+                                reject(error);
+                            }
                         },
                         error: function (xhr, status, error) {
                             console.log("-----------------------");

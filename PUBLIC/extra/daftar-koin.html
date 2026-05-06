@@ -759,7 +759,7 @@
             label: cfg.Nama_Pendek || id.toUpperCase(),
             color: cfg.WARNA || '#808080',
             bg: (cfg.WARNA || '#808080') + '15',
-            file: `../JSON-TOKEN/SNAPSHOT_koin_${id.toUpperCase()}.json`
+            file: cfg.DATAJSON || `../JSON-TOKEN/SNAPSHOT_koin_${id.toUpperCase()}.json`
           };
         });
       }
@@ -794,6 +794,44 @@
         }
       }
       return nid;
+    }
+
+    function normalizeCexId(id) {
+      const rawId = String(id || '').trim();
+      if (!rawId) return '';
+      const upperId = rawId.toUpperCase();
+      if (window.CONFIG_CEX?.[upperId]) return upperId;
+
+      for (const [key, cfg] of Object.entries(window.CONFIG_CEX || {})) {
+        const labels = [key, cfg?.LABEL, cfg?.SHORT].filter(Boolean).map(v => String(v).toUpperCase());
+        if (labels.includes(upperId)) return key;
+      }
+
+      return upperId;
+    }
+
+    function normalizeTokenEntry(t) {
+      const ticker = String(t.symbol_in || t.symbol || t.ticker || t.token_name || 'UNKNOWN').trim().toUpperCase();
+      const name = t.name || t.nama_token || t.token_name || ticker;
+      const sc = t.sc_in || t.sc || t.contract || t.address || '';
+      const normalized = {
+        ...t,
+        symbol_in: ticker,
+        name,
+        sc_in: sc,
+        dataCexs: { ...(t.dataCexs || {}) }
+      };
+
+      const cexId = normalizeCexId(t.cex || t.exchange || t.exchanger);
+      if (cexId && !normalized.dataCexs[cexId]) {
+        normalized.dataCexs[cexId] = {
+          ...t,
+          depositToken: t.depositToken,
+          withdrawToken: t.withdrawToken
+        };
+      }
+
+      return normalized;
     }
 
     async function readIDB() {
@@ -864,8 +902,9 @@
         const tokens = data[chainId];
         if (!Array.isArray(tokens)) return;
 
-        tokens.forEach(t => {
-          const ticker = (t.symbol_in || t.symbol || t.token_name || 'UNKNOWN').toUpperCase();
+        tokens.forEach(rawToken => {
+          const t = normalizeTokenEntry(rawToken);
+          const ticker = t.symbol_in;
           if (STABLES.has(ticker)) return;
           if (!coinMap[ticker]) {
             coinMap[ticker] = {
