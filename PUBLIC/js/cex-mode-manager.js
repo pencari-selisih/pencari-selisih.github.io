@@ -23,7 +23,7 @@
         'HTX': { color: '#202e3b', bg: '#f3f4f6' },     // Dark Blue
         'INDODAX': { color: '#094e9d', bg: '#eff6ff' }, // Blue
         'LBANK': { color: '#e5ad19', bg: '#fffbeb' },   // Yellow
-        'ALL': { color: '#8e8f91ff', bg: '#f9fafb', icon: 'assets/icons/all.png' }
+        'ALL': { color: '#eb73a7', bg: '#fdf2f8', icon: 'assets/icons/all.png' }
     };
 
     class CEXModeManager {

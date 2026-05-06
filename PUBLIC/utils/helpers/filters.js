@@ -167,6 +167,7 @@
             dex: (f.dex || []).map(x => String(x).toLowerCase()),
             sort: f.sort || 'A',
             multiChain: !!f.multiChain,
+            manyCex: !!f.manyCex,
             slip: (isFinite(parseFloat(f.slip)) && parseFloat(f.slip) >= 0) ? parseFloat(f.slip) : 0.5
         };
         // Default: tidak ada filter tersimpan → kosong (user harus pilih sendiri)
@@ -177,6 +178,7 @@
             dex: [],
             sort: 'A',
             multiChain: false,
+            manyCex: false,
             slip: 0.5
         };
     }
@@ -202,6 +204,9 @@
         }
         if (val && Object.prototype.hasOwnProperty.call(val, 'multiChain')) {
             next.multiChain = !!val.multiChain;
+        }
+        if (val && Object.prototype.hasOwnProperty.call(val, 'manyCex')) {
+            next.manyCex = !!val.manyCex;
         }
         if (val && Object.prototype.hasOwnProperty.call(val, 'slip')) {
             const s = parseFloat(val.slip);

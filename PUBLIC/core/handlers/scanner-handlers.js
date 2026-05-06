@@ -409,6 +409,22 @@
                             scanTokens = scanTokens.filter(t => (t.chainCount || 0) > 1);
                         }
                     }
+                    // Apply MANY CEX filter: koin yg sc_in-nya sama ada di 2+ CEX berbeda
+                    if (fm.manyCex === true) {
+                        const scCexMapScan = {};
+                        scanTokens.forEach(t => {
+                            const sc = String(t.sc_in || '').toLowerCase().trim();
+                            const cex = String(t.cex || '').toUpperCase().trim();
+                            if (sc && sc !== '0x' && cex) {
+                                if (!scCexMapScan[sc]) scCexMapScan[sc] = new Set();
+                                scCexMapScan[sc].add(cex);
+                            }
+                        });
+                        scanTokens = scanTokens.filter(t => {
+                            const sc = String(t.sc_in || '').toLowerCase().trim();
+                            return sc && (scCexMapScan[sc]?.size || 0) > 1;
+                        });
+                    }
                 } catch (_) { }
 
                 // Apply search filter if active

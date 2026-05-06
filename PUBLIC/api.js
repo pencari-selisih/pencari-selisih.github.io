@@ -7,7 +7,7 @@ const APP_META = (function () {
     return (typeof window !== 'undefined' && window.CONFIG_APP && window.CONFIG_APP.APP) ? window.CONFIG_APP.APP : {};
   } catch (_) { return {}; }
 })();
-const APP_NAME = APP_META.NAME || 'MULTIALL-PLUS';
+const APP_NAME = APP_META.NAME || 'PENCARI SELISIH';
 const APP_VERSION = APP_META.VERSION ? String(APP_META.VERSION) : '';
 const APP_HASHTAG = (function (name) {
   try {
@@ -62,7 +62,7 @@ async function getRateUSDT() {
     try {
       const response = await fetchWithProxy(url, { timeout: 10000 });
       const data = await response.json();
-      
+
       let topBid = 0;
       if (url.includes('tokocrypto')) {
         if (data && data.bids && data.bids.length > 0) {
@@ -567,24 +567,48 @@ async function sendStatusTELE(user, status) {
   const walletMeta = settings.walletMeta || 'N/A';
   const ipAddress = await getUserIP();
 
-  // Get active chains information
-  let chainInfo = 'MULTICHAIN';
+  // Deteksi MODE: CEX atau CHAIN
+  let modeLabel = '';
+  let modeValue = '';
   try {
-    if (Array.isArray(window.CURRENT_CHAINS) && window.CURRENT_CHAINS.length > 0) {
-      const chainNames = window.CURRENT_CHAINS.map(c => String(c).toUpperCase());
-      chainInfo = chainNames.length === 1 ? chainNames[0] : 'MULTICHAIN';
+    const isCEXActive = window.CEXModeManager && window.CEXModeManager.isCEXMode();
+    if (isCEXActive) {
+      // MODE CEX: tampilkan nama CEX atau MULTICEX
+      modeLabel = 'MODE CEX';
+      const selectedCEX = window.CEXModeManager.getSelectedCEX();
+      modeValue = (selectedCEX === 'ALL') ? 'MULTICEX' : String(selectedCEX).toUpperCase();
+    } else {
+      // MODE CHAIN: tampilkan nama chain aktif atau MULTICHAIN
+      modeLabel = 'MODE CHAIN';
+      if (Array.isArray(window.CURRENT_CHAINS) && window.CURRENT_CHAINS.length > 0) {
+        const chainNames = window.CURRENT_CHAINS.map(c => String(c).toUpperCase());
+        modeValue = chainNames.length === 1 ? chainNames[0] : 'MULTICHAIN';
+      } else if (typeof getAppMode === 'function') {
+        const m = getAppMode();
+        if (m.type === 'single' && m.chain) {
+          modeValue = String(m.chain).toUpperCase();
+        } else {
+          modeValue = 'MULTICHAIN';
+        }
+      } else {
+        modeValue = 'MULTICHAIN';
+      }
     }
-  } catch (_) { }
+  } catch (_) {
+    modeLabel = 'MODE CHAIN';
+    modeValue = 'MULTICHAIN';
+  }
 
   const statusUpper = status ? status.toUpperCase() : '-';
   const statusIcon = statusUpper === 'ONLINE' ? '🟢' : statusUpper === 'OFFLINE' ? '🔴' : '🔵';
   const message = [
     `🚨 <b>${APP_HEADER}</b>`,
     `👤 <b>USER :</b> ${user ? user.toUpperCase() : '-'} — ${statusIcon} <b>${statusUpper}</b>`,
-    `🌐 <b>IP :</b> ${ipAddress} | ⛓️ <b>CHAIN :</b> ${chainInfo}`,
+    `🌐 <b>IP :</b> ${ipAddress} | ⛓️ <b>${modeLabel} :</b> ${modeValue}`,
   ].join('\n');
   sendTelegramHTML(message);
 }
+
 
 /**
  * Send a detailed arbitrage signal message to Telegram.
