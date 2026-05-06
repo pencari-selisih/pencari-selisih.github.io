@@ -3845,7 +3845,7 @@ body.cex-mode-active .header-card {
 }
 
 .toolbar-dropdown {
-    min-width: 180px;
+    min-width: 218px;
     padding: 8px !important;
     border-radius: 12px !important;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
