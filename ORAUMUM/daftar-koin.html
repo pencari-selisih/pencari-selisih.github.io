@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ringkasan Daftar Koin</title>
+  <!-- Favicon -->
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/256/8625/8625983.png" type="image/png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <script src="../config.js"></script>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --surface2: #f8fafc;
+      --border: #e2e8f0;
+      --border2: #cbd5e1;
+      --text: #0f172a;
+      --text2: #334155;
+      --muted: #64748b;
+      --primary: #2563eb;
+      --green: #15803d;
+      --green-bg: #dcfce7;
+      --red: #b91c1c;
+      --red-bg: #fee2e2;
+      --shadow: 0 1px 3px rgba(0, 0, 0, .07), 0 1px 2px rgba(0, 0, 0, .05);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', Inter, system-ui, sans-serif;
+      font-size: 13.5px;
+      min-height: 100vh;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 18px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 300;
+      box-shadow: var(--shadow);
+      gap: 10px;
+      flex-wrap: nowrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .brand-icon {
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .brand-sub {
+      font-weight: 400;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .src-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .src-live {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .src-json {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .btn-ref {
+      border: 1px solid var(--border2);
+      background: var(--bg);
+      border-radius: 7px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text2);
+      transition: background .12s;
+    }
+
+    .btn-ref:hover {
+      background: var(--border);
+    }
+
+    .spinning {
+      animation: spin .7s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+
+    /* ── FILTER PANEL ── */
+    .filter-panel {
+      background: var(--surface);
+      border-bottom: 2px solid var(--border);
+      padding: 8px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: sticky;
+      top: 48px;
+      z-index: 210;
+      box-shadow: var(--shadow);
+    }
+
+    .frow {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .flabel {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+      min-width: 70px;
+    }
+
+    /* search */
+    .srch {
+      position: relative;
+      flex: 1;
+      min-width: 170px;
+      max-width: 260px;
+    }
+
+    .srch i {
+      position: absolute;
+      left: 9px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 12px;
+      pointer-events: none;
+    }
+
+    .srch input {
+      width: 100%;
+      padding: 6px 10px 6px 30px;
+      border: 1px solid var(--border2);
+      border-radius: 7px;
+      font-size: 13px;
+      outline: none;
+      background: var(--surface2);
+      color: var(--text);
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    .srch input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .1);
+    }
+
+    .srch input::placeholder {
+      color: var(--muted);
+    }
+
+    /* pill */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 1px 4px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all .15s cubic-bezier(0.4, 0, 0.2, 1);
+      -webkit-user-select: none;
+      user-select: none;
+      white-space: nowrap;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      flex-direction: row;
+      /* margin: 0px 0px; */
+      text-transform: uppercase;
+    }
+
+    .pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Active State: Tegas & Jelas (Warna diatur via JS) */
+    .pill:not(.off) {
+      color: #fff !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .pill:not(.off) .pill-dot {
+      background: #fff !important;
+    }
+
+    /* Non-Active State: Redup */
+    .pill.off {
+      background: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+      color: #94a3b8 !important;
+      opacity: 0.6;
+      box-shadow: none;
+    }
+
+    .pill.off .pill-dot {
+      opacity: .3;
+      background: #94a3b8 !important;
+    }
+
+    .pill:hover:not(.off) {
+      filter: brightness(1.1);
+    }
+
+    .pill.off:hover {
+      background: #f1f5f9 !important;
+      opacity: 1;
+    }
+
+    .fsel {
+      border: 1px solid var(--border2);
+      border-radius: 7px;
+      padding: 5px 10px;
+      font-size: 12px;
+      background: var(--surface2);
+      color: var(--text2);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .fsel:focus {
+      border-color: var(--primary);
+    }
+
+
+
+
+    /* ── TABLE AREA ── */
+    .t-outer {
+      padding: 12px 18px;
+    }
+
+    .t-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-top: 5px;
+    }
+
+    .t-scroll {
+      overflow-x: auto;
+    }
+
+    table.kt {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 480px;
+    }
+
+    table.kt thead th {
+      background: #edf2f7;
+      border-bottom: 2px solid var(--border);
+      padding: 9px 11px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      white-space: nowrap;
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+      position: sticky;
+    }
+
+    table.kt thead th:hover {
+      color: var(--text2);
+    }
+
+    table.kt thead th .si {
+      font-size: 9px;
+    }
+
+    table.kt tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .08s;
+    }
+
+    table.kt tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    table.kt tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    table.kt td {
+      padding: 7px 11px;
+      vertical-align: middle;
+    }
+
+    .coin-av {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .t-ticker {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .ticker-txt {
+      font-family: Consolas, monospace;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .name-txt {
+      color: var(--text2);
+      font-size: 12px;
+      max-width: 155px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .num-txt {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* chain cell */
+    .chain-cell {
+      min-width: 95px;
+    }
+
+    .cex-row {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 0;
+    }
+
+    .cex-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+
+    .sb {
+      display: inline-flex;
+      align-items: center;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .sb-ok {
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1px solid #bbf7d0;
+    }
+
+    .sb-no {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid #fecaca;
+    }
+
+    .sb-unk {
+      background: #f1f5f9;
+      color: var(--muted);
+    }
+
+    .cell-dash {
+      color: #d1d5db;
+      text-align: center;
+      font-size: 18px;
+    }
+
+    /* ── PAGER ── */
+    .pager {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 13px;
+      border-top: 1px solid var(--border);
+      background: var(--surface2);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pg-btns {
+      display: flex;
+      gap: 3px;
+      align-items: center;
+    }
+
+    .pg-btns button {
+      border: 1px solid var(--border2);
+      background: var(--surface);
+      color: var(--text2);
+      border-radius: 6px;
+      padding: 4px 9px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .1s;
+    }
+
+    .pg-btns button:hover:not(:disabled) {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .pg-btns button:disabled {
+      opacity: .3;
+      cursor: default;
+    }
+
+    .pg-info {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .pg-sel {
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;
+      background: var(--surface);
+      color: var(--text2);
+      outline: none;
+    }
+
+    /* ── CENTER STATE ── */
+    .cstate {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      gap: 13px;
+      color: var(--muted);
+    }
+
+    .ring {
+      width: 38px;
+      height: 38px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    /* New Layout Styles */
+    .cex-group {
+      border-bottom: 1px dashed var(--border);
+      padding: 5px 0;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .cex-group:last-child {
+      border-bottom: none;
+    }
+
+    .cex-name {
+      display: inline-flex;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+      min-width: 80px;
+    }
+
+    .cex-chains {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    #chainPills,
+    #cexPills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .ch-info {
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #fff;
+      border: 2px solid transparent;
+    }
+
+    .ch-label {
+      font-weight: 800;
+      color: var(--text2);
+    }
+
+    .ch-sep {
+      opacity: 0.4;
+      color: var(--muted);
+    }
+
+    .sc-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 12px;
+      transition: opacity .1s;
+      text-decoration: none;
+    }
+
+    .sc-link:hover {
+      opacity: 0.8;
+      color: #fff;
+    }
+
+    .coin-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .coin-name-sub {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+    }
+
+    @media(max-width:600px) {
+
+      .topbar,
+      .stats-row,
+      .filter-panel,
+      .t-outer,
+      .legend {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon"><i class="bi bi-table"></i></div>
+      <span>Ringkasan Daftar Koin </span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span class="flabel" style="min-width: auto;">Network</span>
+      <div id="chainPills"></div>
+    </div>
+
+    <div style="border-left: 1px solid var(--border); height: 20px; align-self: center;"></div>
+
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span class="flabel" style="min-width: auto;">Exchanger</span>
+      <div id="cexPills"></div>
+    </div>
+    <div class="top-right">
+      <span id="srcPill" class="src-pill src-json" style="display:none"></span>
+      <span id="tUpdate" style="font-size:11px;color:var(--muted)"></span>
+      <button class="btn-ref" id="btnRef" onclick="reloadData()">
+        <i class="bi bi-arrow-clockwise" id="refIcon"></i> Refresh
+      </button>
+    </div>
+  </header>
+
+
+  <!-- FILTER PANEL -->
+  <div class="filter-panel">
+
+    <!-- baris 1: search + status + sort -->
+
+    <div class="frow" style="gap: 15px;">
+
+      <b>Filter & Pencarian</b>
+      <div style="border-left: 1px solid var(--border); height: 20px; align-self: center;"></div>
+      <div class="srch">
+        <i class="bi bi-search"></i>
+        <input type="search" id="searchBox" placeholder="Cari ticker / nama…" oninput="onFilter()" />
+      </div>
+      <select id="stFilter" class="fsel" title="Filter Status" onchange="onFilter()">
+        <option value="all">Semua Status</option>
+        <option value="both">Depo &amp; WD Buka</option>
+        <option value="depo">Ada Depo Buka</option>
+        <option value="wd">Ada WD Buka</option>
+        <option value="any">Ada Yg Buka</option>
+        <option value="unk">Status Belum Diket.</option>
+      </select>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="flabel" style="min-width: auto;">Urut</span>
+        <div id="sortPills"></div>
+      </div>
+      <div class="form-check form-switch ms-2 d-flex align-items-center" style="gap: 5px;">
+        <input class="form-check-input" type="checkbox" id="multiOnly" onchange="onFilter()" checked>
+        <label class="form-check-label small fw-bold text-primary" for="multiOnly"
+          style="white-space:nowrap">Multi-Chain</label>
+      </div>
+    </div>
+
+  </div>
+
+  </div>
+
+  <!-- TABLE -->
+  <div class="t-outer">
+    <div class="t-card">
+      <div class="t-scroll" id="tScroll">
+        <div class="cstate" id="loadState">
+          <div class="ring"></div>
+          <p>Memuat data koin…</p>
+        </div>
+        <table class="kt" id="mainTable" style="display:none">
+          <thead>
+            <tr>
+              <th style="width:50px;text-align:center">NO</th>
+              <th style="min-width:160px">KOIN</th>
+              <th style="min-width:300px">EXCHANGER</th>
+            </tr>
+          </thead>
+          <tbody id="coinTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ══════════════════════════════
+       CONFIG
+    ══════════════════════════════ */
+    const IDB_NAME = 'OPIT_HUNTER', APP_KV_STORE = 'APP_KV_STORE';
+    const STABLES = new Set(['USDT', 'USDC', 'BUSD', 'DAI', 'USDE', 'FDUSD', 'TUSD', 'USDP', 'PYUSD', 'FRAX', 'USDS', 'WBTC', 'WETH', 'WBNB', 'WSOL', 'WMATIC', 'WAVAX']);
+
+    let coinMap = {};
+    const CHAINS = {};
+    const CEXES = {};
+
+    function initConfig(settings) {
+      const enabledChains = settings?.ENABLED_CHAINS || [];
+      const enabledCexs = settings?.ENABLED_CEXS || [];
+      const hasSettings = enabledChains.length > 0 || enabledCexs.length > 0;
+
+      if (window.CONFIG_CHAINS) {
+        Object.keys(window.CONFIG_CHAINS).forEach(id => {
+          const cfg = window.CONFIG_CHAINS[id];
+          if (id === 'favorit') return;
+          if (hasSettings && !enabledChains.includes(id)) return;
+
+          CHAINS[id] = {
+            id: id,
+            label: cfg.Nama_Pendek || id.toUpperCase(),
+            color: cfg.WARNA || '#808080',
+            bg: (cfg.WARNA || '#808080') + '15',
+            file: cfg.DATAJSON || `../JSON-TOKEN/SNAPSHOT_koin_${id.toUpperCase()}.json`
+          };
+        });
+      }
+      if (window.CONFIG_CEX) {
+        Object.keys(window.CONFIG_CEX).forEach(id => {
+          const cfg = window.CONFIG_CEX[id];
+          if (hasSettings && !enabledCexs.includes(id)) return;
+
+          CEXES[id] = {
+            id: id,
+            label: cfg.LABEL || id,
+            short: cfg.SHORT || id.slice(0, 2),
+            color: cfg.WARNA || '#808080',
+            bg: (cfg.WARNA || '#808080') + '15'
+          };
+        });
+      }
+      activeChains = new Set(Object.keys(CHAINS));
+      activeCexes = new Set(Object.keys(CEXES));
+    }
+    function normalizeChainId(id) {
+      const nid = String(id || '').toLowerCase();
+      if (window.CONFIG_CHAINS?.[nid]) return nid;
+
+      // Try to find via Nama_Pendek or Synonyms
+      for (const [key, cfg] of Object.entries(window.CONFIG_CHAINS || {})) {
+        if (key === 'favorit') continue;
+        if (cfg.Nama_Pendek && cfg.Nama_Pendek.toLowerCase() === nid) return key;
+        if (cfg.Nama_Chain && cfg.Nama_Chain.toLowerCase() === nid) return key;
+        if (Array.isArray(cfg.SYNONYMS)) {
+          if (cfg.SYNONYMS.some(s => String(s).toLowerCase() === nid)) return key;
+        }
+      }
+      return nid;
+    }
+
+    function normalizeCexId(id) {
+      const rawId = String(id || '').trim();
+      if (!rawId) return '';
+      const upperId = rawId.toUpperCase();
+      if (window.CONFIG_CEX?.[upperId]) return upperId;
+
+      for (const [key, cfg] of Object.entries(window.CONFIG_CEX || {})) {
+        const labels = [key, cfg?.LABEL, cfg?.SHORT].filter(Boolean).map(v => String(v).toUpperCase());
+        if (labels.includes(upperId)) return key;
+      }
+
+      return upperId;
+    }
+
+    function normalizeTokenEntry(t) {
+      const ticker = String(t.symbol_in || t.symbol || t.ticker || t.token_name || 'UNKNOWN').trim().toUpperCase();
+      const name = t.name || t.nama_token || t.token_name || ticker;
+      const sc = t.sc_in || t.sc || t.contract || t.address || '';
+      const normalized = {
+        ...t,
+        symbol_in: ticker,
+        name,
+        sc_in: sc,
+        dataCexs: { ...(t.dataCexs || {}) }
+      };
+
+      const cexId = normalizeCexId(t.cex || t.exchange || t.exchanger);
+      if (cexId && !normalized.dataCexs[cexId]) {
+        normalized.dataCexs[cexId] = {
+          ...t,
+          depositToken: t.depositToken,
+          withdrawToken: t.withdrawToken
+        };
+      }
+
+      return normalized;
+    }
+
+    async function readIDB() {
+      return new Promise(res => {
+        try {
+          const req = indexedDB.open(IDB_NAME);
+          req.onsuccess = async () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains(APP_KV_STORE)) { db.close(); return res(null); }
+            const tx = db.transaction([APP_KV_STORE], 'readonly');
+            const st = tx.objectStore(APP_KV_STORE);
+
+            const results = {};
+            const cursorReq = st.openCursor();
+
+            cursorReq.onsuccess = (e) => {
+              const cursor = e.target.result;
+              if (cursor) {
+                const key = cursor.key;
+                if (key.startsWith('TOKEN_') || key.startsWith('KOIN_') || key === 'ENABLED_CHAINS' || key === 'ENABLED_CEXS') {
+                  results[key] = cursor.value.val;
+                }
+                cursor.continue();
+              } else {
+                db.close();
+                res(results);
+              }
+            };
+            cursorReq.onerror = () => { db.close(); res(results); };
+          };
+          req.onerror = () => res(null);
+        } catch (err) { res(null); }
+      });
+    }
+
+    /* ══════════════════════════════
+       STATE
+    ══════════════════════════════ */
+    let viewList = [];
+    let sortBy = 'az';
+    let activeChains = new Set();
+    let activeCexes = new Set();
+    let isLive = false;
+
+    /* ══════════════════════════════
+       JSON FALLBACK
+    ══════════════════════════════ */
+    async function loadJSON() {
+      const out = {};
+      await Promise.all(Object.entries(CHAINS).map(async ([id, cfg]) => {
+        try {
+          const r = await fetch(cfg.file);
+          if (!r.ok) return;
+          out[id] = await r.json();
+        } catch { /* skip */ }
+      }));
+      return out;
+    }
+
+    /* ══════════════════════════════
+       BUILD MAP
+    ══════════════════════════════ */
+    function buildMap(data) {
+      coinMap = {};
+      if (!data) return;
+
+      Object.keys(data).forEach(chainId => {
+        const tokens = data[chainId];
+        if (!Array.isArray(tokens)) return;
+
+        tokens.forEach(rawToken => {
+          const t = normalizeTokenEntry(rawToken);
+          const ticker = t.symbol_in;
+          if (STABLES.has(ticker)) return;
+          if (!coinMap[ticker]) {
+            coinMap[ticker] = {
+              ticker: ticker,
+              name: t.name || t.token_name || ticker,
+              chains: {}
+            };
+          }
+          // Gunakan chainId dari key tabel (bukan dari field t.chain)
+          // sehingga tidak ada overwrite antar chain berbeda
+          if (!coinMap[ticker].chains[chainId]) {
+            coinMap[ticker].chains[chainId] = t;
+          } else {
+            // Merge dataCexs jika sudah ada entry untuk chain ini
+            const existing = coinMap[ticker].chains[chainId];
+            const newCexs = t.dataCexs || {};
+            const exCexs = existing.dataCexs || {};
+            coinMap[ticker].chains[chainId] = {
+              ...existing,
+              dataCexs: { ...newCexs, ...exCexs }
+            };
+          }
+        });
+      });
+    }
+
+    /* ══════════════════════════════
+       LOAD DATA
+    ══════════════════════════════ */
+    async function loadData() {
+      showLoading(true);
+      setRefSpin(true);
+
+      const idbResults = await readIDB();
+      initConfig(idbResults);
+
+      let data = {};
+      if (idbResults && Object.keys(idbResults).some(k => k.startsWith('TOKEN_') || k.startsWith('KOIN_'))) {
+        Object.keys(idbResults).forEach(key => {
+          if (key.startsWith('TOKEN_') || key.startsWith('KOIN_')) {
+            const prefix = key.startsWith('TOKEN_') ? 'TOKEN_' : 'KOIN_';
+            const rawId = key.replace(prefix, '').toLowerCase();
+            const normId = normalizeChainId(rawId);
+
+            // Merge data jika ada duplikasi prefix (misal TOKEN_BSC dan KOIN_BSC)
+            if (data[normId]) {
+              data[normId] = [...data[normId], ...idbResults[key]];
+            } else {
+              data[normId] = idbResults[key];
+            }
+          }
+        });
+        isLive = true;
+      } else {
+        data = await loadJSON();
+        isLive = false;
+      }
+
+      buildMap(data);
+      buildPills();
+      onFilter();
+
+      setRefSpin(false);
+      setSrcPill();
+      document.getElementById('tUpdate').textContent = 'Sinkronisasi: ' + new Date().toLocaleTimeString('id-ID');
+    }
+
+    function setSrcPill() {
+      const el = document.getElementById('srcPill');
+      el.style.display = 'inline-flex';
+      if (isLive) {
+        el.className = 'src-pill src-live';
+        el.innerHTML = '<i class="bi bi-database-fill-check"></i> Database (Live)';
+      } else {
+        el.className = 'src-pill src-json';
+        el.innerHTML = '<i class="bi bi-file-earmark-code"></i> Snapshot JSON';
+      }
+    }
+
+    function setRefSpin(on) {
+      document.getElementById('refIcon').className = on ? 'bi bi-arrow-clockwise spinning' : 'bi bi-arrow-clockwise';
+    }
+
+    /* ══════════════════════════════
+       PILLS
+    ══════════════════════════════ */
+    function buildPills() {
+      const cp = document.getElementById('chainPills');
+      cp.innerHTML = '';
+      Object.entries(CHAINS).forEach(([key, cfg]) => {
+        cp.appendChild(makePill(key, 'chain', cfg.label, cfg.color, activeChains.has(key)));
+      });
+
+      const xp = document.getElementById('cexPills');
+      xp.innerHTML = '';
+      Object.entries(CEXES).forEach(([key, cfg]) => {
+        xp.appendChild(makePill(key, 'cex', cfg.label, cfg.color, activeCexes.has(key)));
+      });
+      buildSortPills();
+    }
+
+    const SORT_OPTIONS = {
+      'az': { label: 'Urut A–Z', color: '#6366f1' },
+      'za': { label: 'Urut Z–A', color: '#8b5cf6' },
+      'most': { label: 'Terbanyak', color: '#ec4899' }
+    };
+
+    function buildSortPills() {
+      const sp = document.getElementById('sortPills');
+      if (!sp) return;
+      sp.innerHTML = '';
+      Object.entries(SORT_OPTIONS).forEach(([key, cfg]) => {
+        const el = document.createElement('span');
+        el.className = 'pill';
+        if (sortBy !== key) el.classList.add('off');
+        el.style.background = sortBy === key ? cfg.color : '';
+        el.style.borderColor = sortBy === key ? cfg.color : '';
+        el.style.color = sortBy === key ? '#fff' : '';
+        el.textContent = cfg.label;
+
+        el.onclick = () => {
+          sortBy = key;
+          buildSortPills();
+          onFilter();
+        };
+        sp.appendChild(el);
+      });
+    }
+
+    function makePill(key, type, label, color, isActive) {
+      const el = document.createElement('span');
+      el.className = 'pill';
+      if (!isActive) el.classList.add('off');
+
+      el.dataset.key = key;
+      el.dataset.color = color;
+
+      if (type === 'chain') {
+        el.innerHTML = `<span class="pill-dot"></span>${label}`;
+      } else {
+        el.textContent = label;
+      }
+
+      const updateStyle = () => {
+        const off = el.classList.contains('off');
+        if (off) {
+          el.style.background = '';
+          el.style.borderColor = '';
+          el.style.color = '';
+        } else {
+          el.style.background = color;
+          el.style.borderColor = color;
+          el.style.color = '#fff';
+        }
+      };
+
+      updateStyle();
+
+      el.onclick = () => {
+        if (type === 'chain') {
+          activeChains.has(key) ? activeChains.delete(key) : activeChains.add(key);
+        } else {
+          activeCexes.has(key) ? activeCexes.delete(key) : activeCexes.add(key);
+        }
+        el.classList.toggle('off');
+        updateStyle();
+        onFilter();
+      };
+      return el;
+    }
+
+    function selAllChain(on) {
+      activeChains = on ? new Set(Object.keys(CHAINS)) : new Set();
+      buildPills();
+      onFilter();
+    }
+    function selAllCex(on) {
+      activeCexes = on ? new Set(Object.keys(CEXES)) : new Set();
+      buildPills();
+      onFilter();
+    }
+
+
+    /* ══════════════════════════════
+       FILTER + SORT
+    ══════════════════════════════ */
+    function entryMatchesStatus(entry, statusFilter) {
+      if (statusFilter === 'all') return true;
+
+      const hasDeposit = entry?.depositToken === true;
+      const hasWithdraw = entry?.withdrawToken === true;
+      const depositKnown = typeof entry?.depositToken === 'boolean';
+      const withdrawKnown = typeof entry?.withdrawToken === 'boolean';
+
+      if (statusFilter === 'depo') return hasDeposit;
+      if (statusFilter === 'wd') return hasWithdraw;
+      if (statusFilter === 'both') return hasDeposit && hasWithdraw;
+      if (statusFilter === 'any') return hasDeposit || hasWithdraw;
+      if (statusFilter === 'unk') return !depositKnown || !withdrawKnown;
+      return true;
+    }
+
+    function getVisibleCexGroups(coin, statusFilter) {
+      const cexGroups = {};
+      const visibleChains = new Set();
+
+      Object.entries(coin.chains).forEach(([cid, tData]) => {
+        if (!activeChains.has(cid)) return;
+
+        const dataCexs = tData.dataCexs || {};
+        Object.entries(dataCexs).forEach(([cxid, entry]) => {
+          if (!activeCexes.has(cxid)) return;
+          if (!entryMatchesStatus(entry, statusFilter)) return;
+
+          if (!cexGroups[cxid]) cexGroups[cxid] = [];
+          cexGroups[cxid].push({ cid, entry, sc: tData.sc_in });
+          visibleChains.add(cid);
+        });
+      });
+
+      return {
+        cexGroups,
+        chainCount: visibleChains.size
+      };
+    }
+
+    function onFilter() {
+      const q = (document.getElementById('searchBox')?.value || '').trim().toLowerCase();
+      const sf = document.getElementById('stFilter')?.value || 'all';
+      const multiOnly = document.getElementById('multiOnly')?.checked || false;
+
+      const out = [];
+      Object.values(coinMap).forEach(coin => {
+        if (q && !coin.ticker.toLowerCase().includes(q) && !coin.name.toLowerCase().includes(q)) return;
+
+        const { cexGroups, chainCount } = getVisibleCexGroups(coin, sf);
+        if (!Object.keys(cexGroups).length) return;
+        if (multiOnly && chainCount < 2) return;
+
+        out.push({
+          ...coin,
+          viewCexGroups: cexGroups,
+          viewChainCount: chainCount
+        });
+      });
+
+      out.sort((a, b) => {
+        if (sortBy === 'az') return a.ticker.localeCompare(b.ticker);
+        if (sortBy === 'za') return b.ticker.localeCompare(a.ticker);
+        if (sortBy === 'most') return (b.viewChainCount || 0) - (a.viewChainCount || 0);
+        return 0;
+      });
+
+      viewList = out;
+      renderTable();
+    }
+
+    /* ══════════════════════════════
+       RENDER TABLE
+    ══════════════════════════════ */
+    function renderTable() {
+      const scroll = document.getElementById('tScroll');
+      const table = document.getElementById('mainTable');
+      const tbody = document.getElementById('coinTableBody');
+
+      tbody.innerHTML = '';
+      scroll.querySelector('.cstate:not(#loadState)')?.remove();
+
+      if (!viewList.length) {
+        showLoading(false);
+        table.style.display = 'none';
+        scroll.insertAdjacentHTML('beforeend',
+          `<div class="cstate"><i class="bi bi-inbox" style="font-size:40px;opacity:.3"></i><p>Tidak ada koin yang cocok.</p></div>`);
+        return;
+      }
+
+      table.style.display = 'table';
+      let tb = '';
+      let rowIdx = 1;
+
+      for (const coin of viewList) {
+        const av = avatarColor(coin.ticker);
+
+        const cexGroups = coin.viewCexGroups || getVisibleCexGroups(coin, document.getElementById('stFilter')?.value || 'all').cexGroups;
+
+        let exHtml = '';
+        // Sort CEXes by name or as in config
+        const sortedCexIds = Object.keys(cexGroups).sort((a, b) => {
+          const nameA = CEXES[a]?.label || a;
+          const nameB = CEXES[b]?.label || b;
+          return nameA.localeCompare(nameB);
+        });
+
+        sortedCexIds.forEach(cxid => {
+          const cx = CEXES[cxid];
+          if (!cx) return;
+          const chainsForCex = cexGroups[cxid];
+
+          let chainHtml = '';
+          chainsForCex.forEach(ch => {
+            const cCfg = CHAINS[ch.cid];
+            const chainColor = cCfg?.color || '#64748b';
+            const isWD = ch.entry.withdrawToken === true;
+            const isDP = ch.entry.depositToken === true;
+            const scLink = getExplorerLink(ch.cid, ch.sc);
+
+            chainHtml += `
+          <div class="ch-info" style="border-color:${chainColor}">
+            <span class="ch-label" style="color:${chainColor}">${cCfg?.label || ch.cid.toUpperCase()}</span><span class="ch-sep">:</span>
+            <span class="sb ${isWD ? 'sb-ok' : 'sb-no'}">${isWD ? 'WD' : 'WX'}</span>
+            <span class="ch-sep">|</span>
+            <span class="sb ${isDP ? 'sb-ok' : 'sb-no'}">${isDP ? 'DP' : 'DX'}</span>
+            ${scLink ? `<a href="${scLink}" target="_blank" class="sc-link" style="background:${chainColor}" title="${ch.sc || ''}"><i class="bi bi-box-arrow-up-right"></i></a>` : ''}
+          </div>
+        `;
+          });
+
+          exHtml += `
+        <div class="cex-group">
+          <div class="cex-name" style="color:${cx.color}">${(cx.label || cxid).toUpperCase()}</div>
+          <div class="cex-chains">${chainHtml}</div>
+        </div>
+      `;
+        });
+
+        tb += `<tr>
+      <td style="text-align:center;font-weight:700;color:var(--muted)">${rowIdx++}.</td>
+      <td>
+        <div class="t-ticker">
+          <div class="coin-av" style="background:${av}">${esc(coin.ticker.slice(0, 2))}</div>
+          <div class="coin-info">
+            <span class="ticker-txt">${esc(coin.ticker)}</span>
+            <span class="coin-name-sub">${esc(coin.name)}</span>
+          </div>
+        </div>
+      </td>
+      <td>${exHtml || '<span style="opacity:0.3">Tidak ada data exchanger aktif</span>'}</td>
+    </tr>`;
+      }
+
+      tbody.innerHTML = tb;
+      showLoading(false);
+    }
+
+    function sb(val, lbl) {
+      if (val === null) return `<span class="sb sb-unk">${lbl}?</span>`;
+      if (val === '1') return `<span class="sb sb-ok">${lbl}✓</span>`;
+      return `<span class="sb sb-no">${lbl}✗</span>`;
+    }
+
+    function showLoading(on) {
+      const el = document.getElementById('loadState');
+      if (el) el.style.display = on ? 'flex' : 'none';
+    }
+
+    /* ══════════════════════════════
+       PAGER
+    ══════════════════════════════ */
+
+    /* ══════════════════════════════
+       RELOAD
+    ══════════════════════════════ */
+    function reloadData() {
+      coinMap = {}; viewList = [];
+      showLoading(true);
+      loadData();
+    }
+
+    /* ══════════════════════════════
+       HELPERS
+    ══════════════════════════════ */
+    function fmt(n) { return Number(n).toLocaleString('id'); }
+    function set(id, v) { const e = document.getElementById(id); if (e) e.textContent = v; }
+    function set(id, v) { const e = document.getElementById(id); if (e) e.textContent = v; }
+    function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function avatarColor(t) {
+      const p = ['#6366f1', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#14b8a6', '#84cc16'];
+      let h = 0; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) & 0xffff;
+      return p[h % p.length];
+    }
+
+    function getExplorerLink(chain, address) {
+      if (!address || address === '0x') return null;
+      const cfg = window.CONFIG_CHAINS?.[chain.toLowerCase()];
+      if (cfg && cfg.LINKS && cfg.LINKS.explorer && cfg.LINKS.explorer.token) {
+        return cfg.LINKS.explorer.token(address);
+      }
+      return null;
+    }
+
+
+    /* ══════════════════════════════
+       INIT
+    ══════════════════════════════ */
+    loadData();
+  </script>
+</body>
+
+</html>
