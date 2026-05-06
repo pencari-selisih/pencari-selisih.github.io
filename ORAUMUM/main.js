@@ -2009,15 +2009,21 @@ async function deferredInit() {
 
             // Section 0: HEADER ROW (TOTAL + ADVANCED TOGGLE)
             const multiChainChecked = fmNow.multiChain === true;
+            // Cek apakah scanner sedang berjalan (untuk disable toggle saat scan aktif)
+            const isScanning = !!(window.SCAN_IS_RUNNING || (typeof getAppState === 'function' && getAppState()?.run === 'YES'));
+            const toggleDisabled = isCEXMode && isScanning;
+            const toggleLabelStyle = toggleDisabled
+                ? 'cursor: not-allowed; gap: 8px; background: #f3f4f6; padding: 4px 10px; border-radius: 20px; border: 1px solid #ddd; opacity: 0.45; pointer-events: none;'
+                : 'cursor: pointer; gap: 8px; background: #fff; padding: 4px 10px; border-radius: 20px; border: 1px solid #ddd; box-shadow: 0 1px 2px rgba(0,0,0,0.05);';
             const $headerRow = $(`
                 <div class="uk-flex uk-flex-between uk-flex-middle" style="margin-bottom:12px; background:#f8f9fa; padding:6px 10px; border-radius:8px; border:1px solid #e5e7eb;">
                     <div id="modal-sum-container"></div>
                     <div class="uk-flex uk-flex-middle" style="gap:12px;">
                         ${isCEXMode ? `
-                        <label class="uk-flex uk-flex-middle" style="cursor: pointer; gap: 8px; background: #fff; padding: 4px 10px; border-radius: 20px; border: 1px solid #ddd; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                        <label class="uk-flex uk-flex-middle" style="${toggleLabelStyle}">
                             <span style="font-size: 10px; font-weight: 700; color: #949698ff;">MULTICHAIN (2+)</span>
                             <div class="cex-toggle-wrapper" style="transform: scale(0.85);">
-                                <input type="checkbox" id="modal-filter-multichain" ${multiChainChecked ? 'checked' : ''}>
+                                <input type="checkbox" id="modal-filter-multichain" ${multiChainChecked ? 'checked' : ''} ${toggleDisabled ? 'disabled' : ''}>
                                 <span class="cex-toggle-slider"></span>
                             </div>
                         </label>` : ''}
