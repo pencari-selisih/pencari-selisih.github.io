@@ -9,7 +9,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.0/dist/ethers.umd.min.js"></script>
     <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
-    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/893/893097.png" type="image/x-icon">
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/891/891267.png" type="image/x-icon">
     <!-- Removed Bootstrap CSS and Bootstrap Icons; use UIkit icons instead -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
@@ -19,901 +19,2046 @@
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="../idb-localstorage-shim.js"></script>
     <script src="../config.js"></script>
-</head>
-<style>
-    body {
-        color: var(--text-primary);
-        background: #f5f7fa;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-    }
-
-    .uk-container {
-        max-width: 100%;
-        padding: 10px;
-        font-size: 13.5px;
-    }
-
-    /* Perbesar ukuran modal filter PNL */
-    #search-pnl-modal .uk-modal-dialog {
-        max-width: none;
-        /* override default UIkit max-width */
-        width: 90vw;
-        /* lebar responsif */
-    }
-
-    @media (min-width: 1200px) {
-        #search-pnl-modal .uk-modal-dialog {
-            width: 900px;
-            /* batas nyaman untuk layar lebar */
-        }
-    }
-
-    .filter-date-row {
-        display: flex;
-        align-items: flex-end;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
-
-    .filter-date-row .date-field {
-        min-width: 200px;
-        flex: 1 1 200px;
-    }
-
-    .filter-date-row .button-group {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .modal-title span {
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        color: #2c3e50;
-    }
-
-    .modal-title img {
-        width: 32px;
-        margin-left: 8px;
-        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
-    }
-
-    .uk-card.uk-card-default {
-        padding: 16px;
-        background: #ffffff;
-        border: 1px solid #e1e8ed;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    }
-
-    .modal-toolbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 18px;
-        flex-wrap: wrap;
-    }
-
-    .modal-toolbar .icon-boxes {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .modal-toolbar .icon-link {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 36px;
-        height: 36px;
-        border-radius: 8px;
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        transition: all 0.2s ease;
-    }
-
-    .modal-toolbar .icon-link img {
-        width: 18px;
-        height: 18px;
-    }
-
-    .modal-toolbar .icon-link:hover {
-        background: #e9ecef;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .action-buttons {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .info-pills {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-        margin-top: 12px;
-        flex-wrap: wrap;
-    }
-
-    .info-pills span {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 8px 16px;
-        font-weight: 600;
-        color: #495057;
-        font-size: 0.9rem;
-    }
-
-    .table-glass {
-        width: 100%;
-        border-collapse: collapse;
-        border-radius: 8px;
-        overflow: hidden;
-        background: #ffffff;
-        border: 1px solid #e1e8ed;
-    }
-
-    .table-glass thead th {
-        background: #4a5568;
-        color: #ffffff;
-        font-weight: 600;
-        letter-spacing: 0.03em;
-        padding: 10px;
-        text-align: center;
-        text-transform: uppercase;
-        font-size: 0.8rem;
-    }
-
-    .table-glass tbody td {
-        padding: 8px 12px;
-        color: #495057;
-        border-bottom: 1px solid #f1f3f5;
-        background: transparent;
-        font-size: 0.85rem;
-    }
-
-    .table-glass tbody tr {
-        transition: background 0.2s ease;
-    }
-
-    .table-glass tbody tr:hover {
-        background: #f8f9fa;
-    }
-
-    .table-glass .table-total-row th {
-        padding: 12px;
-        text-align: center;
-        font-size: 1rem;
-        font-weight: 700;
-        color: #2c3e50;
-        background: #f8f9fa;
-    }
-
-    .cex-label {
-        font-weight: 700;
-        letter-spacing: 0.05em;
-    }
-
-    .chain-label {
-        font-weight: 700;
-        letter-spacing: 0.04em;
-    }
-
-    .input-group-text {
-        background: #e9ecef;
-        border: 1px solid #ced4da;
-        color: #495057;
-        font-weight: 600;
-        font-size: 0.85rem;
-    }
-
-    .input-group .form-control {
-        background: #ffffff;
-        border: 1px solid #ced4da;
-        color: #495057;
-        font-size: 0.85rem;
-    }
-
-    .input-group .form-control:focus {
-        border-color: #80bdff;
-        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    }
-
-
-    .asset-line {
-        padding: 6px 0;
-        border-bottom: 1px dashed rgba(31, 122, 77, 0.18);
-        font-size: 13px;
-    }
-
-    .asset-line:last-of-type {
-        border-bottom: none;
-    }
-
-    .error {
-        background: rgba(255, 124, 152, 0.28);
-        border-radius: var(--radius-sm);
-    }
-
-    img:hover {
-        transform: scale(1.06);
-        transition: transform 0.2s ease;
-    }
-
-    #calculator-modal .uk-modal-dialog {
-        border-radius: var(--radius-lg);
-        box-shadow: var(--glass-shadow);
-    }
-
-    #calculator-modal .uk-modal-body {
-        padding: clamp(18px, 2vw, 28px);
-        background: linear-gradient(160deg, #d5daee);
-    }
-
-    .uk-table td.uk-text-center,
-    .uk-table th.uk-text-center {
-        text-align: center !important;
-    }
-
-    /* Enhanced Header Styles */
-    .main-header {
-        background: #ffffff;
-        padding: 16px;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        margin-bottom: 16px;
-        border: 1px solid #e1e8ed;
-    }
-
-    .header-description {
-        font-size: 0.85rem;
-        line-height: 1.5;
-        max-width: 100%;
-        margin: 6px auto 0;
-        color: #6c757d;
-    }
-
-    /* Summary Cards Row */
-    .summary-cards {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 12px;
-        margin-bottom: 16px;
-    }
-
-    .summary-card {
-        background: #ffffff;
-        border: 1px solid #e1e8ed;
-        border-radius: 8px;
-        padding: 16px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
-        text-align: center;
-    }
-
-    .summary-card .card-title {
-        font-size: 0.75rem;
-        color: #6c757d;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 8px;
-    }
-
-    .summary-card .card-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #2c3e50;
-        margin: 0;
-    }
-
-    .summary-card.positive .card-value {
-        color: #28a745;
-    }
-
-    .summary-card.negative .card-value {
-        color: #dc3545;
-    }
-
-    .summary-card .card-value-input-group {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-top: 4px;
-    }
-
-    .summary-card .card-value-input-group .uk-input {
-        flex: 1;
-        min-width: 80px;
-        text-align: right;
-        font-size: 1.2rem;
-        font-weight: 700;
-        height: 38px;
-        padding: 6px 8px;
-    }
-
-    /* Enhanced Card Section Headers */
-    .section-header {
-        background: #f8f9fa;
-        padding: 10px 12px;
-        border-radius: 6px;
-        margin-bottom: 12px;
-        border-left: 3px solid #007bff;
-    }
-
-    .section-header h5 {
-        margin: 0;
-        font-weight: 600;
-        color: #2c3e50;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.95rem;
-    }
-
-    .section-header p {
-        margin: 4px 0 0 0;
-        font-size: 0.75rem;
-        color: #6c757d;
-    }
-
-    /* Info Pills Horizontal Cards */
-    .info-pills-cards {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
-        margin-bottom: 16px;
-    }
-
-    .info-pill-card {
-        background: #ffffff;
-        border: 1px solid #e1e8ed;
-        border-radius: 8px;
-        padding: 12px;
-        text-align: center;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
-    }
-
-    .info-pill-card .pill-label {
-        font-size: 0.7rem;
-        color: #6c757d;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 6px;
-        display: block;
-    }
-
-    .info-pill-card .pill-value {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #2c3e50;
-        display: block;
-    }
-
-    .info-pill-card.positive .pill-value {
-        color: #28a745;
-    }
-
-    .info-pill-card.negative .pill-value {
-        color: #dc3545;
-    }
-
-    /* Exchange & Chain Input Groups Enhancement */
-    .input-group {
-        border-radius: 6px;
-        overflow: hidden;
-        margin-bottom: 8px;
-    }
-
-    .input-group-text {
-        min-width: 110px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    /* Enhanced Button Styling */
-    .uk-button {
-        letter-spacing: 0.02em;
-        transition: all 0.2s ease;
-        border-radius: 6px;
-        font-size: 0.8rem;
-    }
-
-    .uk-button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .uk-button-primary {
-        background: #007bff;
-        color: #ffffff;
-        border: none;
-    }
-
-    .uk-button-primary:hover {
-        background: #0056b3;
-    }
-
-    .uk-button-secondary {
-        background: #6c757d;
-        color: #ffffff;
-        border: none;
-    }
-
-    .uk-button-secondary:hover {
-        background: #545b62;
-    }
-
-    .uk-button-danger {
-        background: #dc3545;
-        color: #ffffff;
-        border: none;
-    }
-
-    .uk-button-danger:hover {
-        background: #c82333;
-    }
-
-    /* Accordion Enhancement */
-    .uk-accordion-title {
-        background: #4a5568;
-        color: #ffffff;
-        padding: 10px 12px;
-        border-radius: 6px;
-        margin-bottom: 10px;
-        transition: all 0.2s ease;
-    }
-
-    .uk-accordion-title span {
-        color: #ffffff !important;
-    }
-
-    /* Hover/Active: ensure text color switches cleanly */
-    .uk-accordion-title:hover,
-    .uk-open>a.uk-accordion-title {
-        background: #eff0f1;
-        color: #1f2937;
-    }
-
-    .uk-accordion-title:hover span,
-    .uk-open>a.uk-accordion-title span {
-        color: #1f2937 !important;
-    }
-
-    /* Enhanced Modal Capital Section */
-    .modal-capital-section {
-        background: #ffffff;
-        padding: 16px;
-        border-radius: 8px;
-        border: 1px solid #e1e8ed;
-        margin-bottom: 16px;
-    }
-
-    .modal-capital-section label {
-        color: #495057;
-        font-size: 0.9rem;
-        font-weight: 600;
-    }
-
-    /* Icon Styling */
-    .bi {
-        vertical-align: middle;
-        margin-right: 4px;
-    }
-
-    .section-header .bi,
-    .modal-title .bi {
-        color: #007bff;
-    }
-
-    .info-pills .bi {
-        color: #6c757d;
-        font-size: 1em;
-    }
-
-    /* Enhanced Action Button Icons */
-    .uk-button .bi {
-        margin-right: 4px;
-        font-size: 1em;
-    }
-
-    /* Table Enhancements */
-    .table-glass tbody td {
-        vertical-align: middle;
-    }
-
-    /* Calculator Modal Enhancements */
-    #calculator-modal .uk-form-label {
-        font-weight: 600;
-        color: #495057;
-        min-width: 60px;
-        display: inline-block;
-    }
-
-    #calculator-modal .uk-input {
-        border: 1px solid #ced4da;
-        border-radius: 6px;
-        transition: all 0.2s ease;
-        font-size: 0.9rem;
-    }
-
-    #calculator-modal .uk-input:focus {
-        border-color: #80bdff;
-        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    }
-
-    /* Smooth Transitions */
-    * {
-        transition: background-color 0.2s ease, border-color 0.2s ease;
-    }
-
-    /* Loading State (optional for future use) */
-    .loading {
-        opacity: 0.6;
-        pointer-events: none;
-    }
-
-    /* Success/Error States */
-    .success-state {
-        background: rgba(76, 175, 80, 0.15) !important;
-        border-color: rgba(76, 175, 80, 0.4) !important;
-    }
-
-    .error-state {
-        background: rgba(244, 67, 54, 0.15) !important;
-        border-color: rgba(244, 67, 54, 0.4) !important;
-    }
-
-    /* Enhanced Checkbox Styling */
-    .uk-checkbox {
-        width: 16px;
-        height: 16px;
-        border: 2px solid #ced4da;
-        border-radius: 3px;
-        cursor: pointer;
-    }
-
-    .uk-checkbox:checked {
-        background-color: #007bff;
-        border-color: #007bff;
-    }
-
-    /* Tooltip-like hover effects for icon links */
-    .modal-toolbar .icon-link {
-        position: relative;
-    }
-
-    .modal-toolbar .icon-link:hover::after {
-        content: attr(title);
-        position: absolute;
-        bottom: -30px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 11px;
-        white-space: nowrap;
-        z-index: 1000;
-    }
-
-    /* Compact Layout for Iframe */
-    .uk-grid {
-        margin: 0 !important;
-    }
-
-    .uk-grid>* {
-        padding-left: 8px !important;
-        padding-right: 8px !important;
-    }
-
-    .uk-margin-small-top {
-        margin-top: 8px !important;
-    }
-
-    .uk-margin-small-bottom {
-        margin-bottom: 8px !important;
-    }
-
-    /* Responsive Improvements */
-    @media (max-width: 1200px) {
-        .summary-cards {
-            grid-template-columns: repeat(2, 1fr);
+    <script src="../utils/fetch-helper.js"></script>
+    <script src="../app-namespace.js"></script>
+    <script src="../services/cex.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
         }
 
-        .info-pills-cards {
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
+        body {
+            color: var(--text-primary);
+            background: linear-gradient(135deg, #f0f4f8 0%, #e8f0f5 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            font-size: 14px;
         }
-    }
 
-    @media (max-width: 768px) {
-        .main-header {
+        .uk-container {
+            max-width: 100%;
+            margin: 0 auto;
             padding: 12px;
+            font-size: 13px;
         }
 
-        .header-description {
-            font-size: 0.75rem;
+        /* Modal Kompak */
+        #search-pnl-modal .uk-modal-dialog {
+            max-width: 600px;
         }
 
-        .summary-cards {
-            grid-template-columns: repeat(2, 1fr);
+        .filter-date-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
             gap: 8px;
+            align-items: flex-end;
         }
 
-        .info-pills-cards {
-            grid-template-columns: 1fr;
-            gap: 8px;
+        .filter-date-row .date-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
-        .section-header h5 {
-            font-size: 0.85rem;
+        .filter-date-row .button-group {
+            display: flex;
+            gap: 6px;
         }
 
-        .section-header p {
-            font-size: 0.7rem;
+        .modal-title span {
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: #2c3e50;
+        }
+
+        .modal-title img {
+            width: 32px;
+            margin-left: 8px;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+        }
+
+        .uk-card.uk-card-default {
+            padding: 12px;
+            background: #ffffff;
+            border: 1px solid #e0e8f0;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        }
+
+        .portfolio-panel {
+            min-height: 100%;
+            padding: 10px !important;
+        }
+
+        .panel-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e8f0;
+        }
+
+        .panel-heading h4 {
+            margin: 0;
+            color: #172033;
+            font-size: 0.95rem;
+            line-height: 1.2;
+            font-weight: 700;
+        }
+
+        .panel-heading p {
+            margin: 2px 0 0;
+            color: #6b7280;
+            font-size: 0.72rem;
+            line-height: 1.4;
+        }
+
+        .panel-chip {
+            flex: 0 0 auto;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: #dff5f1;
+            color: #0f766e;
+            font-size: 0.65rem;
+            font-weight: 700;
+            white-space: nowrap;
         }
 
         .modal-toolbar {
-            flex-direction: column;
-            gap: 10px;
+            background: #f0f4f8;
+            border: 1px solid #e0e8f0;
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 10px;
         }
 
         .action-buttons {
-            width: 100%;
+            display: flex;
             justify-content: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            width: 100%;
         }
 
-        .uk-button {
+        .modal-toolbar .icon-boxes {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .modal-toolbar .icon-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            flex: 0 0 auto;
+        }
+
+        .modal-toolbar .icon-link:hover {
+            background: #f3f4f6;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        }
+
+        .modal-toolbar .icon-link img {
+            width: 16px;
+            height: 16px;
+        }
+
+        .info-pills-cards {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .info-pill-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .info-pill-card .pill-label {
+            font-size: 0.65rem;
+            color: #6b7280;
+            font-weight: 600;
+            margin-bottom: 2px;
+            display: block;
+        }
+
+        .info-pill-card .pill-value {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        /* Sticky Header & Scrollable Table */
+        .portfolio-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .table-responsive {
+            max-height: 800px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background: #ffffff;
+        }
+
+        .uk-table thead th {
+            position: sticky;
+            top: 0;
+            background: #f8fafc;
+            z-index: 20;
+            box-shadow: inset 0 -1px 0 #e2e8f0;
+            font-size: 13px;
+            text-transform: uppercase;
+            color: #0709ef;
+            font-weight: bolder;
+        }
+
+        .wallet-group-header {
+            background: #f1f5f9 !important;
             font-size: 0.75rem;
-            padding: 6px 12px;
+        }
+
+        .asset-row-indent {
+            padding-left: 20px !important;
+        }
+
+        color: #172033;
+        word-break: break-word;
+        }
+
+        .status-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .status-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 10px;
+            padding: 6px 0;
+            border-bottom: 1px dashed #e5e7eb;
+            font-size: 0.8rem;
+        }
+
+        .status-line:last-child {
+            border-bottom: 0;
+        }
+
+        .status-line strong {
+            text-align: right;
+            word-break: break-word;
         }
 
         .table-glass {
-            font-size: 0.75rem;
-        }
-    }
-
-    @media (max-width: 640px) {
-        .uk-grid>* {
             width: 100%;
+            border-collapse: collapse;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #ffffff;
+            border: 1px solid #e0e8f0;
+            font-size: 12px;
+        }
+
+        .table-glass thead th {
+            background: #2c3e50;
+            color: #ffffff;
+            font-weight: 600;
+            padding: 8px 10px;
+            text-align: center;
+            font-size: 0.75rem;
+            letter-spacing: 0.02em;
+        }
+
+        .table-glass tbody td {
+            padding: 8px 10px;
+            color: #374151;
+            border-bottom: 1px solid #f3f4f6;
+            background: transparent;
+            font-size: 0.85rem;
+        }
+
+        .table-glass tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .table-glass .table-total-row th {
+            padding: 10px;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #1f2937;
+            background: #ecfdf5;
+        }
+
+        .cex-label {
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+
+        .chain-label {
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        /* Chain Colors */
+        .text-chain-ethereum {
+            color: #8098ee !important;
+        }
+
+        .text-chain-bsc {
+            color: #f0af18 !important;
+        }
+
+        .text-chain-polygon {
+            color: #cd72f4 !important;
+        }
+
+        .text-chain-arbitrum {
+            color: #a6b0c3 !important;
+        }
+
+        .text-chain-base {
+            color: #1e46f9 !important;
+        }
+
+        .text-chain-solana {
+            color: #7508a0 !important;
+        }
+
+        .text-chain-avax {
+            color: #e84142 !important;
+        }
+
+        /* CEX Colors */
+        .text-cex-binance {
+            color: #e0a50c !important;
+        }
+
+        .text-cex-gate {
+            color: #D5006D !important;
+        }
+
+        .text-cex-bitget {
+            color: #1aaaba !important;
+        }
+
+        .text-cex-kucoin {
+            color: #29b3af !important;
+        }
+
+        .text-cex-bybit {
+            color: #f29900 !important;
+        }
+
+        .text-cex-mexc {
+            color: #1448ce !important;
+        }
+
+        .text-cex-indodax {
+            color: #2eb5f2 !important;
+        }
+
+        .text-cex-htx {
+            color: #008cd6 !important;
+        }
+
+        .text-cex-okx {
+            color: #000000 !important;
+        }
+
+
+        .input-group-text {
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            color: #495057;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .input-group .form-control {
+            background: #ffffff;
+            border: 1px solid #ced4da;
+            color: #495057;
+            font-size: 0.85rem;
+        }
+
+        .input-group .form-control:focus {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+
+        .asset-line {
+            padding: 6px 0;
+            border-bottom: 1px dashed rgba(31, 122, 77, 0.18);
+            font-size: 13px;
+        }
+
+        .asset-line:last-of-type {
+            border-bottom: none;
+        }
+
+        .error {
+            background: rgba(255, 124, 152, 0.28);
+            border-radius: var(--radius-sm);
+        }
+
+        img:hover {
+            transform: scale(1.06);
+            transition: transform 0.2s ease;
+        }
+
+        #calculator-modal .uk-modal-dialog {
+            border-radius: var(--radius-lg);
+            box-shadow: var(--glass-shadow);
+        }
+
+        #calculator-modal .uk-modal-body {
+            padding: clamp(18px, 2vw, 28px);
+            background: linear-gradient(160deg, #d5daee);
+        }
+
+        .uk-table td.uk-text-center,
+        .uk-table th.uk-text-center {
+            text-align: center !important;
+        }
+
+        /* Enhanced Header Styles */
+        .main-header {
+            display: block;
+            background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+            color: #ffffff;
+            border: 0;
+            border-radius: 8px;
+            padding: 16px 20px;
+            box-shadow: 0 2px 6px rgba(15, 118, 110, 0.15);
+            margin-bottom: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .main-header::after {
+            content: "";
+            position: absolute;
+            inset: auto -10% -46% auto;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 999px;
+            pointer-events: none;
+        }
+
+        .main-header h3 {
+            margin: 0 0 4px 0;
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .header-description {
+            font-size: 0.8rem;
+            line-height: 1.4;
+            max-width: 100%;
+            margin: 4px 0 8px;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .header-badges {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.7rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* Summary Cards - Full Width at Top */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+            grid-column: 1 / -1;
+            order: -1;
+        }
+
+        .summary-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #e0e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .summary-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #0f766e, #06b6d4);
+        }
+
+        .summary-card .card-title {
+            font-size: 0.7rem;
+            color: #64748b;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .summary-card .card-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #172033;
+            margin-bottom: 2px;
+        }
+
+        .summary-card .card-value-idr {
+            font-size: 0.75rem;
+            color: #10b981;
+        }
+
+        .summary-card.positive .card-value {
+            color: #28a745;
+        }
+
+        .summary-card.negative .card-value {
+            color: #dc3545;
+        }
+
+        .summary-card .card-value-input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .summary-card .card-value-input-group .uk-input {
+            flex: 1;
+            min-width: 80px;
+            text-align: right;
+            font-size: 1.2rem;
+            font-weight: 700;
+            height: 38px;
+            padding: 6px 8px;
+        }
+
+        /* Enhanced Card Section Headers */
+        .section-header {
+            background: #f8f9fa;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border-left: 3px solid #007bff;
+        }
+
+        .section-header h5 {
+            margin: 0;
+            font-weight: 600;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.95rem;
+        }
+
+        .section-header p {
+            margin: 4px 0 0 0;
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+
+        /* Info Pills Horizontal Cards */
+        .info-pills-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .info-pill-card {
+            background: #ffffff;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+        }
+
+        .info-pill-card .pill-label {
+            font-size: 0.7rem;
+            color: #6c757d;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .info-pill-card .pill-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #2c3e50;
+            display: block;
+        }
+
+        .info-pill-card.positive .pill-value {
+            color: #28a745;
+        }
+
+        .info-pill-card.negative .pill-value {
+            color: #dc3545;
+        }
+
+        /* Exchange & Chain Input Groups Enhancement */
+        .input-group {
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .input-group-text {
+            min-width: 110px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Enhanced Button Styling */
+        .uk-button {
+            min-height: 32px;
+            border-radius: 6px;
+            font-weight: 650;
+            text-transform: none;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            transition: all 0.15s ease;
+            border: none;
+        }
+
+        .uk-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .uk-button-primary {
+            background: #0f766e;
+            color: #ffffff;
+        }
+
+        .uk-button-primary:hover {
+            background: #0d5f59;
+        }
+
+        .uk-button-secondary {
+            background: #64748b;
+            color: #ffffff;
+        }
+
+        .input-group {
+            display: grid;
+            grid-template-columns: 140px minmax(0, 1fr) minmax(0, 1fr);
+            gap: 8px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .input-group.cex-has-passphrase {
+            grid-template-columns: 140px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+        }
+
+        .input-group-text {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            font-weight: 600;
+            font-size: 0.8rem;
+            border-radius: 6px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .input-group .form-control,
+        .uk-input,
+        .uk-textarea {
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            color: #1f2937;
+            font-size: 0.8rem;
+            padding: 6px 10px;
+        }
+
+        .input-group .form-control:focus,
+        .uk-input:focus,
+        .uk-textarea:focus {
+            border-color: #0f766e;
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
+            outline: none;
+        }
+
+        .uk-button-secondary {
+            background: #64748b;
+            color: #ffffff;
+            border: none;
+        }
+
+        .uk-button-secondary:hover {
+            background: #475569;
+        }
+
+        .uk-button-danger {
+            background: #dc3545;
+            color: #ffffff;
+            border: none;
+        }
+
+        .uk-button-danger:hover {
+            background: #c82333;
+        }
+
+        /* Accordion Enhancement */
+        .uk-accordion-title {
+            background: #4a5568;
+            color: #ffffff;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .uk-accordion-title span {
+            color: #ffffff !important;
+        }
+
+        /* Hover/Active: ensure text color switches cleanly */
+        .uk-accordion-title:hover,
+        .uk-open>a.uk-accordion-title {
+            background: #eff0f1;
+            color: #1f2937;
+        }
+
+        .uk-accordion-title:hover span,
+        .uk-open>a.uk-accordion-title span {
+            color: #1f2937 !important;
+        }
+
+        /* Enhanced Modal Capital Section */
+        .modal-capital-section {
+            background: #ffffff;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #e1e8ed;
+            margin-bottom: 16px;
+        }
+
+        .modal-capital-section label {
+            color: #495057;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        /* Icon Styling */
+        .bi {
+            vertical-align: middle;
+            margin-right: 4px;
+        }
+
+        .section-header .bi,
+        .modal-title .bi {
+            color: #007bff;
+        }
+
+        .info-pills .bi {
+            color: #6c757d;
+            font-size: 1em;
+        }
+
+        /* Enhanced Action Button Icons */
+        .uk-button .bi {
+            margin-right: 4px;
+            font-size: 1em;
+        }
+
+        /* Table Enhancements */
+        .table-glass tbody td {
+            vertical-align: middle;
+        }
+
+        /* Calculator Modal Enhancements */
+        #calculator-modal .uk-form-label {
+            font-weight: 600;
+            color: #495057;
+            min-width: 60px;
+            display: inline-block;
+        }
+
+        #calculator-modal .uk-input {
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        #calculator-modal .uk-input:focus {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        /* Smooth Transitions */
+        * {
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+
+        /* Loading State (optional for future use) */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* Success/Error States */
+        .success-state {
+            background: rgba(76, 175, 80, 0.15) !important;
+            border-color: rgba(76, 175, 80, 0.4) !important;
+        }
+
+        .error-state {
+            background: rgba(244, 67, 54, 0.15) !important;
+            border-color: rgba(244, 67, 54, 0.4) !important;
+        }
+
+        /* Enhanced Checkbox Styling */
+        .uk-checkbox {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ced4da;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .uk-checkbox:checked {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+        /* Tooltip-like hover effects for icon links */
+        .modal-toolbar .icon-link {
+            position: relative;
+        }
+
+        .modal-toolbar .icon-link:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            z-index: 1000;
+        }
+
+        /* Compact Layout for Iframe */
+        .uk-grid {
+            margin: 0 !important;
+        }
+
+        .uk-grid>* {
+            padding-left: 8px !important;
+            padding-right: 8px !important;
+        }
+
+        .uk-margin-small-top {
+            margin-top: 8px !important;
+        }
+
+        .uk-margin-small-bottom {
+            margin-bottom: 8px !important;
+        }
+
+        /* Responsive Improvements */
+        @media (max-width: 1200px) {
+            .summary-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .info-pills-cards {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+        }
+
+        @media (max-width: 1260px) {
+            .summary-cards {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 960px) {
+            .summary-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .info-pills-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .input-group,
+            .input-group.cex-has-passphrase {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-date-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-header {
+                padding: 12px 16px;
+            }
+
+            .main-header h3 {
+                font-size: 1.2rem;
+            }
+
+            .header-description {
+                font-size: 0.75rem;
+            }
+
+            .summary-cards {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+
+            .info-pills-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .uk-button {
+                font-size: 0.75rem;
+                padding: 4px 10px;
+            }
+
+            .table-glass {
+                font-size: 0.75rem;
+            }
+
+            .table-glass thead th,
+            .table-glass tbody td {
+                padding: 6px 8px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .uk-container {
+                padding: 8px;
+                font-size: 12px;
+            }
+
+            .main-header {
+                padding: 10px 12px;
+            }
+
+            .main-header h3 {
+                font-size: 1rem;
+                margin-bottom: 2px;
+            }
+
+            .summary-cards {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+
+            .panel-heading {
+                gap: 6px;
+                margin-bottom: 8px;
+            }
+
+            .panel-heading h4 {
+                font-size: 0.85rem;
+            }
+
+            .modal-toolbar {
+                padding: 6px;
+                margin-bottom: 8px;
+            }
+
+            .modal-toolbar .icon-link {
+                width: 28px;
+                height: 28px;
+                font-size: 0.7rem;
+            }
+
+            .status-card {
+                padding: 8px;
+                margin-bottom: 8px;
+            }
+
+            .status-line {
+                padding: 4px 0;
+                font-size: 0.75rem;
+            }
+        }
+
+        /* ============================================ */
+        /* LOADING OVERLAY STYLES - BLACK & WHITE THEME */
+        /* ============================================ */
+        .balance-check-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .balance-check-overlay.active {
+            display: flex;
+        }
+
+        .overlay-content {
+            background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%);
+            padding: 40px 50px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            max-width: 450px;
+            animation: slideUp 0.4s ease;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .overlay-spinner {
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 25px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #ffffff;
+            border-right-color: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .overlay-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 12px;
+            text-shadow: 0 2px 15px rgba(255, 255, 255, 0.1);
+            letter-spacing: 0.5px;
+        }
+
+        .overlay-message {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.75);
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .overlay-progress {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            height: 8px;
+            overflow: hidden;
+            margin-top: 20px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .overlay-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ffffff 0%, #e0e0e0 50%, #ffffff 100%);
+            border-radius: 50px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+            position: relative;
+        }
+
+        .overlay-progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg,
+                    transparent 0%,
+                    rgba(255, 255, 255, 0.4) 50%,
+                    transparent 100%);
+            animation: shimmer 1.5s infinite;
+        }
+
+        .overlay-details {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 0.5px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        /* Chain Colors */
+        .text-chain-ethereum {
+            color: #8098ee !important;
+            font-weight: bold;
+        }
+
+        .text-chain-bsc {
+            color: #f0af18 !important;
+            font-weight: bold;
+        }
+
+        .text-chain-polygon {
+            color: #cd72f4ff !important;
+            font-weight: bold;
+        }
+
+        .text-chain-base {
+            color: #1e46f9 !important;
+            font-weight: bold;
+        }
+
+        .text-chain-arbitrum {
+            color: #a6b0c3 !important;
+            font-weight: bold;
+        }
+
+        .text-chain-solana {
+            color: #7508a0ff !important;
+            font-weight: bold;
+        }
+
+        .text-chain-avax {
+            color: #e84142 !important;
+            font-weight: bold;
+        }
+
+        /* CEX Colors */
+        .text-cex-binance {
+            color: #f0b90b !important;
+            font-weight: bold;
+        }
+
+        .text-cex-gate {
+            color: #e51b7b !important;
+            font-weight: bold;
+        }
+
+        .text-cex-bitget {
+            color: #00f0ff !important;
+            font-weight: bold;
+        }
+
+        .text-cex-kucoin {
+            color: #23af91 !important;
+            font-weight: bold;
+        }
+
+        .text-cex-bybit {
+            color: #f7a600 !important;
+            font-weight: bold;
+        }
+
+        .text-cex-indodax {
+            color: #3d5afe !important;
+            font-weight: bold;
+        }
+
+        .text-cex-mexc {
+            color: #00b897 !important;
+            font-weight: bold;
+        }
+
+        .text-cex-htx {
+            color: #008cd6 !important;
+            font-weight: bold;
+        }
+
+        .text-cex-okx {
+            color: #000000 !important;
+            font-weight: bold;
+        }
+
+        /* ============================================ */
+        /* PORTFOLIO DASHBOARD REFRESH */
+        /* ============================================ */
+        :root {
+            --page-bg: #eef3f8;
+            --surface: #ffffff;
+            --surface-soft: #f7fafc;
+            --border: #d9e3ec;
+            --text-primary: #172033;
+            --text-muted: #64748b;
+            --accent: #0f766e;
+            --accent-strong: #0b5f59;
+            --accent-soft: #dff5f1;
+            --blue: #2563eb;
+            --green: #12805c;
+            --red: #c24148;
+            --amber: #b45309;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --shadow-sm: 0 10px 28px rgba(15, 23, 42, 0.07);
+            --shadow-xs: 0 4px 14px rgba(15, 23, 42, 0.05);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            color: var(--text-primary);
+            background:
+                radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 32rem),
+                linear-gradient(180deg, #f7fbff 0%, var(--page-bg) 42%, #edf2f7 100%);
+            min-height: 100vh;
+        }
+
+        .uk-container {
+            max-width: 100%;
+            padding: clamp(12px, 2vw, 24px);
+        }
+
+        .main-header {
+            padding: 8px 20px !important;
+            min-height: unset !important;
+            margin-bottom: 8px !important;
+            border-radius: 10px !important;
+            background: linear-gradient(135deg, #102033 0%, #0f766e 100%) !important;
+        }
+
+        .main-header h3 {
+            font-size: 1.1rem !important;
+            margin: 0 !important;
         }
 
         .summary-cards {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    /* ============================================ */
-    /* LOADING OVERLAY STYLES - BLACK & WHITE THEME */
-    /* ============================================ */
-    .balance-check-overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.85);
-        backdrop-filter: blur(10px);
-        z-index: 9999;
-        justify-content: center;
-        align-items: center;
-        animation: fadeIn 0.3s ease;
-    }
-
-    .balance-check-overlay.active {
-        display: flex;
-    }
-
-    .overlay-content {
-        background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%);
-        padding: 40px 50px;
-        border-radius: 16px;
-        text-align: center;
-        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6),
-            0 0 0 1px rgba(255, 255, 255, 0.1);
-        max-width: 450px;
-        animation: slideUp 0.4s ease;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .overlay-spinner {
-        width: 70px;
-        height: 70px;
-        margin: 0 auto 25px;
-        border: 5px solid rgba(255, 255, 255, 0.1);
-        border-top-color: #ffffff;
-        border-right-color: rgba(255, 255, 255, 0.6);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-
-    .overlay-title {
-        font-size: 24px;
-        font-weight: 700;
-        color: #ffffff;
-        margin-bottom: 12px;
-        text-shadow: 0 2px 15px rgba(255, 255, 255, 0.1);
-        letter-spacing: 0.5px;
-    }
-
-    .overlay-message {
-        font-size: 15px;
-        color: rgba(255, 255, 255, 0.75);
-        margin-bottom: 20px;
-        line-height: 1.6;
-    }
-
-    .overlay-progress {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 50px;
-        height: 8px;
-        overflow: hidden;
-        margin-top: 20px;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
-    }
-
-    .overlay-progress-bar {
-        height: 100%;
-        background: linear-gradient(90deg, #ffffff 0%, #e0e0e0 50%, #ffffff 100%);
-        border-radius: 50px;
-        transition: width 0.3s ease;
-        box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
-        position: relative;
-    }
-
-    .overlay-progress-bar::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(90deg,
-                transparent 0%,
-                rgba(255, 255, 255, 0.4) 50%,
-                transparent 100%);
-        animation: shimmer 1.5s infinite;
-    }
-
-    .overlay-details {
-        font-size: 13px;
-        color: rgba(255, 255, 255, 0.6);
-        margin-top: 15px;
-        font-family: 'Courier New', monospace;
-        letter-spacing: 0.5px;
-    }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
+            display: grid !important;
+            grid-template-columns: repeat(5, 1fr) !important;
+            gap: 10px !important;
+            margin-bottom: 15px !important;
         }
 
-        to {
-            opacity: 1;
-        }
-    }
-
-    @keyframes slideUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
+        .uk-container {
+            padding: 10px !important;
+            max-width: 100% !important;
         }
 
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    @keyframes shimmer {
-        0% {
-            transform: translateX(-100%);
+        .portfolio-grid {
+            margin-top: 10px !important;
+            display: grid !important;
+            grid-template-columns: 1fr 1.2fr 1fr !important;
+            gap: 10px !important;
         }
 
-        100% {
-            transform: translateX(100%);
+        .portfolio-panel {
+            height: 100% !important;
+            min-height: 0;
+            overflow-y: auto !important;
+            padding: 12px !important;
         }
-    }
 
-    /* Chain Colors */
-    .text-chain-ethereum {
-        color: #8098ee !important;
-        font-weight: bold;
-    }
+        /* Modal Awal Input in PNL Section */
+        .modal-awal-compact {
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-top: 10px;
+        }
 
-    .text-chain-bsc {
-        color: #f0af18 !important;
-        font-weight: bold;
-    }
+        .modal-awal-compact label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 4px;
+        }
 
-    .text-chain-polygon {
-        color: #cd72f4ff !important;
-        font-weight: bold;
-    }
+        .modal-awal-compact .uk-input {
+            height: 30px !important;
+            font-size: 0.85rem !important;
+            font-weight: 700;
+        }
 
-    .text-chain-base {
-        color: #1e46f9 !important;
-        font-weight: bold;
-    }
+        .modal-awal-compact .uk-button {
+            height: 30px !important;
+            min-height: 30px !important;
+            font-size: 0.7rem !important;
+        }
 
-    .text-chain-arbitrum {
-        color: #a6b0c3 !important;
-        font-weight: bold;
-    }
+        .header-description {
+            color: rgba(255, 255, 255, 0.78);
+            font-size: clamp(0.86rem, 1.2vw, 1rem);
+            max-width: 760px;
+            margin: 8px 0 0;
+        }
 
-    .text-chain-solana {
-        color: #7508a0ff !important;
-        font-weight: bold;
-    }
+        .header-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
 
-    .text-chain-avax {
-        color: #e84142 !important;
-        font-weight: bold;
-    }
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 32px;
+            padding: 6px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.78rem;
+            font-weight: 650;
+            white-space: nowrap;
+        }
 
-    /* CEX Colors */
-    .text-cex-binance {
-        color: #f0b90b !important;
-        font-weight: bold;
-    }
+        .summary-cards {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 12px;
+            align-items: stretch;
+        }
 
-    .text-cex-gate {
-        color: #e51b7b !important;
-        font-weight: bold;
-    }
+        .summary-card,
+        .info-pill-card,
+        .uk-card.uk-card-default {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-xs);
+        }
 
-    .text-cex-bitget {
-        color: #00f0ff !important;
-        font-weight: bold;
-    }
+        .summary-card {
+            display: none !important;
+        }
 
-    .text-cex-kucoin {
-        color: #23af91 !important;
-        font-weight: bold;
-    }
+        .summary-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), #38bdf8);
+        }
 
-    .text-cex-bybit {
-        color: #f7a600 !important;
-        font-weight: bold;
-    }
+        .summary-card .card-title {
+            color: var(--text-muted) !important;
+            font-size: 0.72rem;
+            line-height: 1.35;
+            margin: 0;
+        }
 
-    .text-cex-indodax {
-        color: #3d5afe !important;
-        font-weight: bold;
-    }
+        .summary-card .card-value {
+            color: #111827;
+            font-size: clamp(1.15rem, 1.7vw, 1.6rem);
+            line-height: 1.12;
+            overflow-wrap: anywhere;
+        }
 
-    .text-cex-mexc {
-        color: #00b897 !important;
-        font-weight: bold;
-    }
+        .summary-card .card-value-idr {
+            font-size: 0.8rem;
+            overflow-wrap: anywhere;
+        }
 
-    .text-cex-htx {
-        color: #008cd6 !important;
-        font-weight: bold;
-    }
+        .summary-card .card-value-input-group {
+            align-items: stretch;
+            gap: 6px;
+        }
 
-    .text-cex-okx {
-        color: #000000 !important;
-        font-weight: bold;
-    }
-</style>
+        .summary-card .card-value-input-group .uk-input {
+            min-width: 0;
+            height: 40px;
+            font-size: 1rem;
+            border-radius: 8px;
+        }
+
+        .summary-card #SaveModal {
+            min-width: 82px;
+        }
+
+        .portfolio-panel {
+            min-height: 100%;
+            padding: 14px !important;
+        }
+
+        /* NEW LAYOUT: 3-Column Dashboard */
+        .portfolio-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1.2fr 1fr !important;
+            gap: 12px !important;
+            margin: 0 !important;
+        }
+
+        .portfolio-grid>div {
+            padding: 0 !important;
+            width: 100% !important;
+        }
+
+        /* Left Column - CEX */
+        .portfolio-grid>div:nth-child(1) {
+            grid-column: 1 !important;
+            grid-row: 1 !important;
+        }
+
+        /* Center Column - Summary Assets & PNL */
+        .portfolio-grid>div:nth-child(2) {
+            grid-column: 2 !important;
+            grid-row: 1 !important;
+        }
+
+        /* Right Column - Wallet */
+        .portfolio-grid>div:nth-child(3) {
+            grid-column: 3 !important;
+            grid-row: 1 !important;
+        }
+
+        @media (max-width: 1400px) {
+            .portfolio-grid {
+                grid-template-columns: 1fr 1fr !important;
+            }
+
+            .portfolio-grid>div:nth-child(1) {
+                grid-column: 1 !important;
+                grid-row: 1 !important;
+            }
+
+            .portfolio-grid>div:nth-child(2) {
+                grid-column: 2 !important;
+                grid-row: 1 !important;
+            }
+
+            .portfolio-grid>div:nth-child(3) {
+                grid-column: 1 / -1 !important;
+                grid-row: 2 !important;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .portfolio-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            .portfolio-grid>div:nth-child(1) {
+                grid-column: 1 !important;
+                grid-row: 1 !important;
+            }
+
+            .portfolio-grid>div:nth-child(2) {
+                grid-column: 1 !important;
+                grid-row: 2 !important;
+            }
+
+            .portfolio-grid>div:nth-child(3) {
+                grid-column: 1 !important;
+                grid-row: 3 !important;
+            }
+        }
+
+
+
+        .settings-section,
+        .settings-block {
+            min-width: 0;
+        }
+
+        .settings-block {
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .cex-api-scroll {
+            max-height: 390px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .panel-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-heading h4 {
+            margin: 0;
+            color: #172033;
+            font-size: 1rem;
+            line-height: 1.25;
+            font-weight: 800;
+        }
+
+        .panel-heading p {
+            margin: 4px 0 0;
+            color: var(--text-muted);
+            font-size: 0.77rem;
+            line-height: 1.45;
+        }
+
+        .panel-chip {
+            flex: 0 0 auto;
+            padding: 5px 9px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--accent-strong);
+            font-size: 0.7rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .info-pills-cards {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 0 !important;
+        }
+
+        .info-pill-card {
+            padding: 12px;
+            text-align: left;
+        }
+
+        .info-pill-card .pill-label {
+            font-size: 0.68rem;
+            line-height: 1.25;
+        }
+
+        .info-pill-card .pill-value {
+            font-size: clamp(0.95rem, 1.3vw, 1.12rem);
+            overflow-wrap: anywhere;
+        }
+
+        .status-card {
+            background: var(--surface-soft) !important;
+            border: 1px solid var(--border);
+            border-radius: 10px !important;
+            padding: 12px !important;
+            margin: 12px 0 !important;
+        }
+
+        .status-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px dashed #d1dbe5;
+            font-size: 0.84rem;
+        }
+
+        .status-line:last-child {
+            border-bottom: 0;
+        }
+
+        .status-line strong {
+            text-align: right;
+            overflow-wrap: anywhere;
+        }
+
+        .table-glass {
+            border-radius: 10px;
+            border-color: var(--border);
+            box-shadow: none;
+        }
+
+        .table-glass thead th {
+            background: #243245;
+            padding: 11px 10px;
+            font-size: 0.72rem;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+        }
+
+        .table-glass tbody td {
+            padding: 10px 11px;
+            color: #263244;
+            font-size: 0.82rem;
+        }
+
+        .table-glass .table-total-row th {
+            background: #ecfdf5;
+            color: #065f46;
+            font-size: 0.88rem;
+        }
+
+        .table-scroll-hint {
+            display: none;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            margin: 4px 0 8px;
+        }
+
+        .input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            border-radius: 12px;
+            padding: 10px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            margin-bottom: 10px !important;
+        }
+
+        .input-group.cex-has-passphrase {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .input-group-prepend {
+            grid-column: 1 / -1;
+            width: 100%;
+        }
+
+        .input-group-text {
+            min-height: unset;
+            padding: 0 2px 4px 2px;
+            background: transparent;
+            border: none;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-direction: row-reverse;
+        }
+
+        .input-group .form-control,
+        .uk-input {
+            height: 26px;
+        }
+
+        .input-group .form-control,
+        .uk-input,
+        .uk-textarea {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            color: #162033;
+            font-size: 0.75rem;
+            padding: 4px 8px;
+        }
+
+        .input-group .form-control:focus,
+        .uk-input:focus,
+        .uk-textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.16);
+        }
+
+        .uk-textarea {
+            font-size: 0.75rem;
+            padding: 8px;
+            height: auto;
+            min-height: 120px;
+        }
+
+        .uk-button {
+            min-height: 26px;
+            height: 26px;
+            line-height: 24px;
+            padding: 0 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 11px;
+            text-transform: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .uk-button-small,
+        .uk-form-small {
+            height: 26px !important;
+            min-height: 26px !important;
+            line-height: 24px !important;
+            padding: 0 10px !important;
+            font-size: 10px !important;
+        }
+
+        .uk-button:hover {
+            transform: translateY(-1px);
+        }
+
+        .uk-button-primary {
+            background: var(--accent);
+        }
+
+        .uk-button-primary:hover {
+            background: var(--accent-strong);
+        }
+
+        .uk-button-secondary {
+            background: #334155;
+        }
+
+        .chain-options {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .chain-options label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            min-height: 54px;
+            padding: 8px 6px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #f8fafc;
+            font-size: 0.65rem;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        input.uk-checkbox[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            position: relative;
+            flex: 0 0 auto;
+            width: 36px;
+            height: 20px;
+            margin: 0;
+            border: 1px solid #b8c5d3;
+            border-radius: 999px;
+            background: #dbe3ec;
+            cursor: pointer;
+            transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        input.uk-checkbox[type="checkbox"]::before {
+            content: "";
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 14px;
+            height: 14px;
+            border-radius: 999px;
+            background: #ffffff;
+            box-shadow: 0 2px 5px rgba(15, 23, 42, 0.24);
+            transition: transform 0.2s ease;
+        }
+
+        input.uk-checkbox[type="checkbox"]:checked {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        input.uk-checkbox[type="checkbox"]:checked::before {
+            transform: translateX(16px);
+        }
+
+        input.uk-checkbox[type="checkbox"]:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.18);
+        }
+
+        .modal-toolbar {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .modal-toolbar .icon-link {
+            width: 40px;
+            height: 40px;
+            border-radius: 9px;
+            background: #ffffff;
+            border-color: var(--border);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+            cursor: pointer;
+        }
+
+        .modal-toolbar .icon-link img {
+            width: 19px;
+            height: 19px;
+        }
+
+        .asset-line {
+            gap: 8px;
+            padding: 7px 0;
+            border-bottom-color: #dce8e5;
+        }
+
+        .uk-overflow-auto {
+            border-radius: 10px;
+        }
+
+        #pnl-pagination {
+            align-items: center;
+            gap: 10px;
+        }
+
+        #pnlPageInfo {
+            min-width: 94px;
+            text-align: center;
+        }
+
+        #calculator-modal .uk-modal-body,
+        #search-pnl-modal .uk-modal-body {
+            border-radius: 14px;
+            background: #ffffff;
+        }
+
+        #calculator-modal .uk-form-controls {
+            display: grid;
+            grid-template-columns: 74px minmax(0, 1fr);
+            gap: 10px;
+            align-items: center;
+        }
+
+        #calculator-modal .uk-button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        @media (max-width: 1260px) {
+            .summary-cards {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 960px) {
+            .main-header {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-cards {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .portfolio-grid>div:nth-child(2),
+            .portfolio-grid>div:nth-child(3) {
+                width: 100% !important;
+            }
+
+            .portfolio-panel {
+                padding: 12px !important;
+            }
+
+            .input-group,
+            .input-group.cex-has-passphrase {
+                grid-template-columns: 1fr;
+                padding: 10px;
+                background: #f8fafc;
+                border: 1px solid var(--border);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .uk-container {
+                padding: 10px;
+                font-size: 13px;
+            }
+
+            .main-header {
+                padding: 16px;
+                border-radius: 12px;
+            }
+
+            .header-badges {
+                gap: 6px;
+            }
+
+            .header-badge {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .summary-cards,
+            .info-pills-cards,
+            .chain-options {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-card {
+                min-height: 104px;
+                padding: 14px;
+            }
+
+            .summary-card .card-value-input-group {
+                flex-direction: column;
+            }
+
+            .summary-card #SaveModal {
+                width: 100%;
+            }
+
+            .panel-heading {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .panel-chip {
+                align-self: flex-start;
+            }
+
+            .table-scroll-hint {
+                display: block;
+            }
+
+            .table-glass {
+                min-width: 560px;
+            }
+
+            #assetTableCexs {
+                min-width: 520px;
+            }
+
+            .table-glass tbody td {
+                font-size: 0.78rem;
+            }
+
+            .action-buttons,
+            .modal-toolbar .icon-boxes {
+                justify-content: center;
+                width: 100%;
+            }
+
+            .modal-toolbar .icon-link {
+                width: 42px;
+                height: 42px;
+            }
+
+            #pnl-pagination {
+                flex-wrap: wrap;
+                justify-content: center !important;
+            }
+
+            #pnlPrev,
+            #pnlNext {
+                flex: 1 1 120px;
+            }
+
+            .filter-date-row .date-field,
+            .filter-date-row .button-group,
+            .filter-date-row .button-group .uk-button {
+                width: 100%;
+            }
+
+            #calculator-modal .uk-form-controls {
+                grid-template-columns: 1fr;
+                gap: 5px;
+            }
+        }
+
+        /* Sticky Header & Scrollable Table */
+        .table-responsive {
+            max-height: 390px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #ffffff;
+            margin-bottom: 10px;
+        }
+
+
+
+        .wallet-group-header {
+            background: #f1f5f9 !important;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .asset-row-indent {
+            padding-left: 20px !important;
+        }
+
+        .cex-label {
+            font-weight: 700;
+            font-size: 12px;
+        }
+
+        .asset-table tbody tr:hover {
+            background: #f8fafc;
+        }
+    </style>
+</head>
 
 <body>
 
@@ -935,129 +2080,94 @@
 
     <div class="uk-container uk-margin-small-top">
         <!-- Main Header with Description -->
-        <div class="main-header uk-text-center">
-            <h3 class="uk-margin-remove-bottom modal-title">
-                <span id="portfolioTitle">PORTOFOLIO ASSET</span>
-            </h3>
-            <p class="header-description">
-                Track aset crypto secara berkala di exchange & wallet dengan PNL monitoring
-            </p>
+        <div class="main-header uk-margin-small-bottom">
+            <div class="uk-flex uk-flex-middle uk-flex-between">
+                <h3 class="uk-margin-remove" style="color: #fefefe;">
+                    <span id="portfolioTitle">PORTOFOLIO ASSET [ EXCHANGER & WALLETS ]</span>
+                </h3>
+            </div>
         </div>
 
-        <!-- Summary Cards -->
-        <div class="summary-cards">
-            <div class="summary-card">
-                <div class="card-title  uk-text-primary"><span uk-icon="icon: database"></span> Total Saldo Exchanger
-                </div>
-                <div class="card-value" id="summaryTotalCEX">$0.00</div>
-                <div class="card-value-idr uk-text-bold  uk-text-success" id="summaryTotalCEX_IDR">Rp 0</div>
-            </div>
-            <div class="summary-card">
-                <div class="card-title uk-text-primary"><span uk-icon="icon: credit-card"></span> Total Saldo Wallet
-                </div>
-                <div class="card-value" id="summaryTotalWallet">$0.00</div>
-                <div class="card-value-idr uk-text-bold  uk-text-success" id="summaryTotalWallet_IDR">Rp 0</div>
-            </div>
-            <div class="summary-card">
-                <div class="card-title uk-text-primary"><span uk-icon="icon: credit-card"></span> Total Semua Asset
-                </div>
-                <div class="card-value" id="summaryTotalAsset">$0.00</div>
-                <div class="card-value-idr uk-text-bold  uk-text-success" id="summaryTotalAsset_IDR">Rp 0</div>
-            </div>
-            <div class="summary-card" id="summaryPNLCard">
-                <div class="card-title uk-text-primary"><span uk-icon="icon: arrow-up"></span> Profit & Lost</div>
-                <div class="card-value" id="summaryPNL">$0.00</div>
-                <div class="card-value-idr uk-text-bold" id="summaryPNL_IDR">Rp 0</div>
-            </div>
-            <div class="summary-card">
-                <div class="card-title uk-text-primary"><span uk-icon="icon: credit-card"></span> Modal Awal (USDT)
-                </div>
-                <div class="card-value-input-group">
-                    <input type="number" class="uk-input" id="MODALAWAL" placeholder="Modal Awal" value="1.00"
-                        step="0.01" required />
-                    <button class="uk-button uk-button-small uk-button-primary" id="SaveModal"
-                        title="Simpan Modal"><span uk-icon="icon: check"></span> SIMPAN</button>
-                </div>
-                <div class="card-value-idr uk-text-bold uk-text-primary" id="RPMODAL">Rp 0</div>
-            </div>
-        </div>
+
 
         <!-- Grid Container -->
-        <div class="uk-grid uk-child-width-1-1@s uk-child-width-1-2@m uk-child-width-1-3@l uk-grid-small" uk-grid>
-            <div>
-                <div class="uk-card uk-card-default uk-card-body">
+        <div class="uk-grid uk-grid-small portfolio-grid" uk-grid>
+            <!-- Kolom 1: Exchanger -->
+            <div class="uk-width-1-1@s uk-width-1-2@m uk-width-2-5@l">
+                <div class="uk-card uk-card-default uk-card-body portfolio-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h4><span uk-icon="icon: database; ratio: .9"></span> Exchanger Assets</h4>
+                            <p>Informasi Semua Saldo di Exchanger</p>
+                        </div>
+                    </div>
 
 
-                    <!-- Container Accordion -->
-                    <ul uk-accordion="multiple: true">
-                        <table class="uk-table uk-table-striped uk-table-hover uk-margin-top table-glass"
-                            id="assetTableCexs">
-                            <thead>
-                                <tr>
-                                    <th>Exchanger</th>
-                                    <th>Saldo &amp; Rate USDT ($)</th>
-                                </tr>
-                            </thead>
-                            <tbody class="cex-static">
-                                <tr data-cex="BINANCE">
-                                    <td class="uk-text-left cex-label text-cex-binance">BINANCE</td>
-                                    <td id="BINANCESaldo" class="uk-text-right">xxx {USDT}</td>
-                                </tr>
-                                <tr data-cex="GATE">
-                                    <td class="uk-text-left cex-label text-cex-gate">GATE</td>
-                                    <td id="GATESaldo" class="uk-text-right">xxx {USDT}</td>
-                                </tr>
-                                <tr data-cex="BITGET">
-                                    <td class="uk-text-left cex-label text-cex-bitget">BITGET</td>
-                                    <td id="BITGETSaldo" class="uk-text-right">xxx {USDT}</td>
-                                </tr>
-                                <tr data-cex="KUCOIN">
-                                    <td class="uk-text-left cex-label text-cex-kucoin">KUCOIN</td>
-                                    <td id="KUCOINSaldo" class="uk-text-right">xxx {USDT}</td>
-                                </tr>
-                                <tr data-cex="BYBIT">
-                                    <td class="uk-text-left cex-label text-cex-bybit">BYBIT</td>
-                                    <td id="BYBITSaldo" class="uk-text-right">xxx {USDT}</td>
-                                </tr>
-                                <tr data-cex="INDODAX">
-                                    <td class="uk-text-left cex-label text-cex-indodax">INDODAX</td>
-                                    <td id="INDODAXSaldo" class="uk-text-right">xxx {INDODAX}</td>
-                                </tr>
-                                <tr data-cex="MEXC">
-                                    <td class="uk-text-left cex-label text-cex-mexc">MEXC</td>
-                                    <td id="MEXCSaldo" class="uk-text-right">xxx {USDT}</td>
-                                </tr>
-                                <tr data-cex="HTX">
-                                    <td class="uk-text-left cex-label text-cex-htx">HTX</td>
-                                    <td id="HTXSaldo" class="uk-text-right">xxx {USDT}</td>
-                                </tr>
-                                <tr data-cex="OKX">
-                                    <td class="uk-text-left cex-label text-cex-okx">OKX</td>
-                                    <td id="OKXSaldo" class="uk-text-right">xxx {USDT}</td>
-                                </tr>
-                            </tbody>
-                            <tbody id="output_cex"></tbody>
-                            <tfoot>
-                                <tr class="table-total-row">
-                                    <th id="LTotalSaldoCEX">TOTAL</th>
-                                    <th id="TotalSaldoCEX">...</th>
-                                </tr>
-                            </tfoot>
-                        </table>
-                        <div class="uk-flex uk-flex-right uk-margin-small-top">
+                    <!-- Container Exchanger -->
+                    <div class="settings-section">
+                        <div class="table-responsive">
+                            <table class="uk-table uk-table-divider uk-table-small uk-table-middle asset-table"
+                                id="assetTableCexs">
+                                <thead>
+                                    <tr>
+                                        <th>Exchanger</th>
+                                        <th class="uk-text-right">Detail Asset & Total ($)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="output_cex">
+                                    <tr data-cex="BINANCE">
+                                        <td class="cex-label text-cex-binance">BINANCE</td>
+                                        <td id="BINANCESaldo" class="uk-text-right uk-text-muted">xxx</td>
+                                    </tr>
+                                    <tr data-cex="GATE">
+                                        <td class="cex-label text-cex-gate">GATE</td>
+                                        <td id="GATESaldo" class="uk-text-right uk-text-muted">xxx</td>
+                                    </tr>
+                                    <tr data-cex="BITGET">
+                                        <td class="cex-label text-cex-bitget">BITGET</td>
+                                        <td id="BITGETSaldo" class="uk-text-right uk-text-muted">xxx</td>
+                                    </tr>
+                                    <tr data-cex="KUCOIN">
+                                        <td class="cex-label text-cex-kucoin">KUCOIN</td>
+                                        <td id="KUCOINSaldo" class="uk-text-right uk-text-muted">xxx</td>
+                                    </tr>
+                                    <tr data-cex="BYBIT">
+                                        <td class="cex-label text-cex-bybit">BYBIT</td>
+                                        <td id="BYBITSaldo" class="uk-text-right uk-text-muted">xxx</td>
+                                    </tr>
+                                    <tr data-cex="INDODAX">
+                                        <td class="cex-label text-cex-indodax">INDODAX</td>
+                                        <td id="INDODAXSaldo" class="uk-text-right uk-text-muted">xxx</td>
+                                    </tr>
+                                    <tr data-cex="MEXC">
+                                        <td class="cex-label text-cex-mexc">MEXC</td>
+                                        <td id="MEXCSaldo" class="uk-text-right uk-text-muted">xxx</td>
+                                    </tr>
+                                    <tr data-cex="HTX">
+                                        <td class="cex-label text-cex-htx">HTX</td>
+                                        <td id="HTXSaldo" class="uk-text-right uk-text-muted">xxx</td>
+                                    </tr>
+                                    <tr data-cex="OKX">
+                                        <td class="cex-label text-cex-okx">OKX</td>
+                                        <td id="OKXSaldo" class="uk-text-right uk-text-muted">xxx</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="uk-flex uk-flex-middle uk-flex-between uk-margin-small-top">
+                            <div class="uk-text-bold" style="font-size: 1.1rem;">Total Saldo : <span id="TotalSaldoCEX"
+                                    class="uk-text-primary">0.00 $</span></div>
                             <button class="uk-button uk-button-small uk-button-primary" id="SaveConfigCEXS"><span
                                     uk-icon="icon: check"></span> CHECK EXCHANGER</button>
                         </div>
                         <!-- Collapse: Setting All Exchanges -->
-                        <li class="uk-open">
+                        <div class="uk-open settings-block">
                             <h5 class="uk-heading-line uk-text-primary uk-margin-remove"><span>
-                                    <span uk-icon="icon: database"></span>Setting Centralized Exchanges (CEX)</span>
+                                    <span uk-icon="icon: database"></span>&nbsp;Setting Centralized Exchanges (CEX)</span>
                             </h5>
 
-                            <p class="uk-text-small uk-text-muted uk-margin-small-bottom"><span
-                                    uk-icon="icon: info"></span> Centang exchange yang aktif dan masukkan API Key
-                            </p>
 
+                        <div class="cex-api-scroll uk-margin-small-top">
                             <div class="input-group uk-margin-small">
                                 <div class="input-group-prepend">
                                     <div class="input-group-text">
@@ -1084,48 +2194,7 @@
                                     placeholder="SECRET KEY GATE" value="" required />
                             </div>
 
-                            <div class="input-group uk-margin-small">
-                                <div class="input-group-prepend">
-                                    <div class="input-group-text">
-                                        <input type="checkbox" class="uk-checkbox" id="BITGET" />&nbsp;
-                                        <label class="form-check-label text-cex-bitget" for="BITGET">BITGET</label>
-                                    </div>
-                                </div>
-                                <input type="text" class="form-control uk-input uk-form-small" id="apikeyBITGET"
-                                    placeholder="API KEY BITGET" value="" required />
-                                <input type="text" class="form-control uk-input uk-form-small" id="secretkeyBITGET"
-                                    placeholder="SECRET KEY BITGET" value="" required />
-                                <input type="text" class="form-control uk-input uk-form-small" id="passphraseBITGET"
-                                    placeholder="PASSPHRASE KEY BITGET" value="" required />
-                            </div>
 
-                            <div class="input-group uk-margin-small">
-                                <div class="input-group-prepend">
-                                    <div class="input-group-text">
-                                        <input type="checkbox" class="uk-checkbox" id="KUCOIN" />&nbsp;
-                                        <label class="form-check-label text-cex-kucoin" for="KUCOIN">KUCOIN</label>
-                                    </div>
-                                </div>
-                                <input type="text" class="form-control uk-input uk-form-small" id="apikeyKUCOIN"
-                                    placeholder="API KEY KUCOIN" value="" required />
-                                <input type="text" class="form-control uk-input uk-form-small" id="secretkeyKUCOIN"
-                                    placeholder="SECRET KEY KUCOIN" value="" required />
-                                <input type="text" class="form-control uk-input uk-form-small" id="passphraseKUCOIN"
-                                    placeholder="PASSPHRASE KEY KUCOIN" value="" required />
-                            </div>
-
-                            <div class="input-group uk-margin-small">
-                                <div class="input-group-prepend">
-                                    <div class="input-group-text">
-                                        <input type="checkbox" class="uk-checkbox" id="BYBIT" />&nbsp;
-                                        <label class="form-check-label text-cex-bybit" for="BYBIT">BYBIT</label>
-                                    </div>
-                                </div>
-                                <input type="text" class="form-control uk-input uk-form-small" id="apikeyBYBIT"
-                                    placeholder="API KEY BYBIT" value="" required />
-                                <input type="text" class="form-control uk-input uk-form-small" id="secretkeyBYBIT"
-                                    placeholder="SECRET KEY BYBIT" value="" required />
-                            </div>
 
                             <div class="input-group uk-margin-small">
                                 <div class="input-group-prepend">
@@ -1152,6 +2221,48 @@
                                 <input type="text" class="form-control uk-input uk-form-small" id="secretkeyMEXC"
                                     placeholder="SECRET KEY MEXC" value="" required />
                             </div>
+                            <div class="input-group uk-margin-small cex-has-passphrase">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <input type="checkbox" class="uk-checkbox" id="BITGET" />&nbsp;
+                                        <label class="form-check-label text-cex-bitget" for="BITGET">BITGET</label>
+                                    </div>
+                                </div>
+                                <input type="text" class="form-control uk-input uk-form-small" id="apikeyBITGET"
+                                    placeholder="API KEY BITGET" value="" required />
+                                <input type="text" class="form-control uk-input uk-form-small" id="secretkeyBITGET"
+                                    placeholder="SECRET KEY BITGET" value="" required />
+                                <input type="text" class="form-control uk-input uk-form-small" id="passphraseBITGET"
+                                    placeholder="PASSPHRASE KEY BITGET" value="" required />
+                            </div>
+
+                            <div class="input-group uk-margin-small cex-has-passphrase">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <input type="checkbox" class="uk-checkbox" id="KUCOIN" />&nbsp;
+                                        <label class="form-check-label text-cex-kucoin" for="KUCOIN">KUCOIN</label>
+                                    </div>
+                                </div>
+                                <input type="text" class="form-control uk-input uk-form-small" id="apikeyKUCOIN"
+                                    placeholder="API KEY KUCOIN" value="" required />
+                                <input type="text" class="form-control uk-input uk-form-small" id="secretkeyKUCOIN"
+                                    placeholder="SECRET KEY KUCOIN" value="" required />
+                                <input type="text" class="form-control uk-input uk-form-small" id="passphraseKUCOIN"
+                                    placeholder="PASSPHRASE KEY KUCOIN" value="" required />
+                            </div>
+
+                            <div class="input-group uk-margin-small">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <input type="checkbox" class="uk-checkbox" id="BYBIT" />&nbsp;
+                                        <label class="form-check-label text-cex-bybit" for="BYBIT">BYBIT</label>
+                                    </div>
+                                </div>
+                                <input type="text" class="form-control uk-input uk-form-small" id="apikeyBYBIT"
+                                    placeholder="API KEY BYBIT" value="" required />
+                                <input type="text" class="form-control uk-input uk-form-small" id="secretkeyBYBIT"
+                                    placeholder="SECRET KEY BYBIT" value="" required />
+                            </div>
                             <div class="input-group uk-margin-small">
                                 <div class="input-group-prepend">
                                     <div class="input-group-text">
@@ -1164,7 +2275,7 @@
                                 <input type="text" class="form-control uk-input uk-form-small" id="secretkeyHTX"
                                     placeholder="SECRET KEY HTX" value="" required />
                             </div>
-                            <div class="input-group uk-margin-small">
+                            <div class="input-group uk-margin-small cex-has-passphrase">
                                 <div class="input-group-prepend">
                                     <div class="input-group-text">
                                         <input type="checkbox" class="uk-checkbox" id="OKX" />&nbsp;
@@ -1178,27 +2289,47 @@
                                 <input type="text" class="form-control uk-input uk-form-small" id="passphraseOKX"
                                     placeholder="PASSPHRASE KEY OKX" value="" required />
                             </div>
+                        </div><!-- end .cex-api-scroll -->
+
+                        </div>
 
 
-                        </li>
 
-
-
-                    </ul>
+                    </div>
                 </div>
             </div>
-            <!-- Kolom 2 -->
-            <div>
-                <div class="uk-card uk-card-default uk-card-body">
+            <!-- Kolom 2: PNL & Modal -->
+            <div class="uk-width-1-1@s uk-width-1-2@m uk-width-1-5@l">
+                <div class="uk-card uk-card-default uk-card-body portfolio-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h4><span uk-icon="icon: history; ratio: .9"></span> Riwayat &amp; Histori PNL</h4>
+                            <p>Data perubahan saldo dan estimasi keuntungan/kerugian.</p>
+                        </div>
+                    </div>
 
-                    <!-- Info Pills as Cards -->
-                    <div class="info-pills-cards uk-margin-small-top">
+                    <!-- Modal Awal Input & Info (Grid Version) -->
+                    <div class="uk-flex uk-flex-middle uk-margin-small-bottom">
+                        <div class="uk-text-bold" style="flex: 1;">Modal Awal : <span id="RPMODAL_GRID"
+                                class="uk-text-success">Rp 0</span></div>
+                        <div class="uk-flex uk-flex-middle gap-1">
+                            $&nbsp;<input type="number" class="uk-input uk-form-small" id="MODALAWAL_GRID"
+                                placeholder="0.00"
+                                style="font-size: 13px !important;width: 100px; margin-right: 5px; text-align: right;font-weight: bold;color: black;">
+                            <button class="uk-button uk-button-primary uk-button-small" id="SaveModal_GRID">
+                                &nbsp;<span uk-icon="icon: check; ratio: .75"></span> SIMPAN
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Info Pills as Cards (Grid Version) -->
+                    <div class="info-pills-cards uk-margin-small-top uk-margin-small-bottom">
                         <div class="info-pill-card">
                             <span class="pill-label uk-text-success">Modal Awal</span>
                             <strong class="pill-value" id="m_awal">...</strong>
                         </div>
                         <div class="info-pill-card">
-                            <span class="pill-label   uk-text-primary">Modal Akhir</span>
+                            <span class="pill-label uk-text-primary">Modal Akhir</span>
                             <strong class="pill-value" id="m_akhir">...</strong>
                         </div>
                         <div class="info-pill-card" id="pnlCard">
@@ -1206,29 +2337,31 @@
                             <strong class="pill-value" id="m_pnl">...</strong>
                         </div>
                     </div>
-                   
+
 
                     <!-- Status Info -->
-                    <div
-                        style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin: 12px 0; font-size: 0.85rem;">
-                        <div class="uk-text-danger"
-                            style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <div class="status-card">
+
+                        <div class="uk-text-danger status-line">
                             <span class="  uk-text-bold">Last Check:</span>
                             <strong id="lastUpdate">...</strong>
                         </div>
-                        <div class="uk-text-secondary"
-                            style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <div class="uk-text-secondary status-line">
                             <span class="  uk-text-bold">Modal Saat Ini:</span>
                             <strong id="m_akhirs">...</strong>
                         </div>
-                        <div id="pnl-container" style="display: flex; justify-content: space-between;">
+                        <div id="pnl-container" class="status-line">
                             <span class="  uk-text-bold">PNL Saat Ini:</span>
                             <strong id="m_pnls">...</strong>
                         </div>
 
+
+
+
+
                     </div>
 
-                     <!-- Action Buttons -->
+                    <!-- Action Buttons -->
                     <div class="modal-toolbar">
                         <div class="action-buttons" style="width: 100%; justify-content: center;">
                             <div class="icon-boxes">
@@ -1264,6 +2397,8 @@
                         </div>
                     </div>
                     <div class="uk-overflow-auto uk-margin-small-top">
+                        <p class="table-scroll-hint"><span uk-icon="icon: move; ratio: .75"></span> Geser tabel ke
+                            samping untuk melihat semua kolom.</p>
                         <table class="uk-table uk-table-striped uk-table-hover table-glass" id="assetTablePNL">
                             <thead>
                                 <tr>
@@ -1290,70 +2425,82 @@
 
                 </div>
             </div>
-            <!-- Kolom 3 -->
-            <div>
-                <div class="uk-card uk-card-default uk-card-body">
-                    <table class="uk-table uk-table-striped uk-table-hover uk-margin-top table-glass"
-                        id="assetTableWallet" style="display:none;">
-                        <thead>
-                            <tr class="table-header-row">
-                                <th class="uk-text-nowrap">Chain</th>
-                                <th class="uk-text-nowrap">Wallet</th>
-                                <th class="uk-text-nowrap">Asset</th>
-                                <th class="uk-text-nowrap">Fee Gas [USDT]</th>
-                                <th class="uk-text-nowrap">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody id="output_chain"></tbody>
-                        <tfoot>
-                            <tr class="table-total-row">
-                                <th colspan="4" id="LTotalSaldoWallets">Total</th>
-                                <th id="TotalSaldoWallets">...</th>
-                            </tr>
-                        </tfoot>
-                    </table>
-
-                    <div class="uk-flex uk-flex-right uk-margin-small-top">
-                        <button class="uk-button uk-button-small uk-button-primary" id="SaveWalletChains"><span
-                                uk-icon="icon: check"></span> CHECK WALLETS</button>
+            <!-- Kolom 3: Wallet Multi-Chain -->
+            <div class="uk-width-1-1@s uk-width-1-1@m uk-width-2-5@l">
+                <div class="uk-card uk-card-default uk-card-body portfolio-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h4><span uk-icon="icon: credit-card; ratio: .9"></span> Wallet Multi-Chain</h4>
+                            <p>Informasi Asset di berbagai Wallet Lintas Chain.</p>
+                        </div>
                     </div>
-                    <!-- Collapse: Setting Chains & Wallet -->
-                    <li class="uk-open">
-                        <h5 class="uk-heading-line uk-text-left uk-margin-remove"><span><span
+                    <div class="table-responsive">
+                        <table class="uk-table uk-table-divider uk-table-small uk-table-middle asset-table"
+                            id="assetTableWallet">
+                            <thead>
+                                <tr class="table-header-row" style="font-weight: bold;">
+                                    <th>Address & Chain</th>
+                                    <th>Saldo</th>
+                                    <th class="uk-text-right">Total ($)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="output_chain"></tbody>
+                        </table>
+                    </div>
+                    <div class="uk-flex uk-flex-middle uk-flex-right uk-margin-small-top uk-flex-wrap gap-4">
+                        <div id="TotalSaldoWalletsContainer" class="uk-text-bold uk-margin-small-right"
+                            style="font-size: 1.1rem;">
+                            <span id="LTotalSaldoWallets" class=" uk-margin-small-right">Total
+                                Portfolio :</span>
+                            <span id="TotalSaldoWallets" class="uk-text-primary">0.00 $</span>
+                        </div>
+                        <button class="uk-button uk-button-small uk-button-primary" id="SaveWalletChains">
+                            <span uk-icon="icon: check"></span> CHECK WALLETS
+                        </button>
+                    </div>
+                    <!-- Setting Chains & Wallet -->
+                    <div class="uk-open settings-block">
+                        <h5 class="uk-heading-line uk-text-left uk-margin-remove uk-text-primary"><span><span
                                     uk-icon="icon: credit-card"></span> Setting Blockchain Wallets</span></h5>
 
-                        <p class="uk-text-small uk-text-muted uk-margin-small-bottom"><span uk-icon="icon: info"></span>
-                            Pilih chain yang ingin dicek dan masukkan daftar wallet address (satu per baris)</p>
-                        
-                        <div class="uk-grid-small uk-child-width-1-2 uk-child-width-1-4@m uk-margin-small-bottom" uk-grid>
+                        <div class="chain-options uk-margin-small-bottom uk-margin-small-top">
                             <div>
-                                <label class="text-chain-ethereum"><input class="uk-checkbox" type="checkbox" id="ETHEREUM"> ETHEREUM</label>
+                                <label class="text-chain-ethereum"><input class="uk-checkbox" type="checkbox"
+                                        id="ETHEREUM"> ETHEREUM</label>
                             </div>
                             <div>
-                                <label class="text-chain-bsc"><input class="uk-checkbox" type="checkbox" id="BSC"> BSC</label>
+                                <label class="text-chain-bsc"><input class="uk-checkbox" type="checkbox" id="BSC">
+                                    BSC</label>
                             </div>
                             <div>
-                                <label class="text-chain-polygon"><input class="uk-checkbox" type="checkbox" id="POLYGON"> POLYGON</label>
+                                <label class="text-chain-polygon"><input class="uk-checkbox" type="checkbox"
+                                        id="POLYGON"> POLYGON</label>
                             </div>
                             <div>
-                                <label class="text-chain-base"><input class="uk-checkbox" type="checkbox" id="BASE"> BASE</label>
+                                <label class="text-chain-base"><input class="uk-checkbox" type="checkbox" id="BASE">
+                                    BASE</label>
                             </div>
                             <div>
-                                <label class="text-chain-arbitrum"><input class="uk-checkbox" type="checkbox" id="ARBITRUM"> ARBITRUM</label>
+                                <label class="text-chain-arbitrum"><input class="uk-checkbox" type="checkbox"
+                                        id="ARBITRUM"> ARBITRUM</label>
                             </div>
                             <div>
-                                <label class="text-chain-avax"><input class="uk-checkbox" type="checkbox" id="AVAX"> AVAX</label>
+                                <label class="text-chain-avax"><input class="uk-checkbox" type="checkbox" id="AVAX">
+                                    AVAX</label>
                             </div>
                             <div>
-                                <label class="text-chain-solana"><input class="uk-checkbox" type="checkbox" id="SOLANA"> SOLANA</label>
+                                <label class="text-chain-solana"><input class="uk-checkbox" type="checkbox" id="SOLANA">
+                                    SOLANA</label>
                             </div>
                         </div>
 
                         <div class="uk-margin-small">
                             <label class="uk-form-label uk-text-bold">Multi Wallet Addresses</label>
-                            <textarea id="multiWallets" class="uk-textarea uk-form-small" rows="5" placeholder="Enter wallet addresses, one per line..."></textarea>
+                            <textarea id="multiWallets" class="uk-textarea" rows="10"
+                                style="font-size: 0.9rem; line-height: 1.5; font-family: 'Roboto Mono', monospace;"
+                                placeholder="Enter wallet addresses, one per line..."></textarea>
                         </div>
-                    </li>
+                    </div>
 
                     <!-- Modal Kalkulator -->
                     <div id="calculator-modal" uk-modal>
@@ -1585,41 +2732,6 @@
                 }
             };
 
-            // Helpers to wait until tables are actually populated before hiding overlay
-            async function waitFor(conditionFn, timeoutMs = 15000, intervalMs = 100) {
-                const start = Date.now();
-                return new Promise((resolve) => {
-                    const timer = setInterval(() => {
-                        if (conditionFn()) {
-                            clearInterval(timer);
-                            resolve(true);
-                        } else if (Date.now() - start > timeoutMs) {
-                            clearInterval(timer);
-                            resolve(false);
-                        }
-                    }, intervalMs);
-                });
-            }
-
-            function isCexTableReady() {
-                // Ensure no placeholder values remain on visible rows and total is computed
-                const hasPlaceholders = $("#assetTableCexs tbody.cex-static tr:visible td[id$='Saldo']")
-                    .toArray()
-                    .some(td => /xxx|\?\?\?/.test($(td).text()));
-                const totalText = $('#TotalSaldoCEX').text().trim();
-                const totalReady = totalText !== '...' && totalText.length > 0;
-                return !hasPlaceholders && totalReady;
-            }
-
-            function isWalletTableReady(expectedResults) {
-                const rowsCount = $('#output_chain tr').length;
-                const expected = Array.isArray(expectedResults)
-                    ? expectedResults.filter(r => !r.error).length
-                    : rowsCount; // fallback
-                const totalReady = $('#TotalSaldoWallets').text().trim() !== '...';
-                return rowsCount >= expected && expected > 0 && totalReady;
-            }
-
             // ============================================
             // PROXY & CREDENTIAL HELPERS
             // ============================================
@@ -1699,7 +2811,7 @@
 
                 // 2. Fallback to global cache
                 if (_cexKeysCache && _cexKeysCache[cexName]) return _cexKeysCache[cexName];
-                
+
                 // 3. Fallback to window.CEX_API if available
                 if (window.CEX_API && window.CEX_API[cexName]) return window.CEX_API[cexName];
 
@@ -1709,7 +2821,7 @@
             function setCEXStatus(exchange, status, message = '') {
                 const $el = $(`#${exchange}Saldo`);
                 if (!$el.length) return;
-                
+
                 if (status === 'loading') {
                     $el.text('Loading...').addClass('loading').removeClass('error');
                 } else if (status === 'error') {
@@ -1768,44 +2880,6 @@
                 if (typeof toast !== 'undefined' && toast.info) toast.info("Harga token telah diperbarui!");
             });
 
-            // Fetch initial rates
-            function fetchRatesx() {
-                const binanceURL = encodeURIComponent('https://data-api.binance.vision/api/v3/ticker/price?symbols=["BTCUSDT","ETHUSDT","BNBUSDT","POLUSDT","AVAXUSDT","SOLUSDT"]');
-                const indodaxURL = encodeURIComponent('https://cors-proxy-rosy.vercel.app/api/proxy?url=https://indodax.com/api/ticker/usdtidr');
-
-                $.when(
-                    $.ajax({
-                        url: `https://api.allorigins.win/get?url=${binanceURL}`,
-                        method: 'GET',
-                        dataType: 'json'
-                    }),
-                    $.ajax({
-                        url: `https://api.allorigins.win/get?url=${indodaxURL}`,
-                        method: 'GET',
-                        dataType: 'json'
-                    })
-                ).done(function (binanceResponse, indodaxResponse) {
-                    const binanceData = JSON.parse(binanceResponse.contents);
-                    const indodaxData = JSON.parse(indodaxResponse.contents);
-
-                    binanceData.forEach((res) => {
-                        switch (res.symbol) {
-                            case "BTCUSDT": ratePrice.btc = parseFloat(res.price); break;
-                            case "ETHUSDT": ratePrice.eth = parseFloat(res.price); break;
-                            case "BNBUSDT": ratePrice.bnb = parseFloat(res.price); break;
-                            case "POLUSDT": ratePrice.pol = parseFloat(res.price); break;
-                            case "AVAXUSDT": ratePrice.avax = parseFloat(res.price); break;
-                            case "SOLUSDT": ratePrice.sol = parseFloat(res.price); break;
-                        }
-                    });
-
-                    ratePrice.idr = parseFloat(indodaxData.ticker.last);
-                    console.log('âœ… ratePrice:', ratePrice);
-                }).fail(function (error) {
-                    console.warn('âŒ Failed to fetch rates:', error);
-                });
-            }
-
             function fetchRates() {
                 $.when(
                     $.getJSON("https://api-gcp.binance.com/api/v3/ticker/price?symbols=[%22BTCUSDT%22,%22ETHUSDT%22,%22BNBUSDT%22,%22POLUSDT%22,%22AVAXUSDT%22,%22SOLUSDT%22]"),
@@ -1847,25 +2921,8 @@
                 DAI: 1
             };
 
-            // ⭐ WHITELIST: Hanya token ini yang akan dihitung rate USDT-nya
-            // Token lain akan di-skip dan tidak ditampilkan
-            const ALLOWED_TOKENS = new Set([
-                // Stablecoins
-                'USDT', 'USDC', 'BUSD', 'TUSD', 'USDP', 'FDUSD', 'DAI',
-                // Major tokens
-                'BTC', 'ETH', 'BNB', 'WBTC', 'WETH',
-                // Gas tokens untuk setiap chain
-                'POL', 'MATIC', // Polygon
-                'SOL',          // Solana
-                'AVAX',         // Avalanche
-                'ARB',          // Arbitrum
-                'OP',           // Optimism
-                // Fiat currency
-                'IDR'           // Indonesian Rupiah (for Indodax)
-            ]);
-
-            // Changed to 1.0 to show only assets with value above $1
-            const MIN_DISPLAY_USDT = 1.0;
+            // // Changed to 1.0 to show only assets with value above $1
+            // const MIN_DISPLAY_USDT = 1.0;
 
             const priceTickerCache = {
                 lastFetch: 0,
@@ -1925,7 +2982,7 @@
                         response = await fetch(PROXY_BASE + encodeURIComponent(url));
                     }
                     if (!response.ok) throw new Error(`Ticker request failed: ${response.status}`);
-                    
+
                     const data = await response.json();
                     const map = new Map();
                     data.forEach(item => {
@@ -2038,7 +3095,7 @@
                         }
                     }
                 } catch (error) {
-                    console.warn(`âŒ Unable to resolve USDT rate for ${upper}`, error);
+                    console.warn(`â Œ Unable to resolve USDT rate for ${upper}`, error);
                 } finally {
                     pendingRateLookups.delete(upper);
                 }
@@ -2063,156 +3120,147 @@
                 return Array.from(map.entries()).map(([symbol, amount]) => ({ symbol, amount }));
             }
 
-            async function renderExchangeAssets(exchangeId, rawAssets, options = {}) {
-                const container = document.getElementById(`${exchangeId}Saldo`);
-                if (!container) return;
+            // ══════════════════════════════════════════════════
+            //  CEX ASSET RENDERING (MODERN PATTERN FROM SALDO.HTML)
+            // ══════════════════════════════════════════════════
+            const MIN_DISPLAY_USDT = 1.0;
+            const _cexPriceCache = {};
+            const _cexPriceFetching = {};
+            // Already declared above
 
+            async function getCEXPriceOverrides(cexName) {
+                const key = String(cexName).toUpperCase();
+                const cached = _cexPriceCache[key];
+                if (cached && (Date.now() - cached.ts) < 60000) return cached.map;
+                if (_cexPriceFetching[key]) return _cexPriceFetching[key];
+
+                _cexPriceFetching[key] = (async () => {
+                    try {
+                        const fetchFn = App?.Services?.CEX?.fetchAllCEXPrices;
+                        if (typeof fetchFn !== 'function') return {};
+                        const priceMap = await fetchFn(key);
+                        _cexPriceCache[key] = { map: priceMap, ts: Date.now() };
+                        return priceMap;
+                    } catch (e) {
+                        console.warn(`[CEXPrice] ${key} gagal fetch harga:`, e.message);
+                        return {};
+                    } finally {
+                        delete _cexPriceFetching[key];
+                    }
+                })();
+                return _cexPriceFetching[key];
+            }
+
+            function escapeHtml(v) {
+                if (typeof v !== 'string') return v;
+                return v.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
+            }
+
+            function formatTokenAmount(n) {
+                if (!isFinite(n)) return '0';
+                const a = Math.abs(n);
+                if (a >= 1000) return n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+                if (a >= 1) return n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+                if (a >= 0.01) return n.toFixed(4);
+                return n.toFixed(6);
+            }
+
+            function formatRate(v) {
+                if (!isFinite(v) || v <= 0) return 'N/A';
+                const a = Math.abs(v);
+                if (a >= 1000) return v.toLocaleString('en-US', { maximumFractionDigits: 2 });
+                if (a >= 1) return v.toFixed(4);
+                return v.toFixed(6);
+            }
+
+            async function renderExchangeAssets(exchangeId, rawAssets, options = {}) {
+                const saldoEl = document.getElementById(`${exchangeId}Saldo`);
+                if (!saldoEl) return;
                 const overrides = options.overrides || {};
                 const aggregated = aggregateAssets(rawAssets);
-
-                const brandClass = `text-cex-${String(exchangeId).toLowerCase()}`;
+                const exClass = `text-cex-${String(exchangeId).toLowerCase()}`;
 
                 if (!aggregated.length) {
-                    container.innerHTML = `<span class="uk-text-muted ${brandClass}">Tidak ada aset</span>`;
-                    localStorage.setItem(`MULTI_${exchangeId}Saldo`, "0");
+                    saldoEl.innerHTML = `<span class="uk-text-muted ${exClass}">Tidak ada aset</span>`;
+                    localStorage.setItem(`MULTI_${exchangeId}Saldo`, '0');
                     localStorage.removeItem(`MULTI_${exchangeId}_DETAIL`);
                     return;
                 }
 
                 const assetsWithValues = [];
+
                 for (const asset of aggregated) {
-                    // ⭐ FILTER: Skip token yang tidak ada di whitelist
-                    if (!ALLOWED_TOKENS.has(asset.symbol.toUpperCase())) {
-                        console.log(`[${exchangeId}] ⏭️ Skipped ${asset.symbol} (not in whitelist)`);
-                        continue;
+                    const symUp = asset.symbol.toUpperCase();
+                    const overrideRate = overrides[symUp] ?? overrides[asset.symbol];
+                    let rate;
+                    if (typeof overrideRate === 'number') {
+                        rate = overrideRate;
+                    } else if (stableCoinRates[symUp] !== undefined) {
+                        rate = stableCoinRates[symUp];
+                    } else {
+                        rate = 0;
                     }
-
-                    const overrideRate = overrides[asset.symbol];
-                    let rate = typeof overrideRate === "number" ? overrideRate : await getUsdtRate(asset.symbol);
                     if (!isFinite(rate) || rate < 0) rate = 0;
-                    const usdtValue = rate ? asset.amount * rate : 0;
-
-                    assetsWithValues.push({
-                        symbol: asset.symbol,
-                        amount: asset.amount,
-                        rate,
-                        usdtValue
-                    });
+                    assetsWithValues.push({ symbol: symUp, amount: asset.amount, rate, usdtValue: rate ? asset.amount * rate : 0 });
                 }
-
                 assetsWithValues.sort((a, b) => (b.usdtValue || 0) - (a.usdtValue || 0));
 
-                // Debug: log all assets before filtering
-                const skippedCount = aggregated.length - assetsWithValues.length;
-                console.log(`[${exchangeId}] 📊 Total assets from API:`, aggregated.length);
-                console.log(`[${exchangeId}] ⏭️ Skipped (not in whitelist):`, skippedCount);
-                console.log(`[${exchangeId}] ✅ Allowed assets processed:`, assetsWithValues.length);
-                console.log(`[${exchangeId}] 💰 Assets with rates:`, assetsWithValues.filter(a => a.rate > 0).length);
-                console.log(`[${exchangeId}] ❌ Assets without rates:`, assetsWithValues.filter(a => !a.rate).length);
-
-                // Filter: only show assets with valid rate AND value >= MIN_DISPLAY_USDT ($1)
-                const visibleAssets = assetsWithValues.filter(item => {
-                    // Only show if has valid rate (> 0) AND value >= $1
-                    return item.rate > 0 && item.usdtValue >= MIN_DISPLAY_USDT;
-                });
-
-                // Debug: log filtering results
-                const filteredCount = assetsWithValues.length - visibleAssets.length;
-                const noRateCount = assetsWithValues.filter(a => !a.rate || a.rate <= 0).length;
-                const dustCount = assetsWithValues.filter(a => a.rate > 0 && a.usdtValue < MIN_DISPLAY_USDT).length;
-
-                if (filteredCount > 0) {
-                    console.log(`[${exchangeId}] Filtered ${filteredCount} assets: ${noRateCount} without rate, ${dustCount} below $${MIN_DISPLAY_USDT}`);
-                }
-                console.log(`[${exchangeId}] Displaying ${visibleAssets.length} assets (value >= $${MIN_DISPLAY_USDT})`);
+                const visibleAssets = assetsWithValues.filter(i => i.rate > 0 && i.usdtValue >= MIN_DISPLAY_USDT);
+                const hiddenDust = assetsWithValues.filter(i => i.rate === 0 || i.usdtValue < MIN_DISPLAY_USDT);
 
                 if (!visibleAssets.length) {
-                    container.innerHTML = `<span class="uk-text-muted ${brandClass}">Tidak Ada</span>`;
-                    localStorage.setItem(`MULTI_${exchangeId}Saldo`, "0");
+                    saldoEl.innerHTML = `<span class="uk-text-muted ${exClass}">Tidak Ada</span>`;
+                    localStorage.setItem(`MULTI_${exchangeId}Saldo`, '0');
                     localStorage.removeItem(`MULTI_${exchangeId}_DETAIL`);
                     return;
                 }
 
-                // Calculate total only from assets with valid rates
-                const totalUsdt = visibleAssets.reduce((sum, item) => sum + item.usdtValue, 0);
-                const hiddenCount = assetsWithValues.length - visibleAssets.length;
+                const totalUsdt = visibleAssets.reduce((s, i) => s + i.usdtValue, 0);
                 const detail = {
                     total: parseFloat(totalUsdt.toFixed(2)),
-                    hiddenCount, // Track how many allowed tokens are hidden (no rate or below $1)
-                    skippedCount, // Track how many tokens skipped (not in whitelist)
-                    assets: visibleAssets.map(item => ({
-                        symbol: item.symbol,
-                        amount: parseFloat(item.amount.toFixed(8)),
-                        rate: parseFloat(item.rate.toFixed(8)),
-                        usdtValue: parseFloat(item.usdtValue.toFixed(2))
+                    hiddenCount: hiddenDust.length,
+                    assets: visibleAssets.map(i => ({
+                        symbol: i.symbol, amount: parseFloat(i.amount.toFixed(8)),
+                        rate: parseFloat(i.rate.toFixed(8)), usdtValue: parseFloat(i.usdtValue.toFixed(2))
                     }))
                 };
 
-                container.innerHTML = buildExchangeHtmlFromDetail(detail, exchangeId);
+                saldoEl.innerHTML = buildExchangeHtml(detail, exchangeId);
                 localStorage.setItem(`MULTI_${exchangeId}Saldo`, detail.total.toFixed(2));
                 localStorage.setItem(`MULTI_${exchangeId}_DETAIL`, JSON.stringify(detail));
             }
 
-            function buildExchangeHtmlFromDetail(detail, exchangeId = '') {
-                if (!detail || !Array.isArray(detail.assets) || detail.assets.length === 0) {
+            function buildExchangeHtml(detail, exchangeId = '') {
+                if (!detail || !Array.isArray(detail.assets) || !detail.assets.length)
                     return `<span class="uk-text-muted">Tidak ada aset</span>`;
-                }
-
                 const exClass = exchangeId ? `text-cex-${String(exchangeId).toLowerCase()}` : '';
-                const assetLines = detail.assets.map(item => {
-                    const amountText = formatTokenAmount(item.amount);
-                    const rateText = formatRate(item.rate);
-                    const valueText = item.rate ? ` ${formatUsdtValue(item.usdtValue)} $` : " N/A";
+                const lines = detail.assets.map(item => {
+                    const hasRate = item.rate > 0;
+                    const rateStr = hasRate ? `@ ${formatRate(item.rate)} USDT` : `<span class="uk-text-muted" style="font-size:11px;">harga tdk tersedia</span>`;
+                    const valStr = hasRate ? `${formatUsdtValue(item.usdtValue)} $` : `<span class="uk-text-muted">?</span>`;
                     return `
-                    <div class="asset-line uk-flex uk-flex-between uk-flex-wrap">
-                        <span><b>${escapeHtml(item.symbol)}</b> ${amountText}</span>
-                        <span>@ ${rateText} USDT</span>
-                        <span>${valueText}</span>
-                    </div>
-                `;
-                }).join("");
-
-                const totalText = formatUsdtValue(parseFloat(detail.total || 0));
-
-                // Build warning messages
-                let warnings = [];
-                if (detail.skippedCount && detail.skippedCount > 0) {
-                    warnings.push(`${detail.skippedCount} token tidak dihitung (bukan major token/gas fee)`);
-                }
-                if (detail.hiddenCount && detail.hiddenCount > 0) {
-                    warnings.push(`${detail.hiddenCount} token disembunyikan (< $1)`);
-                }
-
-                const hiddenWarning = warnings.length > 0
-                    ? `<div class="uk-text-muted uk-text-small" style="margin-top: 4px;">
-                     <span uk-icon="icon: info; ratio: 0.6"></span> ${warnings.join(' • ')}
-                   </div>`
-                    : '';
-
-                return `
-                ${assetLines}
-                <hr class="uk-margin-small-top uk-margin-small-bottom">
-                <b class="${exClass}">Total ${totalText} {USDT}</b>
-                ${hiddenWarning}
-            `;
+                    <div class="asset-line uk-flex uk-flex-between uk-flex-wrap" style="padding: 4px 0; border-bottom: 1px dashed #e2e8f0; font-size: 11px;">
+                        <span><b>${escapeHtml(item.symbol)}</b> ${formatTokenAmount(item.amount)}</span>
+                        <span>${rateStr}</span>
+                        <span class="uk-text-bold" style="color: #16a34a;">${valStr}</span>
+                    </div>`;
+                }).join('');
+                const notes = [];
+                if ((detail.hiddenCount || 0) > 0) notes.push(`${detail.hiddenCount} token disembunyikan (< $1 / tdk ada harga)`);
+                const note = notes.length ? `<div class="uk-text-muted uk-text-small" style="margin-top:3px; font-size: 10px;">ⓘ ${notes.join(' · ')}</div>` : '';
+                return `${lines}<hr class="uk-margin-small-top uk-margin-small-bottom">
+                    <b class="${exClass}">Total ${formatUsdtValue(detail.total || 0)} USDT</b>${note}`;
             }
 
             function restoreExchangeRow(exchangeId) {
-                const container = document.getElementById(`${exchangeId}Saldo`);
-                if (!container) return;
-                const storedDetail = localStorage.getItem(`MULTI_${exchangeId}_DETAIL`);
-                if (storedDetail) {
-                    try {
-                        const detail = JSON.parse(storedDetail);
-                        container.innerHTML = buildExchangeHtmlFromDetail(detail, exchangeId);
-                        return;
-                    } catch (error) {
-                        console.warn(`âŒ Failed to parse stored detail for ${exchangeId}`, error);
-                    }
+                const saldoEl = document.getElementById(`${exchangeId}Saldo`);
+                if (!saldoEl) return;
+                const stored = localStorage.getItem(`MULTI_${exchangeId}_DETAIL`);
+                if (stored) {
+                    try { saldoEl.innerHTML = buildExchangeHtml(JSON.parse(stored), exchangeId); return; } catch (e) { }
                 }
                 const saldo = parseFloat(localStorage.getItem(`MULTI_${exchangeId}Saldo`)) || 0;
-                const exClass = `text-cex-${String(exchangeId).toLowerCase()}`;
-                container.innerHTML = `<span class="${exClass}">${saldo.toFixed(2)} {USDT}</span>`;
+                saldoEl.innerHTML = `<span class="text-cex-${exchangeId.toLowerCase()}">${saldo.toFixed(2)} USDT</span>`;
             }
 
             // Check custom token price
@@ -2320,14 +3368,6 @@
             function updatePrices(prices, excludeBase) {
                 $.each(prices, function (key, value) {
                     if (key !== excludeBase) {
-                        $("#" + key + "price").val(value ? value.toFixed(8) : '');
-                    }
-                });
-            }
-            // Fungsi untuk memperbarui harga di input
-            function updatePrices(prices, excludeBase) {
-                $.each(prices, function (key, value) {
-                    if (key !== excludeBase) {
                         // Jika IDR, formatkan dengan pemisah ribuan
                         if (key === "idr") {
                             $("#" + key + "price").val(value ? formatIDR(value) : '');
@@ -2347,96 +3387,150 @@
             }
 
             // END KALKULATOR
-            const infuraApiKey = '9d0429abadc34232af7d5c0e6ab98631'; // Ganti dengan API Key Infura Anda
 
-            // DEFAULT RPC (fallback jika tidak ada di setting)
-            const DEFAULT_CHAINS = {
-                ethereum: 'https://ethereum.publicnode.com',
-                bsc: 'https://bsc-dataseed.binance.org/',
-                polygon: 'https://polygon-pokt.nodies.app',
-                base: 'https://mainnet.base.org',
-                arbitrum: `https://arbitrum-mainnet.infura.io/v3/${infuraApiKey}`,
-                avax: `https://avalanche-mainnet.infura.io/v3/${infuraApiKey}`,
-                solana: 'https://api.mainnet-beta.solana.com'
+            // ==========================================
+            // OKX WEB3 API INTEGRATION (FROM MULTICHECKER)
+            // ==========================================
+            const OKX_CHAIN_MAP = {
+                'ethereum': '1',
+                'bsc': '56',
+                'polygon': '137',
+                'base': '8453',
+                'arbitrum': '42161',
+                'avax': '43114',
+                'solana': '501'
             };
 
-            /**
-             * Get RPC URL from app settings or use default
-             * Mengikuti setting RPC dari aplikasi utama (SETTING_SCANNER.userRPCs)
-             */
-            function getRPCFromSettings(chainName) {
-                try {
-                    const settingStr = localStorage.getItem('SETTING_SCANNER');
-                    if (settingStr) {
-                        const settings = JSON.parse(settingStr);
-                        if (settings.userRPCs && settings.userRPCs[chainName]) {
-                            console.log(`✅ Using RPC from settings for ${chainName}: ${settings.userRPCs[chainName]}`);
-                            return settings.userRPCs[chainName];
-                        }
-                    }
-                } catch (error) {
-                    console.warn(`⚠️ Failed to read RPC settings for ${chainName}:`, error);
-                }
-                // Fallback to default
-                console.log(`ℹ️ Using default RPC for ${chainName}: ${DEFAULT_CHAINS[chainName]}`);
-                return DEFAULT_CHAINS[chainName];
-            }
-
-            // Initialize chains object with RPC from settings
-            let chains = {
-                ethereum: getRPCFromSettings('ethereum'),
-                bsc: getRPCFromSettings('bsc'),
-                polygon: getRPCFromSettings('polygon'),
-                base: getRPCFromSettings('base'),
-                arbitrum: getRPCFromSettings('arbitrum'),
-                avax: getRPCFromSettings('avax'), // avax tidak ada di main app, akan gunakan default
-                solana: getRPCFromSettings('solana')
+            const OKX_ID_TO_KEY = {
+                '1': 'ethereum',
+                '56': 'bsc',
+                '137': 'polygon',
+                '8453': 'base',
+                '42161': 'arbitrum',
+                '43114': 'avax',
+                '501': 'solana'
             };
 
-            /**
-             * Refresh RPC settings from app settings
-             * Dipanggil saat button reload atau saat ingin refresh RPC tanpa reload halaman
-             */
-            function refreshRPCSettings() {
-                chains = {
-                    ethereum: getRPCFromSettings('ethereum'),
-                    bsc: getRPCFromSettings('bsc'),
-                    polygon: getRPCFromSettings('polygon'),
-                    base: getRPCFromSettings('base'),
-                    arbitrum: getRPCFromSettings('arbitrum'),
-                    avax: getRPCFromSettings('avax'),
-                    solana: getRPCFromSettings('solana')
-                };
-                console.log('✅ RPC settings refreshed from app settings:', chains);
-                if (typeof toast !== 'undefined' && toast.info) {
-                    toast.info('RPC settings berhasil di-refresh dari setting app!');
-                }
-                return chains;
-            }
-
-            // Expose for global access
-            window.refreshRPCSettings = refreshRPCSettings;
-            // Fungsi untuk mendapatkan saldo aset ERC20 dan gas
-            const erc20Contracts = {
-                ethereum: '0xdAC17F958D2ee523a2206206994597C13D831ec7', // USDT Ethereum
-                bsc: '0x55d398326f99059fF775485246999027B3197955', // USDT BSC
-                polygon: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', // USDT Polygon
-                base: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC Base
-                arbitrum: '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
-                avax: '0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7', // USDT Avalanche
-                solana: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB' // USDT SPL Token Solana (Note: Solana tidak mendukung ERC20, hanya untuk referensi)
-            };
-
-            // Daftar jaringan dengan checkbox dan input terkait
-            const networks = [
-                { checkboxId: 'ETHEREUM', inputId: 'ethWallet' },
-                { checkboxId: 'BSC', inputId: 'bscWallet' },
-                { checkboxId: 'POLYGON', inputId: 'polygonWallet' },
-                { checkboxId: 'BASE', inputId: 'baseWallet' },
-                { checkboxId: 'ARBITRUM', inputId: 'arbitrumWallet' },
-                { checkboxId: 'AVAX', inputId: 'avaxWallet' },
-                { checkboxId: 'SOLANA', inputId: 'solanaWallet' }
+            const OKX_FALLBACK_KEYS = [
+                { ApiKey: "28bc65f0-8cd1-4ecb-9b53-14d84a75814b", ApiSecret: "E8C92510E44400D8A709FBF140AABEC1", Passphrase: "Regi!#007" },
+                { ApiKey: "04f923ec-98f2-4e60-bed3-b8f2d419c773", ApiSecret: "3D7D0BD3D985C8147F70592DF6BE3C48", Passphrase: "Regi!#007" },
+                { ApiKey: "cf214e57-8af2-42bf-8afa-3b7880c5a152", ApiSecret: "26AA1E415682BD8BBDF44A9B1CFF4759", Passphrase: "Regi!#007" }
             ];
+
+            const MULTI_PROXIES = [
+                "https://server1.ciwayeh967.workers.dev/?",
+                "https://yazid3.yazidcrypto7.workers.dev/?",
+                "https://yazid5.bustomi.workers.dev/?",
+                "https://server6.hejij49077.workers.dev/?",
+                "https://worker-bold-meadow-ab0a.xaraho1024.workers.dev/?",
+                "https://worker-cool-truth-c06e.nomege1872.workers.dev/?",
+                "https://myserver4.lamowa2709.workers.dev/?"
+            ];
+
+            let _keyIdx = 0;
+            let _proxyIdx = 0;
+
+            function okxHmacSign(message, secret) {
+                return CryptoJS.HmacSHA256(message, secret).toString(CryptoJS.enc.Base64);
+            }
+
+            async function fetchBalancesOKXWeb3(address, chains) {
+                let creds = getCEXCredentials('OKX');
+
+                // Use fallback if user keys are missing
+                if (!creds?.ApiKey || !creds?.ApiSecret || !creds?.Passphrase) {
+                    creds = OKX_FALLBACK_KEYS[_keyIdx % OKX_FALLBACK_KEYS.length];
+                    _keyIdx++;
+                }
+
+                const ts = new Date().toISOString();
+                const path = '/api/v5/wallet/asset/all-token-balances-by-address';
+                const chainIds = chains.map(c => OKX_CHAIN_MAP[c]).filter(Boolean).join(',');
+                const qs = `address=${encodeURIComponent(address)}&chains=${chainIds}&filter=1`;
+
+                const sign = okxHmacSign(`${ts}GET${path}?${qs}`, creds.ApiSecret);
+
+                // Try multiple proxies
+                let lastError = null;
+                for (let i = 0; i < 3; i++) {
+                    try {
+                        const proxy = MULTI_PROXIES[_proxyIdx % MULTI_PROXIES.length];
+                        _proxyIdx++;
+
+                        const url = `https://web3.okx.com${path}?${qs}`;
+                        const proxiedUrl = `${proxy}${encodeURIComponent(url)}`;
+
+                        const response = await fetch(proxiedUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'OK-ACCESS-KEY': creds.ApiKey,
+                                'OK-ACCESS-SIGN': sign,
+                                'OK-ACCESS-PASSPHRASE': creds.Passphrase,
+                                'OK-ACCESS-TIMESTAMP': ts,
+                            }
+                        });
+
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        const data = await response.json();
+                        if (data.code !== '0') throw new Error(data.msg || 'OKX API Error');
+
+                        return data.data?.[0]?.tokenAssets || [];
+                    } catch (e) {
+                        lastError = e;
+                        await new Promise(r => setTimeout(r, 300));
+                    }
+                }
+                throw lastError;
+            }
+
+            // Shared rendering function for consistency
+            function renderChainAssetsTable(assetData) {
+                if (!assetData || assetData.length === 0) {
+                    $('#output_chain').html('<tr><td colspan="4" class="uk-text-center uk-text-muted">Tidak ada saldo ditemukan pada wallet/chain terpilih.</td></tr>');
+                    return;
+                }
+
+                // Group by walletAddress
+                const groupedResults = assetData.reduce((acc, row) => {
+                    const wallet = row.walletAddress || 'Unknown';
+                    if (!acc[wallet]) acc[wallet] = [];
+                    acc[wallet].push(row);
+                    return acc;
+                }, {});
+
+                let html = '';
+                for (const [wallet, assets] of Object.entries(groupedResults)) {
+                    // Filter out dust
+                    const visibleAssets = assets.filter(a => parseFloat(a.total) >= 1);
+                    if (visibleAssets.length === 0) continue;
+
+                    const shortWallet = wallet.length > 10 ? (wallet.substring(0, 6) + '...' + wallet.substring(wallet.length - 4)) : wallet;
+                    html += `
+                    <tr class="wallet-group-header">
+                        <td colspan="4" class="uk-text-bold" style="background: #f8fafc;">
+                            <span uk-icon="icon: credit-card; ratio: 0.8"></span> 
+                            <a href="${visibleAssets[0].walletLink || '#'}" target="_blank" class="uk-link-reset">${shortWallet}</a> 
+                        </td>
+                    </tr>`;
+
+                    visibleAssets.forEach(asset => {
+                        const chainKey = asset.chainKey || (asset.chain ? asset.chain.toLowerCase() : 'unknown');
+                        const chainName = asset.chainName || (asset.chain ? asset.chain.toUpperCase() : 'UNKNOWN');
+                        html += `
+                        <tr data-chain="${chainName}">
+                            <td class="asset-row-indent">
+                                <span class="uk-text-muted">-.</span> 
+                                <span class="uk-text-bold text-chain-${chainKey}">${chainName}</span>
+                            </td>
+                            <td>${asset.assetBalance} <b>${asset.assetSymbol}</b></td>
+                            <td class="uk-text-right uk-text-bold">${parseFloat(asset.total).toFixed(2)} USDT</td>
+                        </tr>
+                        `;
+                    });
+                }
+                $('#output_chain').html(html);
+            }
 
             // Memanggil loadData saat halaman pertama kali di-load
             loadData();
@@ -2495,7 +3589,7 @@
                 // Periksa semua checkbox yang dicentang
                 $('input.uk-checkbox:checked').each(function () {
                     const exchangeId = $(this).attr('id');
-                    
+
                     // Blockchain networks are also checkboxes, skip them here if needed
                     // or just check if it's one of our CEXs
                     if (!CEX_LIST.includes(exchangeId)) return;
@@ -2532,16 +3626,13 @@
                     window.BalanceCheckOverlay.updateProgress(10, `Memproses ${checkedExchanges.length} exchanger(s)...`);
                 }
 
-                let allChecksPassed = true; 
+                let allChecksPassed = true;
                 const totalExchanges = checkedExchanges.length;
                 let processedCount = 0;
 
-                // Execute sequentially to avoid rate limits or too many parallel proxy requests
-                for (const exchange of checkedExchanges) {
+                // Execute in parallel as CEXs use different API endpoints
+                const cexPromises = checkedExchanges.map(async (exchange) => {
                     try {
-                        const progressPercent = 20 + (processedCount / totalExchanges) * 70;
-                        window.BalanceCheckOverlay.updateProgress(progressPercent, `Memproses ${exchange}...`);
-
                         switch (exchange) {
                             case 'BINANCE': await cekAssetBinance(); break;
                             case 'GATE': await cekAssetGate(); break;
@@ -2553,16 +3644,23 @@
                             case 'HTX': await cekAssetHTX(); break;
                             case 'OKX': await cekAssetOKX(); break;
                         }
-                        processedCount++;
                     } catch (error) {
                         console.error(`[${exchange}] Check failed:`, error);
                         allChecksPassed = false;
+                    } finally {
                         processedCount++;
+                        const progressPercent = 20 + (processedCount / totalExchanges) * 70;
+                        window.BalanceCheckOverlay.updateProgress(progressPercent, `Memproses ${exchange}...`);
                     }
-                }
+                });
 
-                // Jika ada pengecekan yang gagal, beri tahu pengguna dan berhenti
+                await Promise.all(cexPromises);
+
+                // Jika ada pengecekan yang gagal, tetap hitung saldo dari yang berhasil
                 if (!allChecksPassed) {
+                    window.BalanceCheckOverlay.updateProgress(95, 'Menghitung total saldo (partial)...');
+                    await getTotalSaldoCEXS();
+                    ShowLabelModal("load");
                     // Emit completion on error so combined flow can continue
                     $(document).trigger('CEXCheckCompleted');
                     // Hide overlay on error only if standalone call
@@ -2571,17 +3669,13 @@
                             window.BalanceCheckOverlay.hide();
                         }, 200);
                     }
-                    // Jika pengecekan gagal, tampilkan pesan error
-                    return; // Keluar dari fungsi jika ada pengecekan yang gagal
+                    return;
                 }
 
                 window.BalanceCheckOverlay.updateProgress(95, 'Menghitung total saldo...');
 
                 // Setelah semua pengecekan selesai dan berhasil, hitung total saldo
                 await getTotalSaldoCEXS(); // Panggil setelah semua pengecekan selesai
-
-                // Tunggu hingga tabel exchanger benar-benar terisi dan total siap
-                await waitFor(isCexTableReady, 15000, 100);
 
                 window.BalanceCheckOverlay.updateProgress(100, 'Memeriksa Ulang Data...');
 
@@ -2607,7 +3701,7 @@
                 $('input[type="checkbox"]:checked').each(function () {
                     const id = $(this).attr('id');
                     if (!CEX_LIST.includes(id)) return;
-                    
+
                     const saldoKey = `MULTI_${id}Saldo`;
                     const saldo = parseFloat(localStorage.getItem(saldoKey)) || 0;
                     totalSaldo += saldo;
@@ -2650,23 +3744,25 @@
                 $('#summaryPNL').text((pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2));
                 $('#summaryPNL_IDR').text(formatToIDR(pnl));
 
+                // Also update the grid version pills
+                $('#m_awal').text(modalAwal.toFixed(2) + ' USDT');
+                $('#m_akhir').text(totalAsset.toFixed(2) + ' USDT');
+                $('#m_pnl').text((pnl >= 0 ? '+' : '') + pnl.toFixed(2) + ' USDT');
+
+                // Update status-line estimasi (m_akhirs & m_pnls)
+                $('#m_akhirs').text('$' + totalAsset.toFixed(2) + (usdtRate > 0 ? ` (${formatToIDR(totalAsset)})` : ''));
+                const pnlColor = pnl > 0 ? '#28a745' : pnl < 0 ? '#dc3545' : '#6b7280';
+                $('#m_pnls').html(`<span style="color:${pnlColor};font-weight:700;">${(pnl >= 0 ? '+' : '')}$${pnl.toFixed(2)}${usdtRate > 0 ? ` (${formatToIDR(pnl)})` : ''}</span>`);
+                $('#pnl-container').css('color', pnlColor);
+
                 // Add positive/negative class for PNL
                 const pnlCard = $('#summaryPNLCard');
-                pnlCard.removeClass('positive negative');
-                if (pnl > 0) {
-                    pnlCard.addClass('positive');
-                } else if (pnl < 0) {
-                    pnlCard.addClass('negative');
-                }
-
-                // Also update the info pill cards
                 const pnlPillCard = $('#pnlCard');
-                pnlPillCard.removeClass('positive negative');
-                if (pnl > 0) {
-                    pnlPillCard.addClass('positive');
-                } else if (pnl < 0) {
-                    pnlPillCard.addClass('negative');
-                }
+                [pnlCard, pnlPillCard].forEach(el => {
+                    el.removeClass('positive negative');
+                    if (pnl > 0) el.addClass('positive');
+                    else if (pnl < 0) el.addClass('negative');
+                });
             }
 
             $('#SaveWalletChains').on('click', async function () {
@@ -2674,7 +3770,7 @@
 
                 const walletInput = $('#multiWallets').val() || '';
                 const wallets = walletInput.split(/[\n,]+/).map(w => w.trim()).filter(w => w.length > 0);
-                
+
                 const checkedChains = [];
                 const CHAINS_LIST = ['ETHEREUM', 'BSC', 'POLYGON', 'BASE', 'ARBITRUM', 'AVAX', 'SOLANA'];
                 CHAINS_LIST.forEach(c => {
@@ -2711,115 +3807,114 @@
 
                 $('#output_chain').html('<tr><td colspan="5">Loading...</td></tr>');
                 $('#assetTableWallet').show();
-                
+
                 const totalOperations = wallets.length * checkedChains.length;
                 window.BalanceCheckOverlay.updateProgress(30, `Memproses ${totalOperations} kombinasi wallet & chain...`);
 
                 try {
-                    window.BalanceCheckOverlay.updateProgress(40, 'Mengambil rate token...');
-                    const tokenRates = await fetchTokenRates();
-
-                    if (!tokenRates || Object.keys(tokenRates).length === 0) {
-                        throw new Error('Tidak dapat mengambil data rate token.');
-                    }
-
-                    window.BalanceCheckOverlay.updateProgress(50, 'Mengambil saldo wallet...');
+                    window.BalanceCheckOverlay.updateProgress(50, 'Mengambil saldo dari OKX Web3 API...');
 
                     const results = [];
-                    let processed = 0;
+                    const wallets = $('#multiWallets').val().split('\n').map(a => a.trim()).filter(a => a.length > 5);
+                    const checkedChains = [];
+                    $('input.uk-checkbox:checked').each(function () {
+                        const id = $(this).attr('id');
+                        if (OKX_CHAIN_MAP[id.toLowerCase()]) checkedChains.push(id.toLowerCase());
+                    });
 
-                    // Execute sequentially to avoid RPC rate limits
+                    if (wallets.length === 0) {
+                        if (typeof toast !== 'undefined' && toast.error) toast.error("Masukkan minimal satu wallet address.");
+                        window.BalanceCheckOverlay.hide();
+                        return;
+                    }
+
+                    let processed = 0;
+                    const totalWallets = wallets.length;
+
+                    // Execute each wallet check sequentially with a delay to avoid rate limiting
                     for (const wallet of wallets) {
-                        for (const chain of checkedChains) {
-                            try {
-                                processed++;
-                                const progress = 50 + (processed / totalOperations) * 40;
-                                window.BalanceCheckOverlay.updateProgress(progress, `Checking ${chain.toUpperCase()} for ${wallet.substring(0, 6)}...`);
-                                
-                                let result;
-                                if (chain === 'solana') {
-                                    result = await getSolanaBalance(wallet, tokenRates);
-                                } else {
-                                    result = await getAssetBalancesEVM(chains[chain], erc20Contracts[chain], wallet, chain, tokenRates);
+                        try {
+                            const tokens = await fetchBalancesOKXWeb3(wallet, checkedChains);
+
+                            // Transform OKX tokens into our result format
+                            tokens.forEach(t => {
+                                const bal = parseFloat(t.balance) || 0;
+                                const price = parseFloat(t.tokenPrice) || 0;
+                                const usdValue = bal * price;
+
+                                // Identify internal chain key from OKX chainIndex
+                                const cId = String(t.chainIndex);
+                                const cKey = OKX_ID_TO_KEY[cId] || 'unknown';
+
+                                // Filter $1 and non-zero balances
+                                if (usdValue >= MIN_DISPLAY_USDT) {
+                                    results.push({
+                                        walletAddress: wallet,
+                                        chainKey: cKey,
+                                        chainName: cKey.toUpperCase(),
+                                        assetBalance: bal.toFixed(4),
+                                        assetSymbol: t.symbol,
+                                        gasBalance: '-',
+                                        gasSymbol: '',
+                                        gasBalanceInUSD: '0',
+                                        totalBalanceInUSD: usdValue.toFixed(2),
+                                        walletLink: `https://etherscan.io/address/${wallet}`
+                                    });
                                 }
-                                result.walletAddress = wallet;
-                                results.push(result);
-                            } catch (e) {
-                                console.error(`Error checking ${chain} for ${wallet}:`, e);
-                                results.push({ chain, walletAddress: wallet, error: e.message });
-                            }
+                            });
+                        } catch (e) {
+                            console.error(`Error checking wallet ${wallet}:`, e);
+                        } finally {
+                            processed++;
+                            const progress = 50 + (processed / totalWallets) * 40;
+                            window.BalanceCheckOverlay.updateProgress(progress, `Diproses ${processed}/${totalWallets} wallet...`);
+                        }
+
+                        // Add a small delay between each wallet call (500ms)
+                        if (processed < totalWallets) {
+                            await new Promise(resolve => setTimeout(resolve, 500));
                         }
                     }
 
-                    window.BalanceCheckOverlay.updateProgress(90, 'Menampilkan hasil ke tabel...');
+                    window.BalanceCheckOverlay.updateProgress(95, 'Menghitung total on-chain...');
 
-                    $('#output_chain').html(results.map(result => {
-                        if (result.error) {
-                            return `<tr><td colspan="5" class="uk-text-small"><b>${result.chain.toUpperCase()}</b> (${result.walletAddress.substring(0, 6)}): <span class="uk-text-danger">${result.error}</span></td></tr>`;
-                        } else {
-                            const shortWallet = result.walletAddress.substring(0, 6) + '...' + result.walletAddress.substring(result.walletAddress.length - 4);
-                            return `
-                            <tr data-chain="${result.chain.toUpperCase()}">
-                                <td class="chain-label">
-                                    <span class="uk-text-bold text-chain-${result.chain.toLowerCase()}">${result.chain.toUpperCase()}</span>
-                                </td>
-                                <td class="uk-text-truncate" title="${result.walletAddress}">
-                                    <a class="uk-link-muted" href="${result.walletLink}" target="_blank">${shortWallet}</a>
-                                </td>
-                                <td class="uk-text-center">${result.assetBalance} ${result.assetSymbol}</td>
-                                <td class="uk-text-center">${result.gasBalance} ${result.gasSymbol} [${result.gasBalanceInUSD}]</td>
-                                <td class="uk-text-right uk-text-bold">${result.totalBalanceInUSD} USDT</td>
-                            </tr>
-                        `;
-                        }
-                    }).join(''));
-
-                    await new Promise(resolve => setTimeout(resolve, 100));
-
-                    // Simpan data ke localStorage setelah semua selesai
-                    const assetData = results.filter(result => !result.error).map(result => {
+                    // Map results for storage and rendering
+                    const assetData = results.map(result => {
                         return {
-                            chain: result.chain,
+                            chainKey: result.chainKey,
+                            chainName: result.chainName,
                             walletAddress: result.walletAddress,
-                            assetBalance: parseFloat(result.assetBalance),
+                            assetBalance: result.assetBalance,
                             assetSymbol: result.assetSymbol,
-                            gasBalance: parseFloat(result.gasBalance),
-                            gasSymbol: result.gasSymbol,
-                            usdtGas: parseFloat(result.gasBalanceInUSD),
                             total: parseFloat(result.totalBalanceInUSD),
                             walletLink: result.walletLink,
                         };
                     });
 
-                    if (assetData.length > 0) {
-                        window.BalanceCheckOverlay.updateProgress(95, 'Menyimpan data...');
+                    // Render to UI
+                    renderChainAssetsTable(assetData);
 
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
+                    if (assetData.length >= 0) {
+                        window.BalanceCheckOverlay.updateProgress(95, 'Menyimpan data...');
                         localStorage.setItem('MULTI_assetDataCEX', JSON.stringify(assetData));
 
                         const formattedTime = getFormattedTime();
                         localStorage.setItem('MULTI_lastUpdateChain', formattedTime);
 
                         const totalUSDT = assetData.reduce((sum, data) => sum + data.total, 0);
-                        $('#LTotalSaldoWallets').text("Total Portfolio Wallet");
+                        $('#LTotalSaldoWallets').text("Total Portfolio");
                         $('#TotalSaldoWallets').text(totalUSDT.toFixed(2) + " $");
                         localStorage.setItem('MULTI_TotalSaldoChain', totalUSDT.toFixed(2));
 
-                        // Update summary cards
                         updateSummaryCards();
-
-                        // Tunggu hingga tabel wallet benar-benar terisi dan total siap
-                        await waitFor(() => isWalletTableReady(results), 15000, 100);
-
                         window.BalanceCheckOverlay.updateProgress(100, 'Selesai!');
-                    } else {
-                        throw new Error('Tidak ada saldo ditemukan pada wallet/chain terpilih.');
                     }
                 } catch (error) {
                     console.error('Wallet check error:', error);
-                    localStorage.setItem('MULTI_TotalSaldoChain', '0');
-                    localStorage.removeItem('MULTI_assetDataCEX');
                     $('#output_chain').html(
-                        `<tr><td colspan="5" class="uk-text-danger">ERROR : ${error.message}</td></tr>`
+                        `<tr><td colspan="4" class="uk-text-danger uk-text-center"><b>ERROR :</b> ${error.message}</td></tr>`
                     );
                 } finally {
                     $(this).prop('disabled', false);
@@ -2869,17 +3964,16 @@
             async function cekAssetBinance() {
                 const creds = getCEXCredentials('BINANCE');
                 if (!creds?.ApiKey || !creds?.ApiSecret) { setCEXStatus('BINANCE', 'nokey'); return; }
-                const ts = Date.now().toString();
+                const ts = Date.now();
                 const qs = `timestamp=${ts}`;
-                const sign = CryptoJS.HmacSHA256(qs, creds.ApiSecret).toString(CryptoJS.enc.Hex);
-                const url = `https://api-gcp.binance.com/api/v3/account?${qs}&signature=${sign}`;
+                const sig = CryptoJS.HmacSHA256(qs, creds.ApiSecret).toString(CryptoJS.enc.Hex);
+                const url = `https://api.binance.com/api/v3/account?${qs}&signature=${sig}`;
                 try {
                     setCEXStatus('BINANCE', 'loading');
-                    const r = await fetch(url, { headers: { 'X-MBX-APIKEY': creds.ApiKey } });
-                    const d = await r.json();
-                    if (!r.ok) throw new Error(d?.msg || `HTTP ${r.status}`);
-                    const assets = (d.balances || []).map(i => ({ symbol: i.asset, amount: parseFloat(i.free || 0) + parseFloat(i.locked || 0) }));
-                    await renderExchangeAssets('BINANCE', assets);
+                    const d = await fetchSignedRequest(url, { 'X-MBX-APIKEY': creds.ApiKey });
+                    if (d?.code) throw new Error(d?.msg || `Binance Error ${d.code}`);
+                    const binancePrices = await getCEXPriceOverrides('BINANCE');
+                    await renderExchangeAssets('BINANCE', (d.balances || []).map(i => ({ symbol: i.asset, amount: (parseFloat(i.free || 0)) + (parseFloat(i.locked || 0)) })), { overrides: binancePrices });
                 } catch (e) {
                     setCEXStatus('BINANCE', 'error', e.message);
                     localStorage.setItem('MULTI_BINANCESaldo', '0');
@@ -2890,17 +3984,26 @@
             async function cekAssetGate() {
                 const creds = getCEXCredentials('GATE');
                 if (!creds?.ApiKey || !creds?.ApiSecret) { setCEXStatus('GATE', 'nokey'); return; }
-                const method = 'GET', path = '/api/v4/spot/accounts', ts = Math.floor(Date.now() / 1000);
-                const hash = CryptoJS.SHA512('').toString();
-                const sign = CryptoJS.HmacSHA512(`${method}\n${path}\n\n${hash}\n${ts}`, creds.ApiSecret).toString();
-                const url = `${PROXY_BASE}${encodeURIComponent('https://api.gateio.ws' + path)}`;
+                const prefix = '/api/v4', method = 'GET', path = '/spot/accounts';
+                const ts = Math.floor(Date.now() / 1000);
+                const bodyHash = CryptoJS.SHA512('').toString();
+                const signStr = `${method}\n${prefix}${path}\n\n${bodyHash}\n${ts}`;
+                const sign = CryptoJS.HmacSHA512(signStr, creds.ApiSecret).toString();
+                const url = `https://api.gateio.ws${prefix}${path}`;
                 try {
                     setCEXStatus('GATE', 'loading');
-                    const r = await fetch(url, { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'KEY': creds.ApiKey, 'Timestamp': ts, 'SIGN': sign } });
-                    const d = await r.json();
-                    if (!r.ok) throw new Error(d?.label || d?.message || `HTTP ${r.status}`);
-                    const assets = (d || []).map(i => ({ symbol: i.currency, amount: parseFloat(i.available || 0) + parseFloat(i.locked || 0) }));
-                    await renderExchangeAssets('GATE', assets);
+                    const d = await fetchJsonWithProxy(url, {
+                        method,
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                            'Timestamp': ts,
+                            'KEY': creds.ApiKey,
+                            'SIGN': sign
+                        }
+                    });
+                    const gatePrices = await getCEXPriceOverrides('GATE');
+                    await renderExchangeAssets('GATE', d.map(i => ({ symbol: i.currency, amount: (parseFloat(i.available || 0)) + (parseFloat(i.locked || 0)) })), { overrides: gatePrices });
                 } catch (e) {
                     setCEXStatus('GATE', 'error', e.message);
                     localStorage.setItem('MULTI_GATESaldo', '0');
@@ -2958,8 +4061,9 @@
                     if (spotRes.status === 'fulfilled') addAssets(spotRes.value);
                     if (fundRes.status === 'fulfilled') addAssets(fundRes.value);
 
+                    const bitgetPrices = await getCEXPriceOverrides('BITGET');
                     const assets = Object.entries(coinMap).map(([symbol, amount]) => ({ symbol, amount }));
-                    await renderExchangeAssets('BITGET', assets);
+                    await renderExchangeAssets('BITGET', assets, { overrides: bitgetPrices });
                 } catch (e) {
                     setCEXStatus('BITGET', 'error', e.message);
                     localStorage.setItem('MULTI_BITGETSaldo', '0');
@@ -2979,7 +4083,8 @@
                     const r = await fetch(url, { headers: { 'KC-API-KEY': creds.ApiKey, 'KC-API-SIGN': sign, 'KC-API-TIMESTAMP': ts, 'KC-API-PASSPHRASE': pp, 'KC-API-KEY-VERSION': '3', 'Content-Type': 'application/json' } });
                     const d = await r.json();
                     if (!r.ok) throw new Error(d?.msg || `HTTP ${r.status}`);
-                    await renderExchangeAssets('KUCOIN', (d.data || []).map(i => ({ symbol: i.currency, amount: parseFloat(i.balance || i.available || 0) || 0 })));
+                    const kucoinPrices = await getCEXPriceOverrides('KUCOIN');
+                    await renderExchangeAssets('KUCOIN', (d.data || []).map(i => ({ symbol: i.currency, amount: parseFloat(i.balance || i.available || 0) || 0 })), { overrides: kucoinPrices });
                 } catch (e) {
                     setCEXStatus('KUCOIN', 'error', e.message);
                     localStorage.setItem('MULTI_KUCOINSaldo', '0');
@@ -3000,7 +4105,8 @@
                     const d = await r.json();
                     if (!r.ok) throw new Error(`HTTP ${r.status}`);
                     const coins = d?.result?.list?.[0]?.coin || [];
-                    await renderExchangeAssets('BYBIT', coins.map(i => ({ symbol: i.coin, amount: parseFloat(i.equity || i.walletBalance || 0) || 0 })));
+                    const bybitPrices = await getCEXPriceOverrides('BYBIT');
+                    await renderExchangeAssets('BYBIT', coins.map(i => ({ symbol: i.coin, amount: parseFloat(i.equity || i.walletBalance || 0) || 0 })), { overrides: bybitPrices });
                 } catch (e) {
                     setCEXStatus('BYBIT', 'error', e.message);
                     localStorage.setItem('MULTI_BYBITSaldo', '0');
@@ -3017,11 +4123,10 @@
                 const url = `https://api.mexc.com/api/v3/account?${qs}&signature=${sign}`;
                 try {
                     setCEXStatus('MEXC', 'loading');
-                    const proxiedUrl = `${PROXY_BASE}${encodeURIComponent(url)}`;
-                    const r = await fetch(proxiedUrl, { headers: { 'X-MEXC-APIKEY': creds.ApiKey, 'Content-Type': 'application/json' } });
-                    const d = await r.json();
+                    const d = await fetchSignedRequest(url, { 'X-MEXC-APIKEY': creds.ApiKey });
                     if (d?.code) throw new Error(d?.msg || `MEXC Error ${d.code}`);
-                    await renderExchangeAssets('MEXC', (d.balances || []).map(i => ({ symbol: i.asset, amount: (parseFloat(i.free || 0)) + (parseFloat(i.locked || 0)) })));
+                    const mexcPrices = await getCEXPriceOverrides('MEXC');
+                    await renderExchangeAssets('MEXC', (d.balances || []).map(i => ({ symbol: i.asset, amount: (parseFloat(i.free || 0)) + (parseFloat(i.locked || 0)) })), { overrides: mexcPrices });
                 } catch (e) {
                     setCEXStatus('MEXC', 'error', e.message);
                     localStorage.setItem('MULTI_MEXCSaldo', '0');
@@ -3044,7 +4149,8 @@
                     Object.entries(bal).forEach(([s, v]) => { const a = parseFloat(v || 0); if (a > 0) combined[s] = a; });
                     Object.entries(hold).forEach(([s, v]) => { const a = parseFloat(v || 0); if (a > 0) combined[s] = (combined[s] || 0) + a; });
                     const rateIDR = await USDTIDR(1);
-                    const overrides = rateIDR > 0 ? { IDR: 1 / rateIDR } : {};
+                    const indodaxPrices = await getCEXPriceOverrides('INDODAX');
+                    const overrides = Object.assign({}, indodaxPrices, rateIDR > 0 ? { IDR: 1 / rateIDR } : {});
                     await renderExchangeAssets('INDODAX', Object.entries(combined).map(([s, a]) => ({ symbol: s.toUpperCase(), amount: a })), { overrides });
                 } catch (e) {
                     setCEXStatus('INDODAX', 'error', e.message || String(e));
@@ -3080,7 +4186,8 @@
                     if (bResp.status !== 'ok' || !bResp.data?.list) throw new Error(bResp['err-msg'] || 'HTX balance failed');
                     const balMap = new Map();
                     bResp.data.list.forEach(i => { const c = String(i.currency || '').toUpperCase(); const b = parseFloat(i.balance || 0) || 0; balMap.set(c, (balMap.get(c) || 0) + b); });
-                    await renderExchangeAssets('HTX', Array.from(balMap.entries()).map(([s, a]) => ({ symbol: s, amount: a })));
+                    const htxPrices = await getCEXPriceOverrides('HTX');
+                    await renderExchangeAssets('HTX', Array.from(balMap.entries()).map(([s, a]) => ({ symbol: s, amount: a })), { overrides: htxPrices });
                 } catch (e) {
                     setCEXStatus('HTX', 'error', e.message);
                     localStorage.setItem('MULTI_HTXSaldo', '0');
@@ -3094,14 +4201,16 @@
                 const ts = new Date().toISOString();
                 const path = '/api/v5/account/balance';
                 const sign = CryptoJS.HmacSHA256(ts + 'GET' + path, creds.ApiSecret).toString(CryptoJS.enc.Base64);
-                const url = `${PROXY_BASE}${encodeURIComponent('https://www.okx.com' + path)}`;
+                const proxy = typeof CONFIG_PROXY !== 'undefined' ? CONFIG_PROXY.PREFIX : 'https://proxykanan.awokawok.workers.dev/?';
+                const url = `${proxy}https://www.okx.com${path}`;
                 try {
                     setCEXStatus('OKX', 'loading');
                     const r = await fetch(url, { headers: { 'OK-ACCESS-KEY': creds.ApiKey, 'OK-ACCESS-SIGN': sign, 'OK-ACCESS-TIMESTAMP': ts, 'OK-ACCESS-PASSPHRASE': creds.Passphrase } });
                     const d = await r.json();
                     if (d?.code !== '0') throw new Error(d?.msg || 'OKX failed');
                     const details = d.data?.[0]?.details || [];
-                    await renderExchangeAssets('OKX', details.map(i => ({ symbol: String(i.ccy || '').toUpperCase(), amount: parseFloat(i.cashBal || i.availBal || 0) + parseFloat(i.frozenBal || 0) })));
+                    const okxPrices = await getCEXPriceOverrides('OKX');
+                    await renderExchangeAssets('OKX', details.map(i => ({ symbol: String(i.ccy || '').toUpperCase(), amount: parseFloat(i.cashBal || i.availBal || 0) + parseFloat(i.frozenBal || 0) })), { overrides: okxPrices });
                 } catch (e) {
                     setCEXStatus('OKX', 'error', e.message);
                     localStorage.setItem('MULTI_OKXSaldo', '0');
@@ -3175,29 +4284,41 @@
             });
 
             // Fungsi Save Modal
-            $('#SaveModal').on('click', function () {
-                const rawModalAwal = parseFloat($("#MODALAWAL").val());
+            // Fungsi Save Modal (TOP)
+            $(document).on('click', '#SaveModal_TOP', function () {
+                const rawModalAwal = parseFloat($("#MODALAWAL_TOP").val());
+                saveModalAwal(rawModalAwal);
+            });
+
+            // Fungsi Save Modal (GRID)
+            $(document).on('click', '#SaveModal_GRID', function () {
+                const rawModalAwal = parseFloat($("#MODALAWAL_GRID").val());
+                saveModalAwal(rawModalAwal);
+            });
+
+            function saveModalAwal(rawModalAwal) {
                 const normalizedModalAwal = isNaN(rawModalAwal) ? 0 : Number(rawModalAwal.toFixed(2));
-                $("#MODALAWAL").val(normalizedModalAwal.toFixed(2));
                 var formattedTime = getFormattedTime();
 
-                // Simpan waktu terakhir diperbarui ke localStorage
+                // Simpan ke localStorage
                 localStorage.setItem('MULTI_lastUpdatePNL', formattedTime);
                 localStorage.setItem('MULTI_MODALAWAL', normalizedModalAwal.toFixed(2));
-                if (typeof toast !== 'undefined' && toast.success) toast.success("SIMPAN MODAL AWAL BERHASIL [ " + formattedTime + " ] ");
 
-                // Ambil data untuk pengisian history
-                const saldoExchanger = JSON.parse(localStorage.getItem('MULTI_TotalSaldoCEX'));
-                const assetDataChain = JSON.parse(localStorage.getItem('MULTI_TotalSaldoChain'));
-                const saldoAkhir = Number(saldoExchanger) + Number(assetDataChain);
+                if (typeof toast !== 'undefined' && toast.success) {
+                    toast.success("SIMPAN MODAL AWAL BERHASIL [ " + formattedTime + " ] ");
+                }
+
+                // Ambil data untuk history
+                const saldoExchanger = parseFloat(localStorage.getItem('MULTI_TotalSaldoCEX')) || 0;
+                const assetDataChain = parseFloat(localStorage.getItem('MULTI_TotalSaldoChain')) || 0;
+                const saldoAkhir = saldoExchanger + assetDataChain;
 
                 addTableHistory(formattedTime, normalizedModalAwal, Number(saldoAkhir), 0, "start");
 
-                // location.reload();
-                LoadTableHistory()
-                ShowLabelModal("start")
+                LoadTableHistory();
+                ShowLabelModal("start");
                 loadData();
-            });
+            }
 
             // Fungsi Reset Modal
             $('#ResetModal').on('click', async function () {
@@ -3357,77 +4478,14 @@
             }
 
             function ShowLabelModal(method) {
-                // Ambil data dari localStorage
-                const saldoExchanger = JSON.parse(localStorage.getItem('MULTI_TotalSaldoCEX')) || 0;
-                const saldoAllChain = JSON.parse(localStorage.getItem('MULTI_TotalSaldoChain')) || 0;
-                const modalAwal = JSON.parse(localStorage.getItem('MULTI_MODALAWAL')) || 0;
+                // Summary cards are updated via updateSummaryCards()
+                updateSummaryCards();
+                $('#lastUpdate').text(localStorage.getItem('MULTI_lastCheck') || '-');
 
-                let saldoAkhir = 0;
-                let pnl = 0;
-
-                // Logika berdasarkan method
-                if (method === 'check') {
-                    // Jika method adalah 'check'
-                    saldoAkhir = saldoExchanger + saldoAllChain;  // Saldo akhir adalah saldo exchanger + saldo chain
-                    pnl = saldoAkhir - modalAwal;  // PNL adalah modal awal dikurangi saldo akhir
-                } else if (method === "load") {
-                    // Jika method adalah 'check'
-                    saldoAkhir = saldoExchanger + saldoAllChain;  // Saldo akhir adalah saldo exchanger + saldo chain
-                    pnl = saldoAkhir - modalAwal;  // PNL adalah modal awal dikurangi saldo akhir
-                } else if (method === 'reset' || method === 'start') {
-                    // Jika method adalah 'reset' atau 'start'
-                    saldoAkhir = saldoExchanger + saldoAllChain;  // Saldo akhir diset 0
-                    pnl = 0;  // PNL diset 0
-                }
-
-                // Tampilkan hasil modal awal, akhir, dan pnl setelah selesai
-                $('#m_awal').text(Number(modalAwal).toFixed(2) + ' USDT');
-                $('#m_akhir').text(saldoAkhir.toFixed(2) + ' USDT');
-                $('#m_pnl').text(pnl.toFixed(2) + ' USDT');
-
-                // Update PNL color
-                const $pnlContainer = $('#pnl-container');
-                $pnlContainer.removeClass('uk-text-success uk-text-danger uk-text-primary');
-                if (pnl > 0) {
-                    $pnlContainer.addClass('uk-text-success');
-                } else if (pnl < 0) {
-                    $pnlContainer.addClass('uk-text-danger');
-                } else {
-                    $pnlContainer.addClass('uk-text-primary');
-                }
-
-                $('#lastUpdate').text(localStorage.getItem('MULTI_lastCheck'));
-                const renderIdrSummary = (rate) => {
-                    const safeRate = Number.isFinite(rate) && rate > 0 ? rate : 0;
-                    const idrSaldoAkhir = (saldoAkhir * safeRate).toLocaleString("id-ID");
-                    const idrPNL = (pnl * safeRate).toLocaleString("id-ID");
-
-                    $('#m_akhirs').text(`${saldoAkhir.toFixed(2)} $ (RP. ${idrSaldoAkhir})`);
-                    $('#m_pnls').text(`${pnl.toFixed(2)} $ (RP. ${idrPNL})`);
-                };
-
-                renderIdrSummary(parseFloat(localStorage.getItem('MULTI_USDTRate')));
-                USDTIDR(1).then((usdtRateIdr) => {
-                    renderIdrSummary(parseFloat(usdtRateIdr));
-                }).catch((error) => {
-                    console.log("-----------------------");
-                    console.log("Terjadi kesalahan saat konversi:", error);
-                });
-
-
-                // Debugging: Log data untuk memastikan semuanya benar
+                // Debugging: Log data
                 console.log("-----------------------");
                 console.log("Method: " + method);
                 console.log("-----------------------");
-                console.log("Saldo Exchanger: " + saldoExchanger);
-                console.log("Saldo Chain: " + saldoAllChain);
-                console.log("Saldo Awal: " + modalAwal);
-                console.log("Saldo Akhir: " + saldoAkhir);
-                console.log("PNL: " + pnl);
-                console.log("-----------------------");
-
-                // Update summary cards
-                updateSummaryCards();
             }
 
             // Event handlers untuk paging PNL history
@@ -3478,12 +4536,6 @@
                     // Simpan waktu terakhir diperbarui ke localStorage
                     localStorage.setItem('MULTI_lastCheck', formattedTime);
 
-                    ShowLabelModal("check");
-
-                    // Pastikan kedua tabel sudah siap sebelum menutup overlay
-                    await waitFor(() => isCexTableReady(), 15000, 100);
-                    await waitFor(() => isWalletTableReady(), 15000, 100);
-
                     window.BalanceCheckOverlay.updateProgress(100, 'Memeriksa Ulang Data...');
 
                     // Tutup overlay setelah semua siap
@@ -3500,309 +4552,53 @@
             });
 
             // Fungsi untuk memuat data dari localStorage saat halaman di-refresh
-            function
-                loadData() {
-                // Memuat modal awal dari localStorage, jika tidak ada maka set default 0
-                let modalAwal = parseFloat(localStorage.getItem('MULTI_MODALAWAL'));
-                if (isNaN(modalAwal)) {
-                    modalAwal = 0;
-                    localStorage.setItem('MULTI_MODALAWAL', modalAwal.toFixed(2)); // Set nilai default jika tidak ditemukan
-                }
+            function loadData() {
+                const modalAwal = parseFloat(localStorage.getItem('MULTI_MODALAWAL')) || 0;
+                localStorage.setItem('MULTI_MODALAWAL', modalAwal.toFixed(2));
 
-                // Memuat saldo exchanger, jika tidak ada maka set default 0
-                let saldoExchanger = parseFloat(localStorage.getItem('MULTI_TotalSaldoCEX'));
-                if (isNaN(saldoExchanger)) {
-                    saldoExchanger = 0;
-                    localStorage.setItem('MULTI_TotalSaldoCEX', saldoExchanger); // Set nilai default jika tidak ditemukan
-                }
+                // Sync all inputs
+                $("#MODALAWAL_TOP, #MODALAWAL_GRID").val(modalAwal.toFixed(2));
 
-                // Memuat asset data chain, jika tidak ada maka set default 0
-                let assetDataChain = parseFloat(localStorage.getItem('MULTI_TotalSaldoChain'));
-                if (isNaN(assetDataChain)) {
-                    assetDataChain = 0;
-                    localStorage.setItem('MULTI_TotalSaldoChain', assetDataChain); // Set nilai default jika tidak ditemukan
-                }
-                $("#MODALAWAL").val(Number(modalAwal).toFixed(2));
-                // Mengonversi nilai USDT ke IDR dan menampilkannya
-                USDTIDR(modalAwal).then((idrusdt) => {
-                    $("#RPMODAL").text("RP. " + parseFloat(idrusdt).toLocaleString("id-ID")); // Format ke format IDR
-                    console.log("-----------------------");
-                    console.log("Modal Awal USDT: " + modalAwal);
-                    console.log("Modal Awal USDT ke IDR: " + idrusdt);
-                }).catch((error) => {
-                    console.log("-----------------------");
-                    console.log("Terjadi kesalahan saat konversi Modal Awal :", error);
-                });
+                USDTIDR(modalAwal).then(idrusdt => {
+                    const formattedIdr = "RP. " + parseFloat(idrusdt).toLocaleString("id-ID");
+                    $("#RPMODAL_TOP, #RPMODAL_GRID").text(formattedIdr);
+                }).catch(e => console.warn('[Load] Error konversi modal:', e));
 
-                // Load multiWallets
                 const savedMultiWallets = localStorage.getItem('MULTI_multiWallets');
                 if (savedMultiWallets) $('#multiWallets').val(savedMultiWallets);
                 restoreCEXCredentialInputs();
 
-                // Mengatur status checkbox dan nilai input berdasarkan data di localStorage
-                $('input[type="checkbox"]').each(function () {
-                    const checkbox = $(this);
-                    const id = checkbox.attr('id');
-
-                    // Ambil status checkbox dari localStorage, default checked untuk chain jika baru
+                const CHAINS_LIST = ['ETHEREUM', 'BSC', 'POLYGON', 'BASE', 'ARBITRUM', 'AVAX', 'SOLANA'];
+                CHAINS_LIST.forEach(id => {
                     const isChecked = localStorage.getItem(`MULTI_${id}`) === 'true';
-                    checkbox.prop('checked', isChecked);
+                    $(`#${id}`).prop('checked', isChecked);
+                });
 
-                    // Menampilkan atau menyembunyikan baris tabel sesuai dengan status checkbox
-                    const tableRow = $(`#assetTableCexs tr[data-cex="${id}"]`);
+                CEX_LIST.forEach(id => {
+                    const isChecked = localStorage.getItem(`MULTI_${id}`) === 'true';
+                    $(`#${id}`).prop('checked', isChecked);
+                    const row = $(`#assetTableCexs tr[data-cex="${id}"]`);
                     if (isChecked) {
-                        tableRow.show(); // Tampilkan baris jika checkbox dicentang
+                        row.show();
                         restoreExchangeRow(id);
                     } else {
-                        tableRow.hide(); // Sembunyikan baris jika checkbox tidak dicentang
-                        localStorage.removeItem(`MULTI_${id}_DETAIL`);
-                        $(`#${id}Saldo`).text("0 {USDT}");
+                        row.hide();
                     }
                 });
 
-                const storedTotalCex = parseFloat(localStorage.getItem('MULTI_TotalSaldoCEX')) || 0;
-                $('#TotalSaldoCEX').text(`${storedTotalCex.toFixed(2)} $`);
+                const totalCex = parseFloat(localStorage.getItem('MULTI_TotalSaldoCEX')) || 0;
+                $('#TotalSaldoCEX').text(`${totalCex.toFixed(2)} $`);
 
-                // Memuat data hasil pengecekan aset wallet dari localStorage dan menampilkannya di tabel
                 const assetData = JSON.parse(localStorage.getItem('MULTI_assetDataCEX')) || [];
                 if (assetData.length > 0) {
-                    $('#assetTableWallet').show();
-                    // Render data tabel
-                    $('#output_chain').html(
-                        assetData.map(row => {
-                            const shortWallet = row.walletAddress ? (row.walletAddress.substring(0, 6) + '...' + row.walletAddress.substring(row.walletAddress.length - 4)) : 'Unknown';
-                            return `
-                            <tr data-chain="${row.chain.toUpperCase()}">
-                                <td><span class="uk-text-bold text-chain-${row.chain.toLowerCase()}">${row.chain.toUpperCase()}</span></td>
-                                <td title="${row.walletAddress || ''}"><a href="${row.walletLink}" target="_blank" class="uk-link-muted">${shortWallet}</a></td>
-                                <td>${row.assetBalance} ${row.assetSymbol}</td>
-                                <td>${row.gasBalance} ${row.gasSymbol} [${row.usdtGas}]</td>
-                                <td class="uk-text-right uk-text-bold">${row.total} USDT</td>
-                            </tr>
-                            `;
-                        }).join('')
-                    );
-                    const storedTotalChain = parseFloat(localStorage.getItem('MULTI_TotalSaldoChain')) || 0;
-                    $('#LTotalSaldoWallets').text("Total Portfolio Wallet");
-                    $('#TotalSaldoWallets').text(storedTotalChain.toFixed(2) + " $");
+                    renderChainAssetsTable(assetData);
+                    const totalChain = parseFloat(localStorage.getItem('MULTI_TotalSaldoChain')) || 0;
+                    $('#TotalSaldoWallets').text(totalChain.toFixed(2) + " $");
                 }
 
-                // Memuat saldo excanger dari localStorage dan menampilkannya di tabel
-                const exchanges = ['BINANCE', 'GATE', 'BITGET', 'KUCOIN', 'BYBIT', 'MEXC', 'INDODAX'];
-                let totalSaldo = 0;
-
-                exchanges.forEach(exchange => {
-                    const saldoKey = `MULTI_${exchange}Saldo`;
-                    const saldo = localStorage.getItem(saldoKey);
-                    if (saldo) {
-                        // Tampilkan saldo pada tabel jika ada data di localStorage
-                        $(`#${exchange}Saldo`).text(`${parseFloat(saldo).toFixed(2)} USDT`);
-                        getTotalSaldoCEXS();
-                    }
-                });
-
-                LoadTableHistory()
+                LoadTableHistory();
                 ShowLabelModal("load");
                 updateSummaryCards();
-            }
-            //fungsi get balances chain EVM 
-
-            async function getAssetBalancesEVM(rpcUrl, contractAddress, walletAddress, networkName, tokenRates) {
-                try {
-
-                    const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
-                    const erc20Abi = ["function balanceOf(address owner) view returns (uint256)"];
-                    const contract = new ethers.Contract(contractAddress, erc20Abi, provider);
-
-                    const balance = await contract.balanceOf(walletAddress);
-
-                    let decimals;
-                    let assetSymbol;
-                    if (networkName === 'bsc') {
-                        decimals = 18;
-                        assetSymbol = 'USDT'; // BSC menggunakan USDT dengan desimal 18
-                    } else if (networkName === 'base') {
-                        decimals = 6;
-                        assetSymbol = 'USDC'; // Base menggunakan USDC dengan desimal 6
-                    } else {
-                        decimals = 6;   // Polygon, Arbitrum, Ethereum menggunakan 6 desimal
-                        assetSymbol = 'USDT'; // Default menggunakan USDT
-                    }
-                    const formattedBalance = parseFloat(ethers.utils.formatUnits(balance, decimals)).toFixed(2);
-
-                    // Mendapatkan saldo gas
-                    const gasBalance = await provider.getBalance(walletAddress);
-                    let gasSymbol;
-                    let formattedGasBalance;
-
-                    if (networkName === 'bsc') {
-                        gasSymbol = 'BNB';
-                        formattedGasBalance = parseFloat(ethers.utils.formatEther(gasBalance)).toFixed(4) + '';
-                    } else if (networkName === 'polygon') {
-                        gasSymbol = 'MATIC';
-                        formattedGasBalance = parseFloat(ethers.utils.formatEther(gasBalance)).toFixed(4) + '';
-                    } else if (networkName === 'arbitrum') {
-                        gasSymbol = 'ETH';
-                        formattedGasBalance = parseFloat(ethers.utils.formatEther(gasBalance)).toFixed(4) + '';
-                    } else if (networkName === 'avax') {
-                        gasSymbol = 'AVAX';
-                        formattedGasBalance = parseFloat(ethers.utils.formatEther(gasBalance)).toFixed(4) + '';
-                    } else {
-                        gasSymbol = 'ETH';
-                        formattedGasBalance = parseFloat(ethers.utils.formatEther(gasBalance)).toFixed(4) + '';
-                    }
-
-                    const gasBalanceInUSD = (parseFloat(ethers.utils.formatEther(gasBalance)) * parseFloat(tokenRates[gasSymbol])).toFixed(2);
-
-                    let walletLink;
-                    switch (networkName) {
-                        case 'ethereum':
-                            walletLink = `https://etherscan.io/address/${walletAddress}`;
-                            break;
-                        case 'bsc':
-                            walletLink = `https://bscscan.com/address/${walletAddress}`;
-                            break;
-                        case 'polygon':
-                            walletLink = `https://polygonscan.com/address/${walletAddress}`;
-                            break;
-                        case 'base':
-                            walletLink = `https://basescan.org/address/${walletAddress}`;
-                            break;
-                        case 'arbitrum':
-                            walletLink = `https://arbiscan.io/address/${walletAddress}`;
-                            break;
-                        case 'avax':
-                            walletLink = `https://snowtrace.io/address/${walletAddress}`;
-                            break;
-                        default:
-                            walletLink = `https://explorer.${networkName}.com/address/${walletAddress}`;
-                            break;
-                    }
-
-                    const totalBalanceInUSD = (parseFloat(formattedBalance) + parseFloat(gasBalanceInUSD)).toFixed(2);
-
-                    // Mengembalikan objek dengan data terstruktur
-                    return {
-                        chain: networkName,
-                        assetBalance: formattedBalance,
-                        assetSymbol,
-                        gasBalance: formattedGasBalance,
-                        gasSymbol,
-                        gasBalanceInUSD,
-                        totalBalanceInUSD,
-                        walletLink
-                    };
-
-                } catch (error) {
-                    return { error: error.message }; // Menangani error
-                }
-            }
-            //fungsi get balances chain SOLANA
-            async function getSolanaBalance(walletAddress, tokenRates) {
-                try {
-                    // Gunakan RPC publik yang lebih reliable
-                    const rpcEndpoints = [
-                        'https://api.mainnet-beta.solana.com',
-                        'https://solana.drpc.org',
-                        'https://rpc.ankr.com/solana'
-                    ];
-
-                    let connection = null;
-                    let lastError = null;
-
-                    // Coba beberapa RPC endpoint
-                    for (const rpc of rpcEndpoints) {
-                        try {
-                            connection = new solanaWeb3.Connection(rpc, 'confirmed');
-                            // Test connection dengan simple request
-                            await connection.getLatestBlockhash();
-                            break; // Berhasil connect
-                        } catch (e) {
-                            lastError = e;
-                            connection = null;
-                        }
-                    }
-
-                    if (!connection) {
-                        throw new Error('Tidak dapat terhubung ke Solana RPC: ' + (lastError?.message || 'Unknown error'));
-                    }
-
-                    const publicKey = new solanaWeb3.PublicKey(walletAddress);
-
-                    // Mendapatkan saldo SOL (untuk fee gas)
-                    const solBalance = await connection.getBalance(publicKey);
-                    const formattedSOL = (solBalance / solanaWeb3.LAMPORTS_PER_SOL).toFixed(4);
-                    const solRate = tokenRates.SOL || 0;
-                    const gasBalanceInUSD = ((solBalance / solanaWeb3.LAMPORTS_PER_SOL) * solRate).toFixed(2);
-
-                    // Mendapatkan akun token USDT dengan alamat mint yang benar
-                    const usdtMintPublicKey = new solanaWeb3.PublicKey('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB');
-                    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey, { mint: usdtMintPublicKey });
-
-                    let formattedUSDT = '0.00';
-                    if (tokenAccounts.value.length > 0) {
-                        const usdtAccountData = tokenAccounts.value[0]?.account?.data?.parsed;
-                        if (usdtAccountData?.info?.tokenAmount?.uiAmount) {
-                            const usdtBalance = usdtAccountData.info.tokenAmount.uiAmount;
-                            formattedUSDT = usdtBalance.toFixed(2);
-                        }
-                    }
-
-                    // Menjumlahkan nilai saldo dalam USD (gasBalanceInUSD + USDT)
-                    const totalBalanceInUSD = (parseFloat(formattedUSDT) + parseFloat(gasBalanceInUSD)).toFixed(2);
-
-                    return {
-                        chain: 'solana',
-                        assetBalance: formattedUSDT,
-                        assetSymbol: 'USDT',
-                        gasBalance: formattedSOL,
-                        gasSymbol: 'SOL',
-                        gasBalanceInUSD,
-                        totalBalanceInUSD,
-                        walletLink: `https://solscan.io/account/${walletAddress}`,
-                    };
-
-                } catch (error) {
-                    console.error("Solana Balance Error:", error);
-                    return { error: error.message || 'Unknown Solana error' };
-                }
-            }
-            //fungsi get Price Rate        
-            async function fetchTokenRates() {
-                try {
-                    // Melakukan fetch data dari API
-                    const response = await fetch("https://data-api.binance.vision/api/v3/ticker/price?symbols=[%22BTCUSDT%22,%22ETHUSDT%22,%22BNBUSDT%22,%22POLUSDT%22,%22AVAXUSDT%22,%22SOLUSDT%22]");
-
-                    // Mengecek apakah respons valid
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch token rates');
-                    }
-
-                    // Parsing JSON data
-                    const data = await response.json();
-
-                    // Memastikan semua rates ditemukan dan terkonversi menjadi angka
-                    const rates = {
-                        BTC: parseFloat(data.find(item => item.symbol === 'BTCUSDT')?.price) || 0,
-                        ETH: parseFloat(data.find(item => item.symbol === 'ETHUSDT')?.price) || 0,
-                        BNB: parseFloat(data.find(item => item.symbol === 'BNBUSDT')?.price) || 0,
-                        MATIC: parseFloat(data.find(item => item.symbol === 'POLUSDT')?.price) || 0,
-                        AVAX: parseFloat(data.find(item => item.symbol === 'AVAXUSDT')?.price) || 0,
-                        SOL: parseFloat(data.find(item => item.symbol === 'SOLUSDT')?.price) || 0
-                    };
-
-                    return rates;
-                } catch (error) {
-                    console.log("-----------------------");
-                    console.error('Error fetching token rates:', error);
-                    return {
-                        BTC: 0,
-                        ETH: 0,
-                        BNB: 0,
-                        MATIC: 0,
-                        SOL: 0
-                    };  // Mengembalikan rates default 0 jika terjadi error
-                }
             }
             // Fungsi konversi USDT ke IDR
             async function USDTIDR(usdt) {
@@ -3844,8 +4640,7 @@
 
             //fungsi refresh
             $("#reload").on("click", function () {
-                // Refresh RPC settings sebelum reload halaman
-                refreshRPCSettings();
+                // refreshRPCSettings(); // Removed deprecated call
                 // Panggil fungsi reloadPage saat tombol ditekan
                 setTimeout(() => location.reload(), 500); // delay sedikit agar toast muncul
             });
