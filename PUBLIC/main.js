@@ -2026,33 +2026,68 @@ async function deferredInit() {
             }, {});
 
             // Section 0: HEADER ROW (TOTAL + ADVANCED TOGGLE)
-            const multiChainChecked = fmNow.multiChain === true;
-            const manyCexChecked = fmNow.manyCex === true;
+            let multiChainChecked = fmNow.multiChain === true;
+            let manyCexChecked = fmNow.manyCex === true;
+
+            // ✅ VERIFICATION: Many Chain (must > 1 chain selected)
+            const canManyChain = (chainsSel.length > 1);
+            if (multiChainChecked && !canManyChain) {
+                multiChainChecked = false;
+                if (isCEXModeNow && typeof setFilterCEX === 'function') {
+                    setFilterCEX(window.CEXModeManager.getSelectedCEX(), { multiChain: false });
+                } else if (typeof setFilterMulti === 'function') {
+                    setFilterMulti({ multiChain: false });
+                }
+            }
+
+            // ✅ VERIFICATION: Many CEX (must > 1 CEX selected in MultiCEX mode)
+            const canManyCex = (cexSel.length > 1);
+            if (manyCexChecked && !canManyCex) {
+                manyCexChecked = false;
+                if (isCEXModeNow && typeof setFilterCEX === 'function') {
+                    setFilterCEX(window.CEXModeManager.getSelectedCEX(), { manyCex: false });
+                } else if (typeof setFilterMulti === 'function') {
+                    setFilterMulti({ manyCex: false });
+                }
+            }
+
             // Cek apakah scanner sedang berjalan (untuk disable toggle saat scan aktif)
             const isScanning = !!(window.SCAN_IS_RUNNING || (typeof getAppState === 'function' && getAppState()?.run === 'YES'));
-            const toggleDisabled = isCEXMode && isScanning;
-            // MANY CEX toggle hanya tersedia di mode MultiCEX (ALL exchanger)
             const isMultiCEXMode = isCEXMode && window.CEXModeManager.getSelectedCEX() === 'ALL';
-            const toggleLabelStyle = toggleDisabled
+
+            const toggleDisabled = isCEXMode && isScanning;
+
+            const mcDisabled = toggleDisabled || !canManyChain;
+            const mxDisabled = toggleDisabled || !canManyCex;
+
+            const mcStyle = mcDisabled
                 ? 'cursor: not-allowed; gap: 8px; background: #f3f4f6; padding: 4px 10px; border-radius: 20px; border: 1px solid #ddd; opacity: 0.45; pointer-events: none;'
                 : 'cursor: pointer; gap: 8px; background: #fff; padding: 4px 10px; border-radius: 20px; border: 1px solid #ddd; box-shadow: 0 1px 2px rgba(0,0,0,0.05);';
+
+            const mxStyle = mxDisabled
+                ? 'cursor: not-allowed; gap: 8px; background: #f3f4f6; padding: 4px 10px; border-radius: 20px; border: 1px solid #ddd; opacity: 0.45; pointer-events: none;'
+                : 'cursor: pointer; gap: 8px; background: #fff; padding: 4px 10px; border-radius: 20px; border: 1px solid #ddd; box-shadow: 0 1px 2px rgba(0,0,0,0.05);';
+
+            const mcTitle = !canManyChain ? 'Pilih lebih dari 1 Chain untuk mengaktifkan filter ini' : '';
+            const mxTitle = !canManyCex ? 'Pilih lebih dari 1 Exchanger untuk mengaktifkan filter ini' : '';
+
             const $headerRow = $(`
                 <div class="uk-flex uk-flex-between uk-flex-middle" style="margin-bottom:12px; background:#f8f9fa; padding:6px 10px; border-radius:8px; border:1px solid #e5e7eb;">
                     <div id="modal-sum-container"></div>
                     <div class="uk-flex uk-flex-middle" style="gap:8px;">
                         ${isCEXMode ? `
-                        <label class="uk-flex uk-flex-middle" style="${toggleLabelStyle}">
+                        <label class="uk-flex uk-flex-middle" style="${mcStyle}" title="${mcTitle}">
                             <span style="font-size: 10px; font-weight: 700; color: #949698ff;">MANY CHAIN (&gt;1)</span>
                             <div class="cex-toggle-wrapper" style="transform: scale(0.85);">
-                                <input type="checkbox" id="modal-filter-multichain" ${multiChainChecked ? 'checked' : ''} ${toggleDisabled ? 'disabled' : ''}>
+                                <input type="checkbox" id="modal-filter-multichain" ${multiChainChecked ? 'checked' : ''} ${mcDisabled ? 'disabled' : ''}>
                                 <span class="cex-toggle-slider"></span>
                             </div>
                         </label>` : ''}
                         ${isMultiCEXMode ? `
-                        <label class="uk-flex uk-flex-middle" style="${toggleLabelStyle}">
+                        <label class="uk-flex uk-flex-middle" style="${mxStyle}" title="${mxTitle}">
                             <span style="font-size: 10px; font-weight: 700; color: #eb73a7;">MANY CEX (&gt;1)</span>
                             <div class="cex-toggle-wrapper" style="transform: scale(0.85);">
-                                <input type="checkbox" id="modal-filter-manycex" ${manyCexChecked ? 'checked' : ''} ${toggleDisabled ? 'disabled' : ''}>
+                                <input type="checkbox" id="modal-filter-manycex" ${manyCexChecked ? 'checked' : ''} ${mxDisabled ? 'disabled' : ''}>
                                 <span class="cex-toggle-slider" style="background-color: ${manyCexChecked ? '#eb73a7' : '#ccc'};"></span>
                             </div>
                         </label>` : ''}
@@ -2075,7 +2110,6 @@ async function deferredInit() {
             Object.keys(CONFIG_CHAINS || {}).forEach(k => {
                 // ✅ FILTER: Only show enabled chains
                 if (!enabledChains.includes(k)) {
-                    console.log(`[FILTER] Chain ${k} disabled, skipping chip render`);
                     return; // Skip disabled chain
                 }
 
@@ -2084,12 +2118,31 @@ async function deferredInit() {
                 if (cnt === 0) return;
                 const checked = chainsSel.includes(k.toLowerCase());
                 const col = CONFIG_CHAINS[k].WARNA || '#333';
+
+                // ✅ Get supported CEXs for this chain (using full labels for title)
+                const walletCex = CONFIG_CHAINS[k].WALLET_CEX || {};
+                const supportedCexsFull = [];
+                const supportedCexsShort = [];
+                Object.keys(walletCex).forEach(cx => {
+                    const enabledCexList = (typeof getEnabledCEXs === 'function') ? getEnabledCEXs() : [];
+                    if (enabledCexList.includes(cx.toUpperCase())) {
+                        const label = window.CONFIG_CEX?.[cx]?.LABEL || cx;
+                        supportedCexsFull.push(label);
+                        supportedCexsShort.push(cx);
+                    }
+                });
+                const cexsStrShort = supportedCexsShort.join(', ');
+                const cexsStrFull = supportedCexsFull.join(', ');
+
                 $chainGrid.append($(`
-                    <label class="fc-chain filter-chip" data-val="${k.toLowerCase()}" data-color="${col}" for="${id}" style="border-color: ${checked ? col : 'transparent'};">
-                        <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
-                        <span class="chip-label" style="color:${col};">${short}</span>
-                        <span class="chip-count">[${cnt}]</span>
-                    </label>
+                    <div style="display:flex; flex-direction:column; align-items:center;" title="Chain: ${CONFIG_CHAINS[k].Nama_Chain}\nSupported Exchangers: ${cexsStrFull}">
+                        <label class="fc-chain filter-chip" data-val="${k.toLowerCase()}" data-color="${col}" for="${id}" style="border-color: ${checked ? col : 'transparent'}; margin-bottom:1px;">
+                            <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
+                            <span class="chip-label" style="color:${col};">${short}</span>
+                            <span class="chip-count">[${cnt}]</span>
+                        </label>
+                        <div class="chip-sub-info">${cexsStrShort}</div>
+                    </div>
                 `));
             });
             $chainSection.append($chainGrid);
@@ -2213,12 +2266,31 @@ async function deferredInit() {
                     if (cnt === 0) return;
                     const checked = cexSel.includes(cx.toUpperCase());
                     const col = window.CONFIG_CEX?.[cx]?.WARNA || '#333';
+
+                    // ✅ Get supported chains for this CEX (using full names for title)
+                    const supportedChainsFull = [];
+                    const supportedChainsShort = [];
+                    Object.keys(CONFIG_CHAINS || {}).forEach(ck => {
+                        if (CONFIG_CHAINS[ck].WALLET_CEX?.[cx.toUpperCase()]) {
+                            const short = (CONFIG_CHAINS[ck].Nama_Pendek || ck.substr(0, 3)).toUpperCase();
+                            const full = CONFIG_CHAINS[ck].Nama_Chain || ck;
+                            supportedChainsShort.push(short);
+                            supportedChainsFull.push(full);
+                        }
+                    });
+                    const chainsStrShort = supportedChainsShort.join(', ');
+                    const chainsStrFull = supportedChainsFull.join(', ');
+                    const cexLabel = window.CONFIG_CEX?.[cx]?.LABEL || cx;
+
                     $cexGrid.append($(`
-                        <label class="fc-cex filter-chip" data-val="${cx}" data-color="${col}" for="${id}" style="border-color: ${checked ? col : 'transparent'};">
-                            <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
-                            <span class="chip-label" style="color:${col};">${cx}</span>
-                            <span class="chip-count">[${cnt}]</span>
-                        </label>
+                        <div style="display:flex; flex-direction:column; align-items:center;" title="Exchanger: ${cexLabel}\nSupported Chains: ${chainsStrFull}">
+                            <label class="fc-cex filter-chip" data-val="${cx}" data-color="${col}" for="${id}" style="border-color: ${checked ? col : 'transparent'}; margin-bottom:1px;">
+                                <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
+                                <span class="chip-label" style="color:${col};">${cx}</span>
+                                <span class="chip-count">[${cnt}]</span>
+                            </label>
+                            <div class="chip-sub-info">${chainsStrShort}</div>
+                        </div>
                     `));
                 });
                 $cexSection.append($cexGrid);
