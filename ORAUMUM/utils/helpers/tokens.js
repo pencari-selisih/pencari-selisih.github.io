@@ -240,6 +240,7 @@
         const symbolChainMap = {}; // symbol -> Set of unique chains
 
         chains.forEach(chainKey => {
+            if (chainKey === 'favorit') return; // Skip virtual chain
             const chainTokens = getTokensChain(chainKey);
             if (Array.isArray(chainTokens)) {
                 raw.push(...chainTokens);

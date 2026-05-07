@@ -410,27 +410,19 @@ function refreshTokensTable() {
                 // Ini konsisten dengan daftar-koin.html yang juga menghitung semua chain,
                 // bukan hanya chain yang dimiliki CEX yang sedang aktif.
                 if (fm.multiChain === true) {
-                    if (currentCEX === 'ALL') {
-                        // Mode MultiCEX (ALL): hitung effective chains dari hasil filter aktif
-                        // (yaitu chains yang dipilih user DAN CEX yang dipilih)
-                        const symChainMap = {};
-                        filtered.forEach(t => {
-                            const sym = String(t.symbol_in || '').toUpperCase().trim();
-                            if (sym) {
-                                if (!symChainMap[sym]) symChainMap[sym] = new Set();
-                                symChainMap[sym].add(String(t.chain || '').toLowerCase());
-                            }
-                        });
-                        filtered = filtered.filter(t => {
-                            const sym = String(t.symbol_in || '').toUpperCase().trim();
-                            return (symChainMap[sym]?.size || 0) > 1;
-                        });
-                    } else {
-                        // Mode CEX tunggal (BINANCE, dll): gunakan chainCount dari DB
-                        // chainCount = jumlah chain yang punya token ini di seluruh database
-                        // Konsisten dengan daftar-koin.html
-                        filtered = filtered.filter(t => (t.chainCount || 0) > 1);
-                    }
+                    // Gunakan dynamic chain count dari data yang sudah difilter
+                    const symChainMapTable = {};
+                    filtered.forEach(t => {
+                        const sym = String(t.symbol_in || '').toUpperCase().trim();
+                        if (sym) {
+                            if (!symChainMapTable[sym]) symChainMapTable[sym] = new Set();
+                            symChainMapTable[sym].add(String(t.chain || '').toLowerCase());
+                        }
+                    });
+                    filtered = filtered.filter(t => {
+                        const sym = String(t.symbol_in || '').toUpperCase().trim();
+                        return (symChainMapTable[sym]?.size || 0) > 1;
+                    });
                 }
 
                 // Apply MANY CEX Filter: koin yg sc_in-nya sama ada di 2+ CEX berbeda
@@ -494,7 +486,18 @@ function refreshTokensTable() {
 
         // Apply Multi-Chain Filter (2+ chains) jika aktif
         if (fm.multiChain === true) {
-            filteredByChain = filteredByChain.filter(t => (t.chainCount || 0) > 1);
+            const symChainMapMain = {};
+            filteredByChain.forEach(t => {
+                const sym = String(t.symbol_in || '').toUpperCase().trim();
+                if (sym) {
+                    if (!symChainMapMain[sym]) symChainMapMain[sym] = new Set();
+                    symChainMapMain[sym].add(String(t.chain || '').toLowerCase());
+                }
+            });
+            filteredByChain = filteredByChain.filter(t => {
+                const sym = String(t.symbol_in || '').toUpperCase().trim();
+                return (symChainMapMain[sym]?.size || 0) > 1;
+            });
         }
     } else {
         // One or both groups empty → show none
@@ -1504,7 +1507,18 @@ async function deferredInit() {
                     totalFlat = totalFlat.filter(t => (t.dexs || []).some(d => regularDexSel.includes(String(d.dex || '').toLowerCase())));
                 }
                 if (fmNow.multiChain === true) {
-                    totalFlat = totalFlat.filter(t => (t.chainCount || 0) > 1);
+                    const symChainMapBadge = {};
+                    totalFlat.forEach(t => {
+                        const sym = String(t.symbol_in || '').toUpperCase().trim();
+                        if (sym) {
+                            if (!symChainMapBadge[sym]) symChainMapBadge[sym] = new Set();
+                            symChainMapBadge[sym].add(String(t.chain || '').toLowerCase());
+                        }
+                    });
+                    totalFlat = totalFlat.filter(t => {
+                        const sym = String(t.symbol_in || '').toUpperCase().trim();
+                        return (symChainMapBadge[sym]?.size || 0) > 1;
+                    });
                 }
                 total = totalFlat.length;
             } else {
@@ -2209,7 +2223,6 @@ async function deferredInit() {
                             <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
                             <span class="chip-label" style="color:${col};">${(dexConfig.label || dx).toUpperCase()}</span>
                             ${_mb1}
-                            <span class="chip-count">[${cnt}]</span>
                         </label>
                     `));
                 } else {
@@ -2223,7 +2236,6 @@ async function deferredInit() {
                                style="border-color: ${checked ? col : 'transparent'};">
                             <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
                             <span class="chip-label" style="color:${col};">${(dexConfig.label || dx).toUpperCase()}</span>
-                            <span class="chip-count">[${cnt}]</span>
                         </label>
                     `));
                 }
@@ -2418,24 +2430,19 @@ async function deferredInit() {
                     }
                 }
                 if (fmNow.multiChain === true) {
-                    if (selCEXForCounter === 'ALL') {
-                        // Mode MultiCEX (ALL): effective chain count dari filter aktif
-                        const symChainMapCounter = {};
-                        totalFiltered.forEach(t => {
-                            const sym = String(t.symbol_in || '').toUpperCase().trim();
-                            if (sym) {
-                                if (!symChainMapCounter[sym]) symChainMapCounter[sym] = new Set();
-                                symChainMapCounter[sym].add(String(t.chain || '').toLowerCase());
-                            }
-                        });
-                        totalFiltered = totalFiltered.filter(t => {
-                            const sym = String(t.symbol_in || '').toUpperCase().trim();
-                            return (symChainMapCounter[sym]?.size || 0) > 1;
-                        });
-                    } else {
-                        // Mode CEX tunggal: gunakan chainCount dari DB (konsisten dgn daftar-koin)
-                        totalFiltered = totalFiltered.filter(t => (t.chainCount || 0) > 1);
-                    }
+                    // Gunakan dynamic chain count dari data yang sudah difilter
+                    const symChainMapCounter = {};
+                    totalFiltered.forEach(t => {
+                        const sym = String(t.symbol_in || '').toUpperCase().trim();
+                        if (sym) {
+                            if (!symChainMapCounter[sym]) symChainMapCounter[sym] = new Set();
+                            symChainMapCounter[sym].add(String(t.chain || '').toLowerCase());
+                        }
+                    });
+                    totalFiltered = totalFiltered.filter(t => {
+                        const sym = String(t.symbol_in || '').toUpperCase().trim();
+                        return (symChainMapCounter[sym]?.size || 0) > 1;
+                    });
                 }
                 // Apply MANY CEX filter di counter (sc_in sama di 2+ CEX)
                 if (fmNow.manyCex === true) {
