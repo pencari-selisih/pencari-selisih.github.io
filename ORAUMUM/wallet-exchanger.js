@@ -46,8 +46,8 @@
     function filterTokensForWallet(tokens, mode) {
         if (!Array.isArray(tokens) || tokens.length === 0) return [];
 
-        // ✅ BARU: Hanya filter by chain (tidak filter CEX/PAIR/DEX)
-        // Update Wallet Exchanger tidak lagi bergantung pada filter scanner
+        // ✅ SEKARANG: Sinkron dengan filter scanner (CEX)
+        // Agar CEX yang ditampilkan di Update Wallet sama dengan yang aktif di scanner
 
         if (mode.type === 'single' && mode.chain) {
             const chainKey = getCanonicalChainKey(mode.chain) || String(mode.chain).toLowerCase();
@@ -73,18 +73,26 @@
             const mode = modeOverride || ((typeof getAppMode === 'function') ? getAppMode() : { type: 'multi' });
             let tokens = [];
 
-            // Gunakan getActiveTokens() untuk konsistensi dengan sistem storage
-            if (typeof getActiveTokens === 'function') {
+            // ✅ CONSISTENCY: In CEX Mode, we must aggregate tokens from all chains
+            // This matches how the scanner filter modal (flat list) is built.
+            if (mode.type === 'cex' && typeof root.getTokensChain === 'function') {
+                const chains = Object.keys(root.CONFIG_CHAINS || {});
+                tokens = [];
+                chains.forEach(ck => {
+                    const ct = root.getTokensChain(ck);
+                    if (Array.isArray(ct)) tokens.push(...ct);
+                });
+                // Fallback if all per-chain are empty
+                if (tokens.length === 0 && typeof getActiveTokens === 'function') {
+                    tokens = getActiveTokens([]);
+                }
+            } else if (typeof getActiveTokens === 'function') {
                 tokens = getActiveTokens([]);
-                const storageKey = (typeof getActiveTokenKey === 'function') ? getActiveTokenKey() : 'TOKEN_MULTICHAIN';
-                // console.log(`[Wallet Exchanger] Loaded ${tokens.length} coins from ${storageKey}`);
             } else if (mode.type === 'single' && mode.chain) {
                 const chainKey = getCanonicalChainKey(mode.chain) || mode.chain;
                 tokens = (typeof getTokensChain === 'function') ? getTokensChain(chainKey) : [];
-                // console.log(`[Wallet Exchanger] Loaded ${tokens.length} coins for chain ${chainKey}`);
             } else {
                 tokens = (typeof getFromLocalStorage === 'function') ? getFromLocalStorage('TOKEN_MULTICHAIN', []) : [];
-                // console.log(`[Wallet Exchanger] Loaded ${tokens.length} coins (multichain mode)`);
             }
 
             if (!applyFilter) {
@@ -92,21 +100,8 @@
             }
 
             const filteredTokens = filterTokensForWallet(tokens, mode);
-            // console.log(`[Wallet Exchanger] Tokens after filter: ${filteredTokens.length}`);
-
-            if (filteredTokens.length > 0) {
-                const sampleCoin = filteredTokens[0];
-                // console.log('[Wallet Exchanger] Sample filtered coin:', {
-                // symbol: sampleCoin.symbol_in,
-                // chain: sampleCoin.chain,
-                // hasCexData: !!sampleCoin.dataCexs,
-                // cexCount: sampleCoin.dataCexs ? Object.keys(sampleCoin.dataCexs).length : 0
-                // });
-            }
-
             return filteredTokens;
         } catch (err) {
-            // console.error('[Wallet Exchanger] Error loading coins from storage:', err);
             return [];
         }
     }
@@ -505,6 +500,8 @@
             availableCexes = availableCexes.filter(cx => cx === selectedCEX);
             console.log(`[Update Wallet] CEX Mode active - showing only ${selectedCEX}`);
         }
+        // NOTE: Untuk MultiCEX (ALL), kita tampilkan SEMUA CEX yang ada koinnya
+        // (sama seperti chip yang muncul di filter scanner), bukan hanya yang tercentang aktif.
 
         // Determine active chain
         if (mode.type === 'single') {

@@ -2217,6 +2217,23 @@ async function deferredInit() {
                     byPair[key] = (byPair[key] || 0) + 1;
                 });
 
+            // ✅ PRE-CALCULATE: Supported chains per PAIR based on actual token data
+            const chainsByPairInData = {};
+            flat.filter(t => (chainsSel.length === 0 || chainsSel.includes(String(t.chain || '').toLowerCase())))
+                .forEach(t => {
+                    const ck = String(t.chain || '').toLowerCase();
+                    const p = String(t.symbol_out || '').toUpperCase().trim();
+                    const chainCfg = CONFIG_CHAINS[ck] || {};
+                    const pd = chainCfg.PAIRDEXS || {};
+                    const pairKey = pd[p] ? p : 'NON';
+
+                    if (!chainsByPairInData[pairKey]) chainsByPairInData[pairKey] = { full: new Set(), short: new Set() };
+                    const short = (CONFIG_CHAINS[ck]?.Nama_Pendek || ck.substr(0, 3)).toUpperCase();
+                    const full = CONFIG_CHAINS[ck]?.Nama_Chain || ck;
+                    chainsByPairInData[pairKey].short.add(short);
+                    chainsByPairInData[pairKey].full.add(full);
+                });
+
             const $pairSection = $('<div class="filter-box filter-box-pair"></div>');
             $pairSection.append($('<div class="filter-section-title">PAIR</div>'));
             const $pairGrid = $('<div style="display:flex; flex-wrap:wrap; gap:6px;"></div>');
@@ -2226,12 +2243,21 @@ async function deferredInit() {
                 const checked = pairSel.includes(p);
                 const pairColor = '#b4b8c0';
                 const id = `modal-fc-pair-${p}`;
+
+                // ✅ Get supported chains for this pair from pre-calculated data
+                const data = chainsByPairInData[p] || { full: new Set(), short: new Set() };
+                const chainsStrShort = Array.from(data.short).sort().join(', ');
+                const chainsStrFull = Array.from(data.full).sort().join(', ');
+
                 $pairGrid.append($(`
-                    <label class="fc-pair filter-chip" data-val="${p}" data-color="${pairColor}" for="${id}" style="border-color: ${checked ? pairColor : 'transparent'};">
-                        <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
-                        <span class="chip-label" style="color:${pairColor};">${p}</span>
-                        <span class="chip-count">[${cnt}]</span>
-                    </label>
+                    <div style="display:flex; flex-direction:column; align-items:center;" title="Pair: ${p}\nSupported Chains: ${chainsStrFull}">
+                        <label class="fc-pair filter-chip" data-val="${p}" data-color="${pairColor}" for="${id}" style="border-color: ${checked ? pairColor : 'transparent'}; margin-bottom:1px;">
+                            <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
+                            <span class="chip-label" style="color:${pairColor};">${p}</span>
+                            <span class="chip-count">[${cnt}]</span>
+                        </label>
+                        <div class="chip-sub-info">${chainsStrShort}</div>
+                    </div>
                 `));
             });
             $pairSection.append($pairGrid);
