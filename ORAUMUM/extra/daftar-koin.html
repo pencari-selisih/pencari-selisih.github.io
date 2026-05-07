@@ -834,6 +834,15 @@
       return normalized;
     }
 
+    // Hitung storage prefix dari CONFIG_APP (sama seperti main app)
+    const STORAGE_PREFIX = (function () {
+      try {
+        const name = window.CONFIG_APP?.APP?.NAME || window.CONFIG_DB?.NAME || '';
+        const safe = String(name).replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').toUpperCase();
+        return safe ? safe + '_' : '';
+      } catch (_) { return ''; }
+    })();
+
     async function readIDB() {
       return new Promise(res => {
         try {
@@ -850,7 +859,12 @@
             cursorReq.onsuccess = (e) => {
               const cursor = e.target.result;
               if (cursor) {
-                const key = cursor.key;
+                const rawKey = String(cursor.key);
+                // Strip storage prefix (misal OPIT_HUNTER_) sebelum cek pola kunci
+                const key = STORAGE_PREFIX && rawKey.startsWith(STORAGE_PREFIX)
+                  ? rawKey.slice(STORAGE_PREFIX.length)
+                  : rawKey;
+
                 if (key.startsWith('TOKEN_') || key.startsWith('KOIN_') || key === 'ENABLED_CHAINS' || key === 'ENABLED_CEXS') {
                   results[key] = cursor.value.val;
                 }
@@ -946,8 +960,11 @@
         Object.keys(idbResults).forEach(key => {
           if (key.startsWith('TOKEN_') || key.startsWith('KOIN_')) {
             const prefix = key.startsWith('TOKEN_') ? 'TOKEN_' : 'KOIN_';
-            const rawId = key.replace(prefix, '').toLowerCase();
+            const rawId = key.slice(prefix.length).toLowerCase();
             const normId = normalizeChainId(rawId);
+
+            // Hanya proses jika chain ini ada di CHAINS yang aktif
+            if (!CHAINS[normId]) return;
 
             // Merge data jika ada duplikasi prefix (misal TOKEN_BSC dan KOIN_BSC)
             if (data[normId]) {
@@ -957,8 +974,10 @@
             }
           }
         });
-        isLive = true;
-      } else {
+        isLive = Object.keys(data).length > 0;
+      }
+
+      if (!isLive) {
         data = await loadJSON();
         isLive = false;
       }
