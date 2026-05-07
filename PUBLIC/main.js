@@ -1972,7 +1972,7 @@ async function deferredInit() {
             const fmNow = (isCEXModeNow && typeof getFilterCEX === 'function')
                 ? getFilterCEX(window.CEXModeManager.getSelectedCEX())
                 : getFilterMulti();
-            const chainsSel = fmNow.chains || [];
+            let chainsSel = fmNow.chains || [];
             let cexSel = fmNow.cex || [];
             const dexSel = (fmNow.dex || []).map(x => String(x).toLowerCase());
             let flat = isCEXModeNow
@@ -2014,7 +2014,22 @@ async function deferredInit() {
                 return;
             }
 
-            const byChain = flat.reduce((a, t) => { const k = String(t.chain || '').toLowerCase(); a[k] = (a[k] || 0) + 1; return a; }, {});
+            // --- 1. RECONCILE CHAINS (Dependent on CEX) ---
+            const byChain = flat.filter(t => (cexSel.length === 0 || cexSel.includes(String(t.cex || '').toUpperCase())))
+                .reduce((a, t) => { const k = String(t.chain || '').toLowerCase(); a[k] = (a[k] || 0) + 1; return a; }, {});
+
+            // Auto-unselect chains that are no longer supported by current CEX selection
+            const reconciledChains = chainsSel.filter(c => (byChain[c] || 0) > 0);
+            if (reconciledChains.length !== chainsSel.length) {
+                if (isCEXModeNow && typeof setFilterCEX === 'function') {
+                    setFilterCEX(window.CEXModeManager.getSelectedCEX(), { chains: reconciledChains });
+                } else if (typeof setFilterMulti === 'function') {
+                    setFilterMulti({ chains: reconciledChains });
+                }
+                chainsSel = reconciledChains;
+                fmNow.chains = reconciledChains;
+            }
+
             const byCex = flat.filter(t => (chainsSel.length === 0 || chainsSel.includes(String(t.chain || '').toLowerCase())))
                 .reduce((a, t) => { const k = String(t.cex || '').toUpperCase(); a[k] = (a[k] || 0) + 1; return a; }, {});
             const flatForDex = flat
@@ -2097,6 +2112,20 @@ async function deferredInit() {
             $headerRow.find('#modal-sum-container').append($sum);
             $wrap.append($headerRow);
 
+            // ✅ PRE-CALCULATE: Supported pairs per CHAIN based on actual token data
+            const pairsByChainInData = {};
+            flat.filter(t => (cexSel.length === 0 || cexSel.includes(String(t.cex || '').toUpperCase())))
+                .forEach(t => {
+                    const ck = String(t.chain || '').toLowerCase();
+                    const p = String(t.symbol_out || '').toUpperCase().trim();
+                    const chainCfg = CONFIG_CHAINS[ck] || {};
+                    const pd = chainCfg.PAIRDEXS || {};
+                    const pairKey = pd[p] ? p : 'NON';
+
+                    if (!pairsByChainInData[ck]) pairsByChainInData[ck] = new Set();
+                    pairsByChainInData[ck].add(pairKey);
+                });
+
             // Section 1: CHAIN (horizontal flex) - ✅ FILTERED BY ENABLED CHAINS
             const $chainSection = $('<div class="filter-box filter-box-chain"></div>');
             $chainSection.append($('<div class="filter-section-title">CHAIN</div>'));
@@ -2119,8 +2148,13 @@ async function deferredInit() {
                 const checked = chainsSel.includes(k.toLowerCase());
                 const col = CONFIG_CHAINS[k].WARNA || '#333';
 
+                // ✅ Get supported pairs for this chain
+                const pairsStr = Array.from(pairsByChainInData[k] || []).sort().join(', ');
+
                 $chainGrid.append($(`
-                    <label class="fc-chain filter-chip" data-val="${k.toLowerCase()}" data-color="${col}" for="${id}" style="border-color: ${checked ? col : 'transparent'};">
+                    <label class="fc-chain filter-chip" data-val="${k.toLowerCase()}" data-color="${col}" for="${id}" 
+                           title="Chain: ${CONFIG_CHAINS[k].Nama_Chain || k}\nSupported Pairs: ${pairsStr}"
+                           style="border-color: ${checked ? col : 'transparent'};">
                         <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
                         <span class="chip-label" style="color:${col};">${short}</span>
                         <span class="chip-count">[${cnt}]</span>
@@ -2209,6 +2243,7 @@ async function deferredInit() {
 
             const byPair = {};
             flat.filter(t => (chainsSel.length === 0 || chainsSel.includes(String(t.chain || '').toLowerCase())))
+                .filter(t => (cexSel.length === 0 || cexSel.includes(String(t.cex || '').toUpperCase())))
                 .forEach(t => {
                     const chainCfg = CONFIG_CHAINS[(t.chain || '').toLowerCase()] || {};
                     const pd = chainCfg.PAIRDEXS || {};
@@ -2217,9 +2252,24 @@ async function deferredInit() {
                     byPair[key] = (byPair[key] || 0) + 1;
                 });
 
+            // ✅ RECONCILE PAIR (Dependent on CHAIN & CEX)
+            const reconciledPair = pairSel.filter(p => (byPair[p] || 0) > 0);
+            if (reconciledPair.length !== pairSel.length) {
+                console.log(`[Filter Sync] Removing unsupported pairs: ${pairSel.filter(p => !reconciledPair.includes(p)).join(', ')}`);
+                if (isCEXModeNow && typeof setFilterCEX === 'function') {
+                    setFilterCEX(window.CEXModeManager.getSelectedCEX(), { pair: reconciledPair });
+                } else if (typeof setFilterMulti === 'function') {
+                    setFilterMulti({ pair: reconciledPair });
+                }
+                fmNow.pair = reconciledPair;
+            }
+            const pairSelFinal = fmNow.pair || [];
+
             // ✅ PRE-CALCULATE: Supported chains per PAIR based on actual token data
             const chainsByPairInData = {};
             flat.filter(t => (chainsSel.length === 0 || chainsSel.includes(String(t.chain || '').toLowerCase())))
+                .filter(t => (cexSel.length === 0 || cexSel.includes(String(t.cex || '').toUpperCase())))
+
                 .forEach(t => {
                     const ck = String(t.chain || '').toLowerCase();
                     const p = String(t.symbol_out || '').toUpperCase().trim();
@@ -2240,7 +2290,7 @@ async function deferredInit() {
             Object.keys(allPairDefs).forEach(p => {
                 const cnt = byPair[p] || 0;
                 if (cnt === 0) return;
-                const checked = pairSel.includes(p);
+                const checked = pairSelFinal.includes(p);
                 const pairColor = '#b4b8c0';
                 const id = `modal-fc-pair-${p}`;
 

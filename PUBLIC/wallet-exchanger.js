@@ -625,10 +625,9 @@
                 statusBadge = `<span class="uk-badge" style="background-color: #6c757d; color: white;">Belum ada data</span>`;
             }
 
-            // CEX mode atau hanya 1 CEX → full width (1 kolom)
-            const cardWidthClass = (isCEXMode || availableCexes.length === 1)
-                ? 'uk-width-1-1'
-                : 'uk-width-1-1 uk-width-1-2@m';
+            // ✅ Tampilan 2 kolom untuk MultiCEX (ALL) atau mode Favorit dengan banyak CEX
+            const isSingleCexDisplay = (isCEXMode && selectedCEX && selectedCEX !== 'ALL') || (availableCexes.length === 1);
+            const cardWidthClass = isSingleCexDisplay ? 'uk-width-1-1' : 'uk-width-1-1 uk-width-1-2@m';
 
             const cardHtml = `
                 <div class="wallet-cex-grid-item ${cardWidthClass}">
