@@ -2152,13 +2152,15 @@ async function deferredInit() {
                 const pairsStr = Array.from(pairsByChainInData[k] || []).sort().join(', ');
 
                 $chainGrid.append($(`
-                    <label class="fc-chain filter-chip" data-val="${k.toLowerCase()}" data-color="${col}" for="${id}" 
-                           title="Chain: ${CONFIG_CHAINS[k].Nama_Chain || k}\nSupported Pairs: ${pairsStr}"
-                           style="border-color: ${checked ? col : 'transparent'};">
-                        <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
-                        <span class="chip-label" style="color:${col};">${short}</span>
-                        <span class="chip-count">[${cnt}]</span>
-                    </label>
+                    <div style="display:flex; flex-direction:column; align-items:center;" title="Chain: ${CONFIG_CHAINS[k].Nama_Chain || k}\nSupported Pairs: ${pairsStr}">
+                        <label class="fc-chain filter-chip" data-val="${k.toLowerCase()}" data-color="${col}" for="${id}" 
+                               style="border-color: ${checked ? col : 'transparent'}; margin-bottom:1px;">
+                            <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
+                            <span class="chip-label" style="color:${col};">${short}</span>
+                            <span class="chip-count">[${cnt}]</span>
+                        </label>
+                        <div class="chip-sub-info">${pairsStr}</div>
+                    </div>
                 `));
             });
             $chainSection.append($chainGrid);
