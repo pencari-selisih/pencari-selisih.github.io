@@ -2119,30 +2119,12 @@ async function deferredInit() {
                 const checked = chainsSel.includes(k.toLowerCase());
                 const col = CONFIG_CHAINS[k].WARNA || '#333';
 
-                // ✅ Get supported CEXs for this chain (using full labels for title)
-                const walletCex = CONFIG_CHAINS[k].WALLET_CEX || {};
-                const supportedCexsFull = [];
-                const supportedCexsShort = [];
-                Object.keys(walletCex).forEach(cx => {
-                    const enabledCexList = (typeof getEnabledCEXs === 'function') ? getEnabledCEXs() : [];
-                    if (enabledCexList.includes(cx.toUpperCase())) {
-                        const label = window.CONFIG_CEX?.[cx]?.LABEL || cx;
-                        supportedCexsFull.push(label);
-                        supportedCexsShort.push(cx);
-                    }
-                });
-                const cexsStrShort = supportedCexsShort.join(', ');
-                const cexsStrFull = supportedCexsFull.join(', ');
-
                 $chainGrid.append($(`
-                    <div style="display:flex; flex-direction:column; align-items:center;" title="Chain: ${CONFIG_CHAINS[k].Nama_Chain}\nSupported Exchangers: ${cexsStrFull}">
-                        <label class="fc-chain filter-chip" data-val="${k.toLowerCase()}" data-color="${col}" for="${id}" style="border-color: ${checked ? col : 'transparent'}; margin-bottom:1px;">
-                            <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
-                            <span class="chip-label" style="color:${col};">${short}</span>
-                            <span class="chip-count">[${cnt}]</span>
-                        </label>
-                        <div class="chip-sub-info">${cexsStrShort}</div>
-                    </div>
+                    <label class="fc-chain filter-chip" data-val="${k.toLowerCase()}" data-color="${col}" for="${id}" style="border-color: ${checked ? col : 'transparent'};">
+                        <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
+                        <span class="chip-label" style="color:${col};">${short}</span>
+                        <span class="chip-count">[${cnt}]</span>
+                    </label>
                 `));
             });
             $chainSection.append($chainGrid);
@@ -2261,25 +2243,29 @@ async function deferredInit() {
                 $cexSection.append($('<div class="filter-section-title">EXCHANGER</div>'));
                 const $cexGrid = $('<div style="display:flex; flex-wrap:wrap; gap:6px;"></div>');
                 const enabledCEXs = (typeof getEnabledCEXs === 'function') ? getEnabledCEXs() : [];
+
+                // ✅ PRE-CALCULATE: Supported chains per CEX based on actual token data
+                const chainsByCexInData = {};
+                flat.forEach(t => {
+                    const cxKey = String(t.cex || '').toUpperCase();
+                    const ck = String(t.chain || '').toLowerCase();
+                    if (!chainsByCexInData[cxKey]) chainsByCexInData[cxKey] = { full: new Set(), short: new Set() };
+                    const short = (CONFIG_CHAINS[ck]?.Nama_Pendek || ck.substr(0, 3)).toUpperCase();
+                    const full = CONFIG_CHAINS[ck]?.Nama_Chain || ck;
+                    chainsByCexInData[cxKey].short.add(short);
+                    chainsByCexInData[cxKey].full.add(full);
+                });
+
                 enabledCEXs.forEach(cx => {
                     const id = `modal-fc-cex-${cx}`; const cnt = byCex[cx] || 0;
                     if (cnt === 0) return;
                     const checked = cexSel.includes(cx.toUpperCase());
                     const col = window.CONFIG_CEX?.[cx]?.WARNA || '#333';
 
-                    // ✅ Get supported chains for this CEX (using full names for title)
-                    const supportedChainsFull = [];
-                    const supportedChainsShort = [];
-                    Object.keys(CONFIG_CHAINS || {}).forEach(ck => {
-                        if (CONFIG_CHAINS[ck].WALLET_CEX?.[cx.toUpperCase()]) {
-                            const short = (CONFIG_CHAINS[ck].Nama_Pendek || ck.substr(0, 3)).toUpperCase();
-                            const full = CONFIG_CHAINS[ck].Nama_Chain || ck;
-                            supportedChainsShort.push(short);
-                            supportedChainsFull.push(full);
-                        }
-                    });
-                    const chainsStrShort = supportedChainsShort.join(', ');
-                    const chainsStrFull = supportedChainsFull.join(', ');
+                    // ✅ Get supported chains for this CEX from pre-calculated data
+                    const data = chainsByCexInData[cx.toUpperCase()] || { full: new Set(), short: new Set() };
+                    const chainsStrShort = Array.from(data.short).sort().join(', ');
+                    const chainsStrFull = Array.from(data.full).sort().join(', ');
                     const cexLabel = window.CONFIG_CEX?.[cx]?.LABEL || cx;
 
                     $cexGrid.append($(`
