@@ -1551,7 +1551,7 @@
         }
 
         .cex-api-scroll {
-            max-height: 390px;
+            max-height: 450px;
             overflow-y: auto;
             padding-right: 4px;
         }
@@ -2494,12 +2494,23 @@
                             </div>
                         </div>
 
-                        <div class="uk-margin-small">
-                            <label class="uk-form-label uk-text-bold">Multi Wallet Addresses</label>
-                            <textarea id="multiWallets" class="uk-textarea" rows="10"
-                                style="font-size: 0.9rem; line-height: 1.5; font-family: 'Roboto Mono', monospace;"
-                                placeholder="Enter wallet addresses, one per line..."></textarea>
-                        </div>
+	                        <div class="uk-margin-small">
+	                            <label class="uk-form-label uk-text-bold">
+	                                <span uk-icon="icon: world"></span> EVM Wallet Addresses
+	                            </label>
+	                            <textarea id="evmWallets" class="uk-textarea" rows="6"
+	                                style="font-size: 0.9rem; line-height: 1.5; font-family: 'Roboto Mono', monospace;"
+	                                placeholder="Enter EVM wallet addresses (0x...), one per line..."></textarea>
+	                        </div>
+
+	                        <div class="uk-margin-small">
+	                            <label class="uk-form-label uk-text-bold">
+	                                <span uk-icon="icon: bolt"></span> Solana Wallet Addresses
+	                            </label>
+	                            <textarea id="solanaWallets" class="uk-textarea" rows="6"
+	                                style="font-size: 0.9rem; line-height: 1.5; font-family: 'Roboto Mono', monospace;"
+	                                placeholder="Enter Solana wallet addresses, one per line..."></textarea>
+	                        </div>
                     </div>
 
                     <!-- Modal Kalkulator -->
@@ -2694,7 +2705,7 @@
 
             // Paging state for PNL history
             let pnlCurrentPage = 0;
-            const PNL_PAGE_SIZE = 15; // jumlah item per halaman
+            const PNL_PAGE_SIZE = 10; // jumlah item per halaman
 
             // ============================================
             // LOADING OVERLAY CONTROLLER
@@ -3765,116 +3776,127 @@
                 });
             }
 
-            $('#SaveWalletChains').on('click', async function () {
-                $(this).prop('disabled', true);
+	            const EVM_WALLET_CHAINS = ['ethereum', 'bsc', 'polygon', 'base', 'arbitrum', 'avax'];
+	            const SOLANA_WALLET_CHAINS = ['solana'];
 
-                const walletInput = $('#multiWallets').val() || '';
-                const wallets = walletInput.split(/[\n,]+/).map(w => w.trim()).filter(w => w.length > 0);
+	            function parseWalletInput(selector) {
+	                return ($(selector).val() || '').split(/[\n,]+/).map(w => w.trim()).filter(w => w.length > 0);
+	            }
 
-                const checkedChains = [];
-                const CHAINS_LIST = ['ETHEREUM', 'BSC', 'POLYGON', 'BASE', 'ARBITRUM', 'AVAX', 'SOLANA'];
-                CHAINS_LIST.forEach(c => {
-                    if ($(`#${c}`).is(':checked')) checkedChains.push(c.toLowerCase());
-                });
+	            function getCheckedWalletChains(allowedChains) {
+	                return allowedChains.filter(chain => $(`#${chain.toUpperCase()}`).is(':checked'));
+	            }
 
-                // Show loading overlay only if not already active
-                const isStandaloneCall = !window.BalanceCheckOverlay.isActive;
-                if (isStandaloneCall) {
-                    window.BalanceCheckOverlay.show(
-                        'Cek Saldo Wallet',
-                        'Mengambil data saldo dari multi-wallet chains...'
-                    );
-                    window.BalanceCheckOverlay.updateProgress(10, 'Memvalidasi input...');
-                }
+	            function getWalletExplorerLink(wallet, chainKey) {
+	                const explorerLinks = {
+	                    ethereum: address => `https://etherscan.io/address/${address}`,
+	                    bsc: address => `https://bscscan.com/address/${address}`,
+	                    polygon: address => `https://polygonscan.com/address/${address}`,
+	                    base: address => `https://basescan.org/address/${address}`,
+	                    arbitrum: address => `https://arbiscan.io/address/${address}`,
+	                    avax: address => `https://snowtrace.io/address/${address}`,
+	                    solana: address => `https://solscan.io/account/${address}`
+	                };
+	                return (explorerLinks[chainKey] || explorerLinks.ethereum)(wallet);
+	            }
 
-                if (wallets.length === 0) {
-                    $('#output_chain').html('<tr><td colspan="5" class="uk-text-danger">Masukkan minimal satu wallet address!</td></tr>');
-                    $('#assetTableWallet').show();
-                    $(this).prop('disabled', false);
-                    $(document).trigger('WalletCheckCompleted');
-                    if (isStandaloneCall) window.BalanceCheckOverlay.hide();
-                    return;
-                }
+	            $('#SaveWalletChains').on('click', async function () {
+	                $(this).prop('disabled', true);
 
-                if (checkedChains.length === 0) {
-                    $('#output_chain').html('<tr><td colspan="5" class="uk-text-danger">Pilih minimal satu chain!</td></tr>');
-                    $('#assetTableWallet').show();
-                    $(this).prop('disabled', false);
-                    $(document).trigger('WalletCheckCompleted');
-                    if (isStandaloneCall) window.BalanceCheckOverlay.hide();
-                    return;
-                }
+	                const evmWallets = parseWalletInput('#evmWallets');
+	                const solanaWallets = parseWalletInput('#solanaWallets');
+	                const evmChains = getCheckedWalletChains(EVM_WALLET_CHAINS);
+	                const solanaChains = getCheckedWalletChains(SOLANA_WALLET_CHAINS);
+	                const walletJobs = [
+	                    ...evmWallets.map(wallet => ({ wallet, chains: evmChains })),
+	                    ...solanaWallets.map(wallet => ({ wallet, chains: solanaChains }))
+	                ].filter(job => job.chains.length > 0);
 
-                $('#output_chain').html('<tr><td colspan="5">Loading...</td></tr>');
-                $('#assetTableWallet').show();
+	                // Show loading overlay only if not already active
+	                const isStandaloneCall = !window.BalanceCheckOverlay.isActive;
+	                if (isStandaloneCall) {
+	                    window.BalanceCheckOverlay.show(
+	                        'Cek Saldo Wallet',
+	                        'Mengambil data saldo dari wallet EVM dan Solana...'
+	                    );
+	                    window.BalanceCheckOverlay.updateProgress(10, 'Memvalidasi input...');
+	                }
 
-                const totalOperations = wallets.length * checkedChains.length;
-                window.BalanceCheckOverlay.updateProgress(30, `Memproses ${totalOperations} kombinasi wallet & chain...`);
+	                if (evmWallets.length === 0 && solanaWallets.length === 0) {
+	                    $('#output_chain').html('<tr><td colspan="5" class="uk-text-danger">Masukkan minimal satu wallet address EVM atau Solana!</td></tr>');
+	                    $('#assetTableWallet').show();
+	                    $(this).prop('disabled', false);
+	                    $(document).trigger('WalletCheckCompleted');
+	                    if (isStandaloneCall) window.BalanceCheckOverlay.hide();
+	                    return;
+	                }
 
-                try {
-                    window.BalanceCheckOverlay.updateProgress(50, 'Mengambil saldo dari OKX Web3 API...');
+	                if (walletJobs.length === 0) {
+	                    $('#output_chain').html('<tr><td colspan="5" class="uk-text-danger">Pilih chain yang sesuai dengan input wallet EVM atau Solana!</td></tr>');
+	                    $('#assetTableWallet').show();
+	                    $(this).prop('disabled', false);
+	                    $(document).trigger('WalletCheckCompleted');
+	                    if (isStandaloneCall) window.BalanceCheckOverlay.hide();
+	                    return;
+	                }
 
-                    const results = [];
-                    const wallets = $('#multiWallets').val().split('\n').map(a => a.trim()).filter(a => a.length > 5);
-                    const checkedChains = [];
-                    $('input.uk-checkbox:checked').each(function () {
-                        const id = $(this).attr('id');
-                        if (OKX_CHAIN_MAP[id.toLowerCase()]) checkedChains.push(id.toLowerCase());
-                    });
+	                $('#output_chain').html('<tr><td colspan="5">Loading...</td></tr>');
+	                $('#assetTableWallet').show();
 
-                    if (wallets.length === 0) {
-                        if (typeof toast !== 'undefined' && toast.error) toast.error("Masukkan minimal satu wallet address.");
-                        window.BalanceCheckOverlay.hide();
-                        return;
-                    }
+	                const totalOperations = walletJobs.reduce((sum, job) => sum + job.chains.length, 0);
+	                window.BalanceCheckOverlay.updateProgress(30, `Memproses ${totalOperations} kombinasi wallet & chain...`);
 
-                    let processed = 0;
-                    const totalWallets = wallets.length;
+	                try {
+	                    window.BalanceCheckOverlay.updateProgress(50, 'Mengambil saldo dari OKX Web3 API...');
 
-                    // Execute each wallet check sequentially with a delay to avoid rate limiting
-                    for (const wallet of wallets) {
-                        try {
-                            const tokens = await fetchBalancesOKXWeb3(wallet, checkedChains);
+	                    const results = [];
+	                    let processed = 0;
+	                    const totalWallets = walletJobs.length;
 
-                            // Transform OKX tokens into our result format
-                            tokens.forEach(t => {
-                                const bal = parseFloat(t.balance) || 0;
-                                const price = parseFloat(t.tokenPrice) || 0;
-                                const usdValue = bal * price;
+	                    // Execute each wallet check sequentially with a delay to avoid rate limiting
+	                    for (const { wallet, chains } of walletJobs) {
+	                        try {
+	                            const tokens = await fetchBalancesOKXWeb3(wallet, chains);
 
-                                // Identify internal chain key from OKX chainIndex
-                                const cId = String(t.chainIndex);
-                                const cKey = OKX_ID_TO_KEY[cId] || 'unknown';
+	                            // Transform OKX tokens into our result format
+	                            tokens.forEach(t => {
+	                                const bal = parseFloat(t.balance) || 0;
+	                                const price = parseFloat(t.tokenPrice) || 0;
+	                                const usdValue = bal * price;
 
-                                // Filter $1 and non-zero balances
-                                if (usdValue >= MIN_DISPLAY_USDT) {
-                                    results.push({
-                                        walletAddress: wallet,
-                                        chainKey: cKey,
-                                        chainName: cKey.toUpperCase(),
-                                        assetBalance: bal.toFixed(4),
-                                        assetSymbol: t.symbol,
-                                        gasBalance: '-',
-                                        gasSymbol: '',
-                                        gasBalanceInUSD: '0',
-                                        totalBalanceInUSD: usdValue.toFixed(2),
-                                        walletLink: `https://etherscan.io/address/${wallet}`
-                                    });
-                                }
-                            });
-                        } catch (e) {
-                            console.error(`Error checking wallet ${wallet}:`, e);
-                        } finally {
-                            processed++;
-                            const progress = 50 + (processed / totalWallets) * 40;
-                            window.BalanceCheckOverlay.updateProgress(progress, `Diproses ${processed}/${totalWallets} wallet...`);
-                        }
+	                                // Identify internal chain key from OKX chainIndex
+	                                const cId = String(t.chainIndex);
+	                                const cKey = OKX_ID_TO_KEY[cId] || 'unknown';
 
-                        // Add a small delay between each wallet call (500ms)
-                        if (processed < totalWallets) {
-                            await new Promise(resolve => setTimeout(resolve, 500));
-                        }
-                    }
+	                                // Filter $1 and non-zero balances
+	                                if (usdValue >= MIN_DISPLAY_USDT) {
+	                                    results.push({
+	                                        walletAddress: wallet,
+	                                        chainKey: cKey,
+	                                        chainName: cKey.toUpperCase(),
+	                                        assetBalance: bal.toFixed(4),
+	                                        assetSymbol: t.symbol,
+	                                        gasBalance: '-',
+	                                        gasSymbol: '',
+	                                        gasBalanceInUSD: '0',
+	                                        totalBalanceInUSD: usdValue.toFixed(2),
+	                                        walletLink: getWalletExplorerLink(wallet, cKey)
+	                                    });
+	                                }
+	                            });
+	                        } catch (e) {
+	                            console.error(`Error checking wallet ${wallet}:`, e);
+	                        } finally {
+	                            processed++;
+	                            const progress = 50 + (processed / totalWallets) * 40;
+	                            window.BalanceCheckOverlay.updateProgress(progress, `Diproses ${processed}/${totalWallets} wallet...`);
+	                        }
+
+	                        // Add a small delay between each wallet call (500ms)
+	                        if (processed < totalWallets) {
+	                            await new Promise(resolve => setTimeout(resolve, 500));
+	                        }
+	                    }
 
                     window.BalanceCheckOverlay.updateProgress(95, 'Menghitung total on-chain...');
 
@@ -4564,8 +4586,14 @@
                     $("#RPMODAL_TOP, #RPMODAL_GRID").text(formattedIdr);
                 }).catch(e => console.warn('[Load] Error konversi modal:', e));
 
-                const savedMultiWallets = localStorage.getItem('MULTI_multiWallets');
-                if (savedMultiWallets) $('#multiWallets').val(savedMultiWallets);
+	                const savedEvmWallets = localStorage.getItem('MULTI_evmWallets');
+	                const savedSolanaWallets = localStorage.getItem('MULTI_solanaWallets');
+	                const savedMultiWallets = localStorage.getItem('MULTI_multiWallets');
+	                if (savedEvmWallets) $('#evmWallets').val(savedEvmWallets);
+	                if (savedSolanaWallets) $('#solanaWallets').val(savedSolanaWallets);
+	                if (!savedEvmWallets && !savedSolanaWallets && savedMultiWallets) {
+	                    $('#evmWallets').val(savedMultiWallets);
+	                }
                 restoreCEXCredentialInputs();
 
                 const CHAINS_LIST = ['ETHEREUM', 'BSC', 'POLYGON', 'BASE', 'ARBITRUM', 'AVAX', 'SOLANA'];
